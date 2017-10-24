@@ -1,0 +1,113 @@
+---
+title: "Identify and chop adaptors from reads and return FASTQ file of chopped reads"
+author: "Florian Bieberich"
+date: "10/13/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+require("knitr")
+opts_knit$set(root.dir = "/Users/florian/Desktop/Cambridge_Bioinformatics/Pipeline_project/R_workspace/")
+```
+
+```{r a, echo=FALSE, include=FALSE}
+source("https://bioconductor.org/biocLite.R")
+biocLite("Biostrings")
+biocLite("ShortRead")
+biocLite("stringr")
+library(stringr)
+library(ShortRead)
+library(Biostrings)
+```
+
+Code to initially chop adaptors (such as UMI's or ISPCR's) from the fastq data from ONT sequencing.
+Read in FASTQ file.
+
+```{r b}
+cell4q <- readFastq("cell4.fastq", withIds=TRUE)
+```
+
+Supplementary information about Biostrings manipulation:
+
+```{r c, eval=FALSE}
+head(quality(cell4q)) #qualityscore of read
+head(id(cell4q)) #name of read
+head(sread(cell4q)) #sequence of read
+```
+
+Adaptor pattern assignment and pairwise alignment with reads from FASTQ with adaptor pattern was performed in a local-global manner (align consecutive subsequence of pattern with whole strings in subject).
+
+```{r d}
+Adaptor_pattern <- DNAString("AAGCAGTGGTATCAACGCAGAGT")
+Adaptor_pattern_rev <- reverseComplement(Adaptor_pattern)
+align_c4ISPCR_fwd <- pairwiseAlignment(sread(cell4q), Adaptor_pattern, type="local-global") 
+align_c4ISPCR_rev <- pairwiseAlignment(sread(cell4q), Adaptor_pattern_rev, type="local-global")
+```
+
+Determining location and length of read-adaptor-alignment for each read.
+
+```{r e}
+start_c4_fwd <- start(pattern(align_c4ISPCR_fwd))#start of the alignments in the reads
+end_c4_fwd <- end(pattern(align_c4ISPCR_fwd))
+start_c4_rev <- start(pattern(align_c4ISPCR_rev))
+end_c4_rev <- end(pattern(align_c4ISPCR_rev))
+c4_fwd_len <- (end_c4_fwd - start_c4_fwd)#length of alignment
+c4_fwd <- cbind(start_c4_fwd, end_c4_fwd, c4_fwd_len)
+c4_rev_len <- (end_c4_rev - start_c4_rev)
+c4_rev <- cbind(start_c4_rev, end_c4_rev, c4_rev_len)
+```
+
+Visualisation of alignment, start of ISPCR adaptor vs. length of ISPCR adaptor alignment (x vs. y)
+
+```{r f, echo=FALSE}
+smoothScatter(c4_fwd[,1], c4_fwd[,3]) 
+smoothScatter(c4_rev[,1], c4_rev[,3])
+```
+
+Filter reads with adaptor alignment of length >19 for both forward and reverse.
+
+```{r g}
+cf19 <- c4_fwd[,3]>19
+cr19 <- c4_rev[,3]>19
+cfr_index19 <- cf19&cr19 #reads with both fwd and rev alignments >19 
+corr_c4_fwd <- c4_fwd[cfr_index19,] #Adaptor alignments longer than 19 bases
+corr_c4_rev <- c4_rev[cfr_index19,]
+```
+
+Identification of embedded read.
+
+```{r h}
+embed_c4 <- cbind(corr_c4_fwd[,2], corr_c4_rev[,1]) #embedded read in between ISPCR adaptors
+embed_seq_c4 <- cbind(embed_c4, (embed_c4[,2]-embed_c4[,1])) #start, end and length of embedded read
+filtered_c4qual <- quality(cell4q[cfr_index19]) #quality of filtered reads
+filtered_c4seq <- sread(cell4q[cfr_index19]) #sequence of filtered reads
+```
+
+Retrievement of embedded read sequence and the respective quality - "Chopping".
+
+```{r i}
+chopped_c4_seq <- str_sub(filtered_c4seq, embed_seq_c4[,1], embed_seq_c4[,2]) #substrings of read sequence embedded in ISPCR adaptors that have alignment with more than 19 bases 
+chopped_c4_qual <- str_sub(PhredQuality(filtered_c4qual), embed_seq_c4[,1], embed_seq_c4[,2]) #substrings of read quality embedded in ISPCR adaptors that have alignment with more than 19 bases 
+```
+
+Formatting of read sequence and quality into Biosting format to put it out as a FASTQ file.
+
+```{r j}
+chopped_c4_seq <- BStringSet(chopped_c4_seq) #formatting
+chopped_c4_qual <- BStringSet(chopped_c4_qual)
+```
+
+Assignment of respective names to chopped reads.
+
+```{r k}
+names(chopped_c4_seq) <- id(cell4q[cfr_index19]) 
+```
+
+Write chopped reads as output in FASTQ file.
+
+```{r l}
+writeXStringSet(chopped_c4_seq, "/Users/florian/Desktop/Cambridge_Bioinformatics/Pipeline_project/chopped_c4_readsq.fastq", format = "fastq", qualities= chopped_c4_qual) #write fastq file from XStringSet
+```
+
+
