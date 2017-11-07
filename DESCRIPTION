@@ -1,0 +1,23 @@
+Package: SarlaccSeq
+Version: 1.0
+Date: 2017-11-07
+Title: Pipeline for Oxford Nanopore Single-Cell RNA-Seq Data Analysis
+Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
+        "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "ctb"))
+Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
+Depends: R (>= 3.4), GenomicAlignments, Rsamtools, GenomicRanges, 
+          TxDb.Mmusculus.UCSC.mm10.knownGene, GenomicFeatures,
+          AnnotationDbi, muscle, seqinr, msa, DECIPHER, stringr, 
+          ShortRead, Biostrings
+Imports: 
+Suggests:
+Description: Implements a variety of low-level analyses of single-cell 
+        RNA-seq data. Methods are provided for normalization of 
+        cell-specific biases, assignment of cell cycle phase, and 
+        detection of highly variable and significantly correlated genes.
+License: GPL-3
+NeedsCompilation: yes
+VignetteBuilder: knitr
+SystemRequirements: C++11
+LinkingTo: 
+Author: Florina Bieberich [aut, cre], Aaron Lun [ctb]
