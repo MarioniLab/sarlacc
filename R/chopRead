@@ -2,6 +2,9 @@ chopRead <- function(align_fwd_filt, align_rev_filt, fastqseq, ind_pre, ind_fwd,
 
 #Still need to define the score (currently 8)
 #Chop read and quality score and return list of both
+#After chopping, chopRead reverse complements the rev reads and reverses the phredscores.
+#Additionally, all reads and phredscores are named with their corresponding read name from the initial fastq file.
+#It return reads and phredscores as a DNAStringSet and BStringSet, respectively (rev reads/phredscores have been added to the StringSet behind the fwd reads/phredscores)
 
 {
     start_fwd <- start(pattern(align_fwd_filt[score(align_fwd_filt)>score_filter]))
