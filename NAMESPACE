@@ -1,0 +1,24 @@
+export(
+    UMIAlignfastq, chopRead, UMIRetriev, 
+    UMIfilt, UMIlevenshtein, UMImatrix, UMIgraph, UMIcluster, UMIindex, 
+    alignPrep, readOverlap, clusterGrouping, clusterReads, mColAdd, geneClusterReadAssign, seqAddAssign, clusterGeneReadFilter,
+    MSA, consSeqMajority
+)
+
+importFrom("muscle", muscle)
+
+
+# packages in "Depends":
+import(GenomicAlignments)
+import(Rsamtools)
+import(GenomicRanges)
+import(TxDb.Mmusculus.UCSC.mm10.knownGene)?
+import(GenomicFeatures)?
+import(AnnotationDbi)?
+import(muscle)
+import(seqinr)
+import(msa)?
+import(DECIPHER)?
+import(stringr)
+import(ShortRead)
+import(Biostrings)
