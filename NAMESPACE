@@ -1,6 +1,6 @@
 export(
     UMIAlignfastq, chopRead, UMIRetriev, 
-    UMIfilt, UMIlevenshtein, UMImatrix, UMIgraph, UMIcluster, UMIindex, 
+    UMIfilt, UMIgraph, UMIcluster, UMIindex, 
     alignPrep, readOverlap, clusterGrouping, clusterReads, mColAdd, geneClusterReadAssign, seqAddAssign, clusterGeneReadFilter,
     MSA, consSeqMajority
 )
