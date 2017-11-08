@@ -13,7 +13,7 @@ importFrom("ShortRead", readFastq, sread, id)
 importFrom("tcR", reverse.string)
 importFrom("seqinr", read.fasta)
 importFrom("stringdist", stringdist)
-importFrom("graph.adjacency", components, graph.adjacency, membership)
+importFrom("igraph", components, graph.adjacency, membership)
 
 
 
