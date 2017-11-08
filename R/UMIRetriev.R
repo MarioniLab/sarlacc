@@ -45,8 +45,8 @@ UMIRetriev <- function(align_fwd_filt, align_rev_filt, ind_fwd, ind_rev, fastqse
     }
     
     
-    names(UMI_fwd.collide) <- (ShortRead::id(fastqseq)[ind_fwd]
-    names(UMI_rev.collide) <- (ShortRead::id(fastqseq)[ind_rev]
+    names(UMI_fwd.collide) <- ShortRead::id(fastqseq)[ind_fwd]
+    names(UMI_rev.collide) <- ShortRead::id(fastqseq)[ind_rev]
     
     UMIs <- DNAStringSet(as.character(c(UMIf.collide, UMIr.collide)))
     
