@@ -1,15 +1,14 @@
-Package: SarlaccSeq
+Package: sarlacc
 Version: 1.0
-Date: 2017-11-07
+Date: 2017-11-08
 Title: Pipeline for Oxford Nanopore Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
         "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "ctb"))
 Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
-Depends: R (>= 3.4), GenomicAlignments, Rsamtools, GenomicRanges, 
-          TxDb.Mmusculus.UCSC.mm10.knownGene, GenomicFeatures,
-          AnnotationDbi, muscle, seqinr, msa, DECIPHER, stringr, 
-          ShortRead, Biostrings
-Imports: 
+Depends: R (>= 3.4), GenomicAlignments, GenomicRanges, 
+          TxDb.Mmusculus.UCSC.mm10.knownGene, Biostrings, S4Vectors
+Imports: GenomicFeatures, AnnotationDbi, ShortRead, 
+	tcR, muscle, seqinr, stringdist, igraph
 Suggests:
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
