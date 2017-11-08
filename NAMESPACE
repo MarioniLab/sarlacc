@@ -6,19 +6,22 @@ export(
 )
 
 importFrom("muscle", muscle)
+importFrom("GenomicAlignments", cigarWidthAlongReferenceSpace, cigarWidthAlongQuerySpace)
+importFrom("GenomicFeatures", exons)
+importFrom("AnnotationDbi", mapIds)
+importFrom("ShortRead", readFastq, sread, id)
+importFrom("tcR", reverse.string)
+importFrom("seqinr", read.fasta)
+importFrom("stringdist", stringdist)
+importFrom("graph.adjacency", components, graph.adjacency, membership)
+
+
+
 
 
 # packages in "Depends":
 import(GenomicAlignments)
-import(Rsamtools)
 import(GenomicRanges)
 import(TxDb.Mmusculus.UCSC.mm10.knownGene)
-import(GenomicFeatures)
-import(AnnotationDbi)
-import(muscle)
-import(seqinr)
-import(msa)
-import(DECIPHER)
-import(stringr)
-import(ShortRead)
 import(Biostrings)
+import(S4Vectors)
