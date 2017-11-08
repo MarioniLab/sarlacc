@@ -1,4 +1,4 @@
-UMIgraph <- function(UMI_unique_sort, levenshtein_filt = 1, UMIs)
+UMIgraph <- function(UMI_unique_sort, levenshtein_filt = 1, UMIs, levenshtein_max = 6)
     #Filtered UMI's are compared by computing the levenshtein distance to each other UMI available in the list.
     #The levenshtein distance is used to measure the difference between two strings.
     #It is defined as the minimum number of single character changes (substitutions, insertions, deletions) required to transform one string into the other.
@@ -6,7 +6,7 @@ UMIgraph <- function(UMI_unique_sort, levenshtein_filt = 1, UMIs)
 {
     
     #Getting the levenshtein distance between every UMI.
-    UMI_levenshtein.out <- .UMIlevenshtein(UMI_unique_sort = UMI_unique_sort, levenshtein_max = 6)
+    UMI_levenshtein.out <- .UMIlevenshtein(UMI_unique_sort = UMI_unique_sort, levenshtein_max = levenshtein_max)
     
     sortedUMI <- vector("list", length(UMI_levenshtein.out))
     for (i in 1:length(UMI_levenshtein.out)){

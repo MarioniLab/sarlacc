@@ -7,11 +7,11 @@ UMIAlignfastq <- function(UMI, fastqseq, align_pos = 50, score_filter = 8)
     
 {
     UMI_rev <- reverseComplement(UMI)
-    align_fwd <- pairwiseAlignment(head(sread(fastqseq)), UMI, type="local-global")
-    align_rev <- pairwiseAlignment(head(sread(fastqseq)), UMI_rev, type="local-global")
+    align_fwd <- pairwiseAlignment(sread(fastqseq), UMI, type="local-global")
+    align_rev <- pairwiseAlignment(sread(fastqseq), UMI_rev, type="local-global")
     
     ind_fwd <- start(pattern(align_fwd)) < align_pos & score(align_fwd) > score_filter
-    ind_rev <- nchar(head(sread(fastqseq)))-end(pattern(align_rev)) < align_pos&score(align_rev) > score_filter
+    ind_rev <- nchar(sread(fastqseq))-end(pattern(align_rev)) < align_pos&score(align_rev) > score_filter
     ind_pre <- ind_fwd_pre!=ind_rev_pre
     
     ind_fwd[!ind_pre] <- FALSE
@@ -20,9 +20,9 @@ UMIAlignfastq <- function(UMI, fastqseq, align_pos = 50, score_filter = 8)
     align_fwd_filt <- align_fwd[ind_fwd]
     align_rev_filt <- align_rev[ind_rev]
     
-    qual_filt <- head(quality(fastqseq))[ind_pre]
+    qual_filt <- quality(fastqseq)[ind_pre]
     
-    names_filt <- head(ShortRead::id(fastqseq))[ind_pre]
+    names_filt <- ShortRead::id(fastqseq)[ind_pre]
     
     return(list(align_fwd_filt,align_rev_filt, qual_filt, names_filt, ind_pre, ind_fwd, ind_rev))
 }
