@@ -4,24 +4,16 @@ UMIRetriev <- function(align_fwd_filt, align_rev_filt, ind_fwd, ind_rev, fastqse
 {
     UMI_seq_fwd <- vector("list", length(align_fwd_filt))
     for (i in 1:length(align_fwd_filt)){
-        if (start(indel(subject(align_fwd_filt)))[[i]] <= UMI_fwd_start){
-            UMI_fwd_start1 <- UMI_fwd_start + width(indel(subject(align_fwd_filt)))
-            UMI_fwd_end1 <- UMI_fwd_end + width(indel(subject(align_fwd_filt)))
-            UMI_seq_fwd[i] <- DNAStringSet(str_sub(pattern(align_fwd_filt),UMI_fwd_start1, UMI_fwd_end1))
-        } else{
-            UMI_seq_fwd[i] <- DNAStringSet(str_sub(pattern(align_fwd_filt),UMI_fwd_start, UMI_fwd_end))
-        }
+        UMI_fwd_start1 <- UMI_fwd_start + sum(width(indel(subject(align_fwd_filt)))[i][start(indel(subject(align_fwd_filt)))[i] <= UMI_fwd_start])
+        UMI_fwd_end1 <- UMI_fwd_end + sum(width(indel(subject(align_fwd_filt)))[i][start(indel(subject(align_fwd_filt)))[i] <= UMI_fwd_start])
+        UMI_seq_fwd[[i]] <- DNAStringSet(str_sub(pattern(align_fwd_filt[i]),UMI_fwd_start1, UMI_fwd_end1))
     }
     
     UMI_seq_revcomp <- vector("list", length(align_rev_filt))
     for (i in 1:length(align_rev_filt)){
-        if (start(indel(subject(align_rev_filt)))[[i]] >= UMI_rev_start){
-            UMI_rev_start1 <- UMI_rev_start + width(indel(subject(align_rev_filt)))
-            UMI_rev_end1 <- UMI_rev_end + width(indel(subject(align_rev_filt)))
-            UMI_seq_revcomp[i] <- reverseComplement(DNAStringSet(str_sub(pattern(align_rev_filt),UMI_rev_start1, UMI_rev_end1)))
-        } else{
-            UMI_seq_revcomp[i] <- reverseComplement(DNAStringSet(str_sub(pattern(align_rev_filt),UMI_rev_start, UMI_rev_end)))
-        }
+        UMI_rev_start1 <- UMI_rev_start + sum(width(indel(subject(align_rev_filt)))[i][start(indel(subject(align_rev_filt)))[i] <= UMI_rev_start])
+        UMI_rev_end1 <- UMI_rev_end + sum(width(indel(subject(align_rev_filt)))[i][start(indel(subject(align_rev_filt)))[i] <= UMI_rev_start])
+        UMI_seq_revcomp[[i]] <- DNAStringSet(str_sub(pattern(align_rev_filt[i]),UMI_rev_start1, UMI_rev_end1))
     }
     
     UMIf.collide <- vector("list", length(UMI_seq_fwd))
@@ -53,3 +45,4 @@ UMIRetriev <- function(align_fwd_filt, align_rev_filt, ind_fwd, ind_rev, fastqse
     
     return(UMIs)
 }
+
