@@ -1,4 +1,4 @@
-chopRead <- function(align_fwd_filt, align_rev_filt, fastqseq, ind_pre, ind_fwd, ind_rev, score_filter = 8)
+chopRead <- function(align_start_filt, align_end_filt, align_revcomp_start_filt, align_revcomp_end_filt, fastqseq, ind_comb, ind, ind_revcomp, score_filter = 8)
     
     #Still need to define the score (currently 8)
     #Chop read and quality score and return list of both
@@ -7,32 +7,48 @@ chopRead <- function(align_fwd_filt, align_rev_filt, fastqseq, ind_pre, ind_fwd,
     #It return reads and phredscores as a DNAStringSet and BStringSet, respectively (rev reads/phredscores have been added to the StringSet behind the fwd reads/phredscores)
     
 {
-    start_fwd <- start(pattern(align_fwd_filt[score(align_fwd_filt)>score_filter]))
-    end_fwd <- end(pattern(align_fwd_filt[score(align_fwd_filt)>score_filter]))
-    start_rev <- start(pattern(align_rev_filt[score(align_rev_filt)>score_filter]))
-    end_rev <- end(pattern(align_rev_filt[score(align_rev_filt)>score_filter]))
+    starta1 <- start(pattern(align_start_filt[score(align_start_filt)>score_filter]))
+    enda1 <- end(pattern(align_start_filt[score(align_start_filt)>score_filter]))
+    starta2 <- start(pattern(align_end_filt[score(align_end_filt)>score_filter]))
+    enda2 <- end(pattern(align_end_filt[score(align_end_filt)>score_filter]))
     
-    chop_read_fwd <- DNAStringSet(str_sub(sread(fastqseq)[ind_fwd], end_fwd+1))
-    chop_read_rev <- DNAStringSet(str_sub(sread(fastqseq)[ind_rev], end=start_rev-1))
+    starta1_revcomp <- start(pattern(align_revcomp_start_filt[score(align_revcomp_start_filt)>score_filter]))
+    enda1_revcomp <- end(pattern(align_revcomp_start_filt[score(align_revcomp_start_filt)>score_filter]))
+    starta2_revcomp<- start(pattern(align_revcomp_end_filt[score(align_revcomp_end_filt)>score_filter]))
+    enda2_revcomp <- end(pattern(align_revcomp_end_filt[score(align_revcomp_end_filt)>score_filter]))
     
-    chop_qual_fwd <- BStringSet(str_sub(quality(getClass(quality(fastqseq)))[ind_fwd], end_fwd+1))
-    chop_qual_rev <- BStringSet(str_sub(quality(getClass(quality(fastqseq)))[ind_rev], end=start_rev-1))
+    
+    chop_read <- DNAStringSet(str_sub(fastqseq[ind], start = enda1+1, end = starta2-1))
+    chop_read_revcomp <- DNAStringSet(str_sub(fastqseq[ind_revcomp], start = enda1_revcomp+1, end = starta2_revcomp-1))
+    
+    chop_qual <- BStringSet(str_sub(quality(getClass(quality(sread(fastqseq))))[ind], start = enda1+1, end = starta2-1))
+    chop_qual_revcomp <- BStringSet(str_sub(quality(getClass(quality(sread(fastqseq))))[ind_revcomp], start = enda1_revcomp+1, end = starta2_revcomp-1))
     
     
     #Final sorting of reads with names and construct UMI and read list and reverse the rev reads and the respective quality scores
     
     #reverse reads and quality scores
-    chop_read_rev_rev <- reverseComplement(chop_read_rev)
-    chop_qual_rev_rev <- BStringSet(reverse.string(as.character(chop_qual_rev)))
     
-    names(chop_read_fwd) <- ShortRead::id(fastqseq)[ind_fwd]
-    names(chop_read_rev_rev) <- ShortRead::id(fastqseq)[ind_rev]
-    names(chop_qual_fwd) <- ShortRead::id(fastqseq)[ind_fwd]
-    names(chop_qual_rev_rev) <- ShortRead::id(fastqseq)[ind_rev]
-    
-    reads <- DNAStringSet(c(chop_read_fwd, chop_read_rev_rev))
-    qualities <- c(chop_qual_fwd, chop_qual_rev_rev)
-    
+    if(as.character(adaptor1) == as.character(reverseComplement(adaptor2))){
+        names(chop_read) <- ShortRead::id(fastqseq)[ind]
+        names(chop_read_revcomp) <- ShortRead::id(fastqseq)[ind_revcomp]
+        names(chop_qual) <- ShortRead::id(fastqseq)[ind]
+        names(chop_qual_revcomp) <- ShortRead::id(fastqseq)[ind_revcomp]
+        
+        reads <- chop_read
+        qualities <- chop_qual
+    }else{
+        chop_read_rev_rev <- reverseComplement(chop_read_revcomp)
+        chop_qual_rev_rev <- BStringSet(reverse.string(as.character(chop_qual_revcomp)))
+        
+        names(chop_read) <- ShortRead::id(fastqseq)[ind]
+        names(chop_read_rev_rev) <- ShortRead::id(fastqseq)[ind_revcomp]
+        names(chop_qual) <- ShortRead::id(fastqseq)[ind]
+        names(chop_qual_rev_rev) <- ShortRead::id(fastqseq)[ind_revcomp]
+        
+        reads <- DNAStringSet(c(chop_read, chop_read_rev_rev))
+        qualities <- c(chop_qual, chop_qual_rev_rev)
+    }
     
     return(list(reads, qualities))
 }

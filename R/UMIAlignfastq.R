@@ -1,28 +1,38 @@
-UMIAlignfastq <- function(UMI, fastqseq, align_pos = 50, score_filter = 8)
-    
-    #Pairwise alignment UMI-reads
-    #We start with a pairwise alignment of the reads and the adaptor sequence to get scores and locations of alignments.
-    #Quality assessment is built in the UMIAlignfastq function and filters by selecting only reads that have an alignment score >8 and in addition an alignment start in the first (fwd) or last (rev) 49 bases. 
-    #UMIAlignfastq also filters the respective phredscores and stores them in a BStringSet.
-    
-{
-    UMI_rev <- reverseComplement(UMI)
-    align_fwd <- pairwiseAlignment(sread(fastqseq), UMI, type="local-global")
-    align_rev <- pairwiseAlignment(sread(fastqseq), UMI_rev, type="local-global")
-    
-    ind_fwd <- start(pattern(align_fwd)) < align_pos & score(align_fwd) > score_filter
-    ind_rev <- nchar(sread(fastqseq))-end(pattern(align_rev)) < align_pos&score(align_rev) > score_filter
-    ind_pre <- ind_fwd!=ind_rev
-    
-    ind_fwd[!ind_pre] <- FALSE
-    ind_rev[!ind_pre] <- FALSE
-    
-    align_fwd_filt <- align_fwd[ind_fwd]
-    align_rev_filt <- align_rev[ind_rev]
-    
-    qual_filt <- quality(fastqseq)[ind_pre]
-    
-    names_filt <- ShortRead::id(fastqseq)[ind_pre]
-    
-    return(list(align_fwd_filt,align_rev_filt, qual_filt, names_filt, ind_pre, ind_fwd, ind_rev))
-}
+UMIAlignfastq <- function(adaptor1, adaptor2, reads, align_pos = 40, score_filter = -12)
+    #For short adaptor1's (15, 6) set score_filter to 8 
+    #For long adaptor1's (45, 12) set score_filter to -12
+    #adaptors must be entered in 5'->3' direction
+
+    {
+        
+        adaptor1_revcomp <- reverseComplement(adaptor1)
+        adaptor2_revcomp <- reverseComplement(adaptor2)
+        
+        align_start <- pairwiseAlignment(fastqseq, adaptor1, type="local-global")
+        align_end <- pairwiseAlignment(fastqseq, adaptor2, type="local-global")
+        align_revcomp_end <- pairwiseAlignment(fastqseq, adaptor1_revcomp, type="local-global")
+        align_revcomp_start <- pairwiseAlignment(fastqseq, adaptor2_revcomp, type="local-global")
+        
+        ind <- (start(pattern(align_start)) < align_pos & score(align_start) > score_filter) & (nchar(fastqseq)-end(pattern(align_end)) < align_pos & score(align_end) > score_filter)
+        ind_revcomp <- (start(pattern(align_revcomp_start)) < align_pos & score(align_revcomp_start) > score_filter) & (nchar(fastqseq)-end(pattern(align_revcomp_end)) < align_pos & score(align_revcomp_end) > score_filter)
+        
+        if(sum(ind==ind_revcomp)==length(fastqseq)){
+            ind_comb <- ind
+        }else{
+            ind_comb <- ind!=ind_revcomp
+            ind[!ind_comb] <- FALSE
+            ind_revcomb[!ind_comb] <- FALSE
+        }
+        
+        align_start_filt <- align_start[ind]
+        align_end_filt <- align_end[ind]
+        align_revcomp_start_filt <- align_revcomp_start[ind_revcomp] 
+        align_revcomp_end_filt <- align_revcomp_end[ind_revcomp] 
+        
+        
+        qual_filt <- quality(fastqseq)[ind_comb]
+        
+        names_filt <- ShortRead::id(fastqseq)[ind_comb]
+        
+        return(list(align_start_filt, align_end_filt, align_revcomp_start_filt, align_revcomp_end_filt, qual_filt, names_filt, ind_comb, ind, ind_revcomp))
+    }
