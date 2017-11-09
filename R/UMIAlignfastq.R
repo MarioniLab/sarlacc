@@ -12,7 +12,7 @@ UMIAlignfastq <- function(UMI, fastqseq, align_pos = 50, score_filter = 8)
     
     ind_fwd <- start(pattern(align_fwd)) < align_pos & score(align_fwd) > score_filter
     ind_rev <- nchar(sread(fastqseq))-end(pattern(align_rev)) < align_pos&score(align_rev) > score_filter
-    ind_pre <- ind_fwd_pre!=ind_rev_pre
+    ind_pre <- ind_fwd!=ind_rev
     
     ind_fwd[!ind_pre] <- FALSE
     ind_rev[!ind_pre] <- FALSE
