@@ -18,8 +18,8 @@ chopRead <- function(align_start_filt, align_end_filt, align_revcomp_start_filt,
     enda2_revcomp <- end(pattern(align_revcomp_end_filt[score(align_revcomp_end_filt)>score_filter]))
     
     
-    chop_read <- DNAStringSet(str_sub(fastqseq[ind], start = enda1+1, end = starta2-1))
-    chop_read_revcomp <- DNAStringSet(str_sub(fastqseq[ind_revcomp], start = enda1_revcomp+1, end = starta2_revcomp-1))
+    chop_read <- DNAStringSet(str_sub(sread(fastqseq)[ind], start = enda1+1, end = starta2-1))
+    chop_read_revcomp <- DNAStringSet(str_sub(sread(fastqseq)[ind_revcomp], start = enda1_revcomp+1, end = starta2_revcomp-1))
     
     chop_qual <- BStringSet(str_sub(quality(getClass(quality(sread(fastqseq))))[ind], start = enda1+1, end = starta2-1))
     chop_qual_revcomp <- BStringSet(str_sub(quality(getClass(quality(sread(fastqseq))))[ind_revcomp], start = enda1_revcomp+1, end = starta2_revcomp-1))
