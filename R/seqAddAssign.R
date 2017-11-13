@@ -3,8 +3,7 @@ seqAddAssign <- function(fastq_file, subgroups, id_reads)
 #Returns list of cluster id groups that contain the corresponding sequences
 
 {
-    fastq <- readFastq("mouse_es_cell.fastq", withIds=TRUE)
-    
+    fastq <- readFastq(fastq_file, withIds=TRUE)
     seqs <- sread(fastq)
     names(seqs) <- ShortRead::id(fastq)
    
