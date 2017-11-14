@@ -3,7 +3,7 @@ UMIRetriev <- function(align_start_filt, align_end_filt = NULL, align_revcomp_st
     #Returns forward and reverse (reverse complemented) UMI sequences bound behind each other (fwd - rev) in DNAStringSet
 {
     
-    if(is.null(UMI_pos2)){
+    if((is.null(UMI_pos3)) | (as.character(adapt1) == as.character(reverseComplement(adapt2)))){
         
         UMI_seq_fwd <- .UMIindelextract(alignment = align_start_filt, UMI_pos = UMI_pos1)
         UMI_seq_rev <- .UMIindelextract(alignment = align_revcomp_end_filt, UMI_pos = UMI_pos2)
