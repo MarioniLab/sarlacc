@@ -8,10 +8,10 @@ UMIAlignfastq <- function(adaptor1, adaptor2, fastqseq, align_pos = 40, score_fi
         adaptor1_revcomp <- reverseComplement(adaptor1)
         adaptor2_revcomp <- reverseComplement(adaptor2)
         
-        align_start <- pairwiseAlignment(sread(fastqseq), adaptor1, type="local-global")
-        align_end <- pairwiseAlignment(sread(fastqseq), adaptor2, type="local-global")
-        align_revcomp_end <- pairwiseAlignment(sread(fastqseq), adaptor1_revcomp, type="local-global")
-        align_revcomp_start <- pairwiseAlignment(sread(fastqseq), adaptor2_revcomp, type="local-global")
+        align_start <- pairwiseAlignment(sread(fastqseq), adaptor1, type="local-global", gapOpening=1, gapExtension = 5, substitutionMatrix = nucleotideSubstitutionMatrix(match = 2, mismatch = -5))
+        align_end <- pairwiseAlignment(sread(fastqseq), adaptor2, type="local-global", gapOpening=1, gapExtension = 5, substitutionMatrix = nucleotideSubstitutionMatrix(match = 2, mismatch = -5))
+        align_revcomp_end <- pairwiseAlignment(sread(fastqseq), adaptor1_revcomp, type="local-global", gapOpening=1, gapExtension = 5, substitutionMatrix = nucleotideSubstitutionMatrix(match = 2, mismatch = -5))
+        align_revcomp_start <- pairwiseAlignment(sread(fastqseq), adaptor2_revcomp, type="local-global", gapOpening=1, gapExtension = 5, substitutionMatrix = nucleotideSubstitutionMatrix(match = 2, mismatch = -5))
         
         ind <- (start(pattern(align_start)) < align_pos & score(align_start) > score_filter) & (nchar(sread(fastqseq))-end(pattern(align_end)) < align_pos & score(align_end) > score_filter)
         ind_revcomp <- (start(pattern(align_revcomp_start)) < align_pos & score(align_revcomp_start) > score_filter) & (nchar(sread(fastqseq))-end(pattern(align_revcomp_end)) < align_pos & score(align_revcomp_end) > score_filter)
