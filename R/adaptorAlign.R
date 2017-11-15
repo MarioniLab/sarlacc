@@ -12,17 +12,11 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
     adaptor1_revcomp <- reverseComplement(adaptor1)
     adaptor2_revcomp <- reverseComplement(adaptor2)
     rev_reads <- reverseComplement(reads)
-    
-    reads.start <- vector("list", length(reads))
-    reads.end <- vector("list", length(reads))
-    reads.start.rev <- vector("list", length(reads))
-    reads.end.rev <- vector("list", length(reads))
-    for(i in 1:length(reads)){
-        reads.start[[i]] <- DNAString(str_sub(as.character(reads[[i]]), start = 1, end = 100))
-        reads.end[[i]] <- DNAString(str_sub(as.character(reads[[i]]), start = nchar(as.character(reads[[i]]))-100, end = nchar(as.character(reads[[i]]))))
-        reads.start.rev[[i]] <- DNAString(str_sub(as.character(rev_reads[[i]]), start = 1, end = 100))
-        reads.end.rev[[i]] <- DNAString(str_sub(as.character(rev_reads[[i]]), start = nchar(as.character(rev_reads[[i]]))-100, end = nchar(as.character(rev_reads[[i]]))))
-    }
+
+    reads.start <- subseq(reads, start = 1, end = 100)
+    reads.end <- subseq(reads, start = nchar(as.character(reads))-100, end = nchar(as.character(reads)))
+    reads.start.rev <- subseq(rev_reads, start = 1, end = 100)
+    reads.end.rev <- subseq(rev_reads, start = nchar(as.character(rev_reads))-100, end = nchar(as.character(rev_reads)))
     
     # Aligning all sequences.
     submat <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
