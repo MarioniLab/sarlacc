@@ -21,6 +21,7 @@ chopAndFilterReads <- function(align_data, essential1 = TRUE, essential2 = TRUE,
 
     id <- id1&id2
     reads <- align_data$reads[id]
+    quality <- align_data$quality[id]
     
     if(essential1){
         adaptor1_end <- vector("integer", length = sum(id))
@@ -31,10 +32,12 @@ chopAndFilterReads <- function(align_data, essential1 = TRUE, essential2 = TRUE,
             align_adaptor1_filt[[i]] <- align_data$adaptor1[[i]]
         }
         chop_read1 <- subseq(reads, start = adaptor1_end+1)
+        chop_qual1 <- subseq(quality, start = adaptor1_end+1)
         
     }else{
         adaptor1_end <- vector("integer", length = sum(id))
         chop_read1 <- reads
+        chop_qual1 <- quality
         align_adaptor1_filt <- NULL
         
     }
@@ -48,13 +51,22 @@ chopAndFilterReads <- function(align_data, essential1 = TRUE, essential2 = TRUE,
             align_adaptor2_filt[[i]] <- align_data$adaptor2[[i]]
         }
         chop_read2 <- subseq(chop_read1, end = ((nchar(reads)-(102-adaptor2_start))-adaptor1_end))
+        chop_qual2 <- subseq(chop_qual1, end = ((nchar(reads)-(102-adaptor2_start))-adaptor1_end))
         
         aligned_adaptors <- c(align_adaptor1_filt, align_adaptor2_filt)
         
     }else{
         chop_read2 <- chop_read1
+        chop_qual2 <- chop_qual1
         aligned_adaptors <- align_adaptor1_filt
     }
     
-    return(list(chop_read2, aligned_adaptors))
+    
+    
+    #Read quality - if provided:
+    
+    
+    
+    
+    return(list(chop_read2, chop_qual2, aligned_adaptors))
 }
