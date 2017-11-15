@@ -8,18 +8,30 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
     if (is.character(adaptor2)) {
         adaptor2 <- DNAString(adaptor2)
     }
+    adaptor2 <- DNAString(reverse.string(as.character(adaptor2)))
     adaptor1_revcomp <- reverseComplement(adaptor1)
     adaptor2_revcomp <- reverseComplement(adaptor2)
     rev_reads <- reverseComplement(reads)
-
+    
+    reads.start <- vector("list", length(reads))
+    reads.end <- vector("list", length(reads))
+    reads.start.rev <- vector("list", length(reads))
+    reads.end.rev <- vector("list", length(reads))
+    for(i in 1:length(reads)){
+        reads.start[[i]] <- DNAString(str_sub(as.character(reads[[i]]), start = 1, end = 100))
+        reads.end[[i]] <- DNAString(str_sub(as.character(reads[[i]]), start = nchar(as.character(reads[[i]]))-100, end = nchar(as.character(reads[[i]]))))
+        reads.start.rev[[i]] <- DNAString(str_sub(as.character(rev_reads[[i]]), start = 1, end = 100))
+        reads.end.rev[[i]] <- DNAString(str_sub(as.character(rev_reads[[i]]), start = nchar(as.character(rev_reads[[i]]))-100, end = nchar(as.character(rev_reads[[i]]))))
+    }
+    
     # Aligning all sequences.
     submat <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
     all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension, substitutionMatrix=submat)
-    align_start <- do.call(pairwiseAlignment, c(list(pattern=reads, subject=adaptor1), all.args))
-    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads, subject=adaptor2_revcomp), all.args))
-    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=rev_reads, subject=adaptor2), all.args))
-    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=rev_reads, subject=adaptor1_revcomp), all.args))
-
+    align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1), all.args))
+    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2_revcomp), all.args))
+    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start.rev, subject=adaptor2), all.args))
+    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end.rev, subject=adaptor1_revcomp), all.args))
+    
     # Figuring out the strand.
     fscore <- pmax(score(align_start), score(align_end))
     rscore <- pmax(score(align_revcomp_start), score(align_revcomp_end))
@@ -38,3 +50,5 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
 
     return(list(adaptor1=align_start, adaptor2=align_end, reads=reads))
 }
+
+
