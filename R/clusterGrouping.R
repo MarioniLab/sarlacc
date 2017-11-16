@@ -1,4 +1,4 @@
-clusterGrouping <- function(overlap, splitted_overlap, grange)
+clusterGrouping <- function(overlap, splitted_overlap, map_data)
 
 #Returns subgroups of reads that were ordered by their cluster id
 
@@ -13,7 +13,7 @@ clusterGrouping <- function(overlap, splitted_overlap, grange)
         cluster_id[cluster_id%in%change.id] <- as.integer(element)
         cluster_id[reads] <- as.integer(element)
     }
-    subgroups <- split(grange, cluster_id) #split reads in respective cluster
+    subgroups <- split(map_data$grange, cluster_id) #split reads in respective cluster
     
     return(subgroups)
 }
