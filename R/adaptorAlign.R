@@ -45,12 +45,15 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     
     
     #Read quality - if provided:
-    if (is.character(quality)) { 
-        quality <- BStringSet(quality)
+    if(!is.null(quality)){
+        if (is.character(quality)) { 
+            quality <- BStringSet(quality)
+        }
     }
-    quality <- quality(fastqseqc)
-    quality[is_reverse] <- reverse.string(as.character(quality[is_reverse])) 
     
+    if(sum(is_reverse)!=0){
+        quality[is_reverse] <- reverse.string(as.character(quality[is_reverse])) 
+    }
     
     
     
