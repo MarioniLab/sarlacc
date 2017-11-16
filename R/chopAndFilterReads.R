@@ -53,17 +53,15 @@ chopAndFilterReads <- function(align_data, names = NULL, essential1 = TRUE, esse
         chop_read2 <- subseq(chop_read1, end = ((nchar(reads)-(102-adaptor2_start))-adaptor1_end))
         chop_qual2 <- subseq(chop_qual1, end = ((nchar(reads)-(102-adaptor2_start))-adaptor1_end))
         
-        aligned_adaptors <- c(align_adaptor1_filt, align_adaptor2_filt)
-        
     }else{
         chop_read2 <- chop_read1
         chop_qual2 <- chop_qual1
-        aligned_adaptors <- align_adaptor1_filt
+        align_adaptor2_filt <- NULL
     }
     
     names(chop_read2) <- names[id]
     names(chop_qual2) <- names[id]
-    #Read quality - if provided:
+
     
-    return(list(chop_read2 = chopread, aligned_adaptors = adaptors, chop_qual2 = chopquality))
+    return(list(chop_read2 = chopread, adaptor1filt = align_adaptor1_filt, adaptor2filt = align_adaptor2_filt  chop_qual2 = chopquality))
 }

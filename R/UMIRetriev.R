@@ -1,51 +1,54 @@
-UMIRetriev <- function(align_start_filt, align_end_filt = NULL, align_revcomp_start_filt = NULL, align_revcomp_end_filt, ind, ind_revcomp, fastqseq, UMI_pos1 = c(20, 31), UMI_pos2 = c(12, 24), UMI_pos3 = NULL, UMI_pos4 = NULL)
-    #Still need to define start and end sequence of N's (UMI)
-    #Returns forward and reverse (reverse complemented) UMI sequences bound behind each other (fwd - rev) in DNAStringSet
+UMIRetriev <- function(chop_data, UMI_adaptor1_pos = NULL, UMI_adaptor2_pos = NULL)
+
 {
-    
-    if((is.null(UMI_pos3)) | (as.character(adapt1) == as.character(reverseComplement(adapt2)))){
+    if(is.null(UMI_adaptor1_pos)){
         
-        UMI_seq_fwd <- .UMIindelextract(alignment = align_start_filt, UMI_pos = UMI_pos1)
-        UMI_seq_rev <- .UMIindelextract(alignment = align_revcomp_end_filt, UMI_pos = UMI_pos2)
-        
-        UMIfwd.collide <- .UMIcollide(UMIindelextract = UMI_seq_fwd)
-        UMIrev.collide <- .UMIcollide(UMIindelextract = UMI_seq_rev)
-        
-        names(UMIfwd.collide) <- ShortRead::id(fastqseq)[ind]
-        names(UMIrev.collide) <- ShortRead::id(fastqseq)[ind_revcomp]
-        
-        UMIs <- DNAStringSet(as.character(c(UMIfwd.collide, UMIrev.collide)))
+        UMI1.collide <- NULL
         
     }else{
         
-        UMI_seq_fwd <- .UMIindelextract(alignment = align_start_filt, UMI_pos = UMI_pos1)
-        UMI_seq_rev <- .UMIindelextract(alignment = align_revcomp_end_filt, UMI_pos = UMI_pos2)
-        UMI_seq_2_fwd <- .UMIindelextract(alignment = align_end_filt, UMI_pos = UMI_pos3)
-        UMI_seq_2_rev <- .UMIindelextract(alignment = align_revcomp_start_filt, UMI_pos = UMI_pos4)
+        UMI_seq1 <- .UMIindelextract(alignment = chop_data$adaptor1filt, UMI_pos = UMI_adaptor1_pos)
+        UMI1.collide <- .UMIcollide(UMIindelextract = UMI_seq1)
         
-        UMIf.collide <- .UMIcollide(UMIindelextract = UMI_seq_fwd)
-        UMIr.collide <- .UMIcollide(UMIindelextract = UMI_seq_rev)
-        UMI2f.collide <- .UMIcollide(UMIindelextract = UMI_seq_2_fwd)
-        UMI2r.collide <- .UMIcollide(UMIindelextract = UMI_seq_2_rev)
+        names(UMI1.collide) <- names()
         
-        names(UMIf.collide) <- ShortRead::id(fastqseq)[ind]
-        names(UMIr.collide) <- ShortRead::id(fastqseq)[ind_revcomp]
-        names(UMI2f.collide) <- ShortRead::id(fastqseq)[ind]
-        names(UMI2r.collide) <- ShortRead::id(fastqseq)[ind_revcomp]
-        
-        UMIs <- DNAStringSet(as.character(c(UMIf.collide, UMIr.collide, UMI2f.collide, UMI2r.collide)))
+        UMI1 <- DNAStringSet(as.character(UMI1.collide))
     }
+    
+    if(is.null(UMI_adaptor2_pos)){
+        
+        UMI2.collide <- NULL
+        
+    }else{
+        UMI_seq2 <- .UMIindelextract(alignment = chop_data$adaptor2filt, UMI_pos = UMI_adaptor2_pos)
+        UMI2.collide <- .UMIcollide(UMIindelextract = UMI_seq2)
+        
+        names(UMI2.collide) <- names()
+        
+        UMI2 <- DNAStringSet(as.character(c(UMI1.collide, UMI2.collide)))
+    }
+    
+    if(is.null(UMI_adaptor1_pos)){
+        return(UMI2 = UMI)
+    }else if(is.null(UMI_adaptor2_pos)){
+        return(UMI1 = UMI)
+    }else{
+        return(list(UMI1 = UMI1, UMI2 = UMI2))
+    }
+        
+}
     
     .UMIindelextract <- function(alignment, UMI_pos)
     {
         UMI_seq <- vector("list", length(alignment))
         for (i in 1:length(alignment)){
-            UMI_fwd_start1 <- UMI_pos[1] + sum(width(indel(subject(alignment)))[i][start(indel(subject(alignment)))[i] <= UMI_pos[1]])
-            UMI_fwd_end1 <- UMI_pos[2] + sum(width(indel(subject(alignment)))[i][start(indel(subject(alignment)))[i] <= UMI_pos[1]])
-            UMI_seq[[i]] <- DNAStringSet(str_sub(pattern(alignment[i]),UMI_fwd_start1, UMI_fwd_end1))
+            shift <- sum(width(indel(subject(alignment[[i]])))[[1]][start(indel(subject(alignment[[i]])))[[1]] <= UMI_pos[2]])
+            UMI_start <- UMI_pos[1] + shift 
+            UMI_end <- UMI_pos[2] + shift
+            UMI_seq[[i]] <- DNAStringSet(str_sub(pattern(alignment[[i]]),UMI_start, UMI_end))
         }
         
-        return(UMI_seq)
+        return(UMI_seq = UMIseqs)
     }
     
     .UMIcollide <- function(UMIindelextract)
@@ -62,8 +65,5 @@ UMIRetriev <- function(align_start_filt, align_end_filt = NULL, align_revcomp_st
         
         return(UMI.collide)
     }
-    
-    
-    return(UMIs)
-}
+
 
