@@ -10,7 +10,7 @@ alignPrep <- function(SAM_file)
   
     alignment = read.table(SAM_file, skip=1)
     #table modification
-    colnames(alignment) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR")
+    colnames(alignment) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR", "SEQ")
     Read_len <- cigarWidthAlongReferenceSpace(alignment[,6]) #extract length from CIGAR string without softclips
     Query_len <- cigarWidthAlongQuerySpace(alignment[,6]) #with softclipped regions
     align_len <- cbind(alignment, Read_len, Query_len) #append to dataframe
@@ -22,7 +22,7 @@ alignPrep <- function(SAM_file)
     grange = with(align_len, GRanges(RNAME, IRanges(start = POS, width = Read_len, names = QNAME), strand = ifelse(FLAG=="0", "+", "-")))   
     
     
-    return(grange)
+    return(list(grange = grange, align_len = alignmentdata))
 }
 
 

@@ -1,11 +1,10 @@
-seqAddAssign <- function(fastq_file, subgroups, id_reads)
+seqAddAssign <- function(alignmentdata, subgroups, id_reads)
 
 #Returns list of cluster id groups that contain the corresponding sequences
 
 {
-    fastq <- readFastq(fastq_file, withIds=TRUE)
-    seqs <- sread(fastq)
-    names(seqs) <- ShortRead::id(fastq)
+    seqs <- alignmentdata$SEQ
+    names(seqs) <- alignmentdata$QNAME
    
     #List of lists of sequence of reads that are assigned to the same cluster_id
     id_seq <- vector("list", length(subgroups))
