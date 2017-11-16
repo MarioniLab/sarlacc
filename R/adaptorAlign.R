@@ -1,4 +1,4 @@
-adaptorAlign <- function(adaptor1, adaptor2, reads, quality, gapOpening=1, gapExtension=5, match=2, mismatch=-5) 
+adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1, gapExtension=5, match=2, mismatch=-5) 
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).    
 {
@@ -45,8 +45,10 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality, gapOpening=1, gapEx
     
     
     #Read quality - if provided:
-    #change again if not BStringSet
-    quality <- head(quality(getClass(quality(fastqseqc))))
+    if (is.character(quality)) { 
+        quality <- BStringSet(quality)
+    }
+    quality <- quality(fastqseqc)
     quality[is_reverse] <- reverse.string(as.character(quality[is_reverse])) 
     
     
