@@ -22,7 +22,7 @@ alignPrep <- function(SAM_file)
     grange = with(align_len, GRanges(RNAME, IRanges(start = POS, width = Read_len, names = QNAME), strand = ifelse(FLAG=="0", "+", "-")))   
     
     
-    return(list(grange = grange, align_len = alignmentdata))
+    return(list(grange = grange, alignment_data = align_len))
 }
 
 
