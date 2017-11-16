@@ -1,5 +1,5 @@
 
-chopAndFilterReads <- function(align_data, names, essential1 = TRUE, essential2 = TRUE, align_score1 = NULL, align_score2 = NULL, align_pos1 = NULL, align_pos2 = NULL)
+chopAndFilterReads <- function(align_data, names = NULL, essential1 = TRUE, essential2 = TRUE, align_score1 = NULL, align_score2 = NULL, align_pos1 = NULL, align_pos2 = NULL)
 {
     if(essential1){
         id1 <- vector("logical", length(align_data$adaptor1))
