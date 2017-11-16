@@ -22,7 +22,7 @@ chopAndFilterReads <- function(align_data, essential1 = TRUE, essential2 = TRUE,
     id <- id1&id2
     reads <- align_data$reads[id]
     quality <- align_data$quality[id]
-    
+
     if(essential1){
         adaptor1_end <- vector("integer", length = sum(id))
         chop_read1 <- vector("list", length = sum(id))
@@ -65,8 +65,5 @@ chopAndFilterReads <- function(align_data, essential1 = TRUE, essential2 = TRUE,
     
     #Read quality - if provided:
     
-    
-    
-    
-    return(list(chop_read2, chop_qual2, aligned_adaptors))
+    return(list(chop_read2 = chopread, aligned_adaptors = adaptors, chop_qual2 = chopquality))
 }
