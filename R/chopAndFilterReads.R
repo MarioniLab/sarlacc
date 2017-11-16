@@ -63,5 +63,5 @@ chopAndFilterReads <- function(align_data, names = NULL, essential1 = TRUE, esse
     names(chop_qual2) <- names[id]
 
     
-    return(list(chop_read2 = chopread, adaptor1filt = align_adaptor1_filt, adaptor2filt = align_adaptor2_filt  chop_qual2 = chopquality))
+    return(list(chop_read2 = chopread, adaptor1filt = align_adaptor1_filt, adaptor2filt = align_adaptor2_filt, chop_qual2 = chopquality))
 }
