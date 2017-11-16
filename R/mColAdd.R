@@ -11,7 +11,7 @@ mColAdd <- function(grange, txdb)
     #Assign gene ids as metacolumn to gr4 and add NA for reads without an identified gene id
     gene_id_uni <- gene_id[subjectHits(alignment_gr_reads[which(duplicated(queryHits(alignment_gr_reads))==FALSE)])]
   
-    gene_id_allread <- vector("character", length(nrow(align_cell4_len)))
+    gene_id_allread <- vector("character", length(grange))
     gene_id_allread[gene_id_allread==""] <- NA
     gene_id_allread[unique(queryHits(alignment_gr_reads))] <- gene_id_uni
     mcols(grange) <- gene_id_allread
@@ -20,3 +20,4 @@ mColAdd <- function(grange, txdb)
     
     return(gr_gene)
 }
+
