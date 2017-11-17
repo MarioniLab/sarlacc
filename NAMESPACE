@@ -22,6 +22,5 @@ importFrom("igraph", components, graph.adjacency, membership)
 # packages in "Depends":
 import(GenomicAlignments)
 import(GenomicRanges)
-import(TxDb.Mmusculus.UCSC.mm10.knownGene)
 import(Biostrings)
 import(S4Vectors)
