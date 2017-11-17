@@ -10,6 +10,7 @@ importFrom("GenomicAlignments", cigarWidthAlongReferenceSpace, cigarWidthAlongQu
 importFrom("GenomicFeatures", exons)
 importFrom("AnnotationDbi", mapIds)
 importFrom("ShortRead", readFastq, sread, id)
+importFrom("ShortReadQ", id, sread, quality)
 importFrom("tcR", reverse.string)
 importFrom("seqinr", read.fasta)
 importFrom("stringdist", stringdist)
