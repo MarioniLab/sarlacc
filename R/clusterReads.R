@@ -9,7 +9,7 @@ clusterReads <- function(map_data, subgroups)
     clustered.seq <- .seqAssign(map_data = map_data$mapping_data, subgroups = subgroups, clustered.id = clustered.id)
     clustered.filtered <- .geneReadFilter(clustered.seq = clustered.seq, gene_count = gene_count)
     
-    return(list(Cluster.reads = clustered.filtered, geneCount = gene_count, clusterSeq = clustered.seq))
+    return(list(cluster.reads = clustered.filtered, geneCount = gene_count, clusterSeq = clustered.seq))
 }
 
 
