@@ -6,7 +6,7 @@ bsub -e min1.err -o min1.out -M 32000 "/nfs/research2/marioni/florian/minimap2/m
 
 #to transform .sam into .txt the following needs to be executed
 
-awk '{print $1,$2,$3,$4,$5,$6}' alignment.sam > align_pos.txt
+awk '{print $1,$2,$3,$4,$5,$6,$10}' alignment.sam > align_pos.txt
 
 #it returns a .txt file containing the first six columns from the .sam file
 
