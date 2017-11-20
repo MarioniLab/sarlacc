@@ -35,9 +35,18 @@ chopAndFilterReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, sc
     aligned$quality <- subseq(aligned$quality, start=start_point, end=end_point)
 
     # Destroying pattern positional information, as this is no longer valid after chopping.
-    aligned$adaptor1$start.pattern <- NULL    
-    aligned$adaptor1$end.pattern <- NULL    
-    aligned$adaptor2$start.pattern <- NULL    
-    aligned$adaptor2$end.pattern <- NULL    
+    if (essential1) { 
+        aligned$adaptor1$start.pattern <- NULL    
+        aligned$adaptor1$end.pattern <- NULL    
+    } else {
+        aligned$adaptor1 <- NULL
+    }
+    if (essential2) {
+        aligned$adaptor2$start.pattern <- NULL    
+        aligned$adaptor2$end.pattern <- NULL 
+    } else {
+        aligned$adaptor2 <- NULL
+    }
+
     return(aligned)
 }

@@ -1,69 +1,30 @@
-UMIRetriev <- function(chop_data, UMI_adaptor1_pos = NULL, UMI_adaptor2_pos = NULL)
-
+UMIRetriev <- function(align.stats, position=NULL) 
+# Pull out UMIs from the adaptor alignment data.
 {
-    if(is.null(UMI_adaptor1_pos)){
-        
-        UMI1.collide <- NULL
-        
-    }else{
-        
-        UMI_seq1 <- .UMIindelextract(alignment = chop_data$adaptor1filt, UMI_pos = UMI_adaptor1_pos)
-        UMI1.collide <- .UMIcollide(UMIseq = UMI_seq1)
-        
-        names(UMI1.collide) <- names(chop_data$chopread)
-        
-        UMI1 <- DNAStringSet(unlist(UMI1.collide))
-    }
-    
-    if(is.null(UMI_adaptor2_pos)){
-        
-        UMI2.collide <- NULL
-        
-    }else{
-        UMI_seq2 <- .UMIindelextract(alignment = chop_data$adaptor2filt, UMI_pos = UMI_adaptor2_pos)
-        UMI2.collide <- .UMIcollide(UMIseq = UMI_seq2)
-        
-        names(UMI2.collide) <- names(chop_data$chopread)
-        
-        UMI2 <- DNAStringSet(unlist(UMI2.collide))
-    }
-    
-    if(is.null(UMI_adaptor1_pos)){
-        return(UMI2 = UMI)
-    }else if(is.null(UMI_adaptor2_pos)){
-        return(UMI1 = UMI)
-    }else{
-        return(list(UMI1 = UMI1, UMI2 = UMI2))
-    }
-        
-}
-    
-    .UMIindelextract <- function(alignment, UMI_pos)
-    {
-        UMI_seq <- vector("list", length(alignment))
-        for (i in 1:length(alignment)){
-            shift <- sum(width(indel(subject(alignment[[i]])))[[1]][start(indel(subject(alignment[[i]])))[[1]] <= UMI_pos[2]])
-            UMI_start <- UMI_pos[1] + shift 
-            UMI_end <- UMI_pos[2] + shift
-            UMI_seq[[i]] <- DNAStringSet(str_sub(pattern(alignment[[i]]),UMI_start, UMI_end))
+    if (is.null(position)) { 
+        curseq <- gsub("-", "", align.stats$subject[1])
+        all.Ns <- gregexpr("N+", curseq)[[1]]
+        position <- c(all.Ns, all.Ns+attr(all.Ns, "match.length")-1L)
+    } else {
+        if (length(position)!=2L || position[1] > position[2] || position[1] <= 0L) {
+            stop("invalid 'position' vector")
         }
-        
-        return(UMI_seq)
     }
     
-    .UMIcollide <- function(UMIseq)
-    {
-        UMI.collide <- vector("list", length(UMIseq))
-        for (i in 1:length(UMI.collide)){
-            cuts <- grep("[A-Z]", strsplit(as.character(UMIseq[[i]]), NULL)[[1]])
-            x <- vector("list", length(cuts))
-            for (a in 1:length(cuts)){
-                x[a] <- strsplit(as.character(UMIseq[[i]]), NULL)[[1]][cuts[a]]
-            }
-            UMI.collide[i] <- paste(x, collapse = "")
-        } 
-        
-        return(UMI.collide)
+    # Identifying the number of deletions in the pattern before the start of the game.
+    all.dels <- gregexpr("-", align.stats$subject)
+    bump.start <- bump.end <- integer(nrow(align.stats))
+    for (i in seq_len(nrow(align.stats))) {
+        dels <- as.integer(all.dels[[i]])
+        true.pos <- dels - seq_along(dels)
+        bump.start[i] <- sum(true.pos < position[1])
+        bump.end[i] <- sum(true.pos < position[2])
     }
+
+    # Pulling out the UMI and cleaning it up.
+    umi <- substr(align.stats$pattern, start=bump.start+position[1], stop=bump.end+position[2])
+    umi <- gsub("-", "", umi)
+    return(umi)
+}
 
 
