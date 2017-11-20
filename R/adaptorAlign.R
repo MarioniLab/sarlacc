@@ -1,4 +1,4 @@
-adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1, gapExtension=5, match=2, mismatch=-5) 
+adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1, gapExtension=5, match=2, mismatch=-5, tolerance=100) 
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).    
 {
@@ -10,12 +10,11 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     }
     adaptor1_revcomp <- reverseComplement(adaptor1)
     adaptor2_revcomp <- reverseComplement(adaptor2)
-    rev_reads <- reverseComplement(reads)
 
-    reads.start <- subseq(reads, start = 1, end = 100)
-    reads.end <- subseq(reads, start = nchar(as.character(reads))-100, end = nchar(as.character(reads)))
-    reads.start.rev <- subseq(rev_reads, start = 1, end = 100)
-    reads.end.rev <- subseq(rev_reads, start = nchar(as.character(rev_reads))-100, end = nchar(as.character(rev_reads)))
+    reads.start <- subseq(reads, start = 1, width = tolerance)
+    reads.end <- subseq(reads, end = width(reads), width = tolerance)
+    reads.start.rev <- reverseComplement(reads.end)
+    reads.end.rev <- reverseComplement(reads.start)
     
     # Aligning all sequences.
     submat <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
@@ -39,24 +38,17 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     # Replacing the alignments.
     align_start[is_reverse] <- align_revcomp_end[is_reverse]
     align_end[is_reverse] <- align_revcomp_start[is_reverse]
-    reads[is_reverse] <- rev_reads[is_reverse]    
-    
-    
-    
-    #Read quality - if provided:
-    if(!is.null(quality)){
+    reads[is_reverse] <- reverseComplement(reads[is_reverse])
+       
+    # Read quality, if provided.
+    if (!is.null(quality)){
         if (is.character(quality)) { 
             quality <- BStringSet(quality)
         }
-    }
-    if(sum(is_reverse)!=0){
         quality[is_reverse] <- reverse(quality[is_reverse])
     }
-
     
-    
-    
-    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, quality=quality, is_reverse=is_reverse))
+    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, quality=quality, reversed=is_reverse))
 }
 
 
