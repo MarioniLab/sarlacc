@@ -12,7 +12,7 @@ UMIRetriev <- function(chop_data, UMI_adaptor1_pos = NULL, UMI_adaptor2_pos = NU
         
         names(UMI1.collide) <- names(chop_data$chopread)
         
-        UMI1 <- DNAStringSet(as.character(UMI1.collide))
+        UMI1 <- DNAStringSet(unlist(UMI1.collide))
     }
     
     if(is.null(UMI_adaptor2_pos)){
@@ -25,7 +25,7 @@ UMIRetriev <- function(chop_data, UMI_adaptor1_pos = NULL, UMI_adaptor2_pos = NU
         
         names(UMI2.collide) <- names(chop_data$chopread)
         
-        UMI2 <- DNAStringSet(as.character(UMI2.collide))
+        UMI2 <- DNAStringSet(unlist(UMI2.collide))
     }
     
     if(is.null(UMI_adaptor1_pos)){
