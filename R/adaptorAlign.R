@@ -60,7 +60,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
 .align_info_extractor <- function(alignments) {
     P <- pattern(alignments)
     S <- subject(alignments)
-    data.frame(pattern=as.character(P), start.pattern=start(P), end.pattern=end(P),
-               subject=as.character(S), start.subject=start(S), end.subject=end(S),
-               score=score(alignments))
+    DataFrame(pattern=as.character(P), start.pattern=start(P), end.pattern=end(P),
+              subject=as.character(S), start.subject=start(S), end.subject=end(S),
+              score=score(alignments))
 }
