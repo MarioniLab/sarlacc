@@ -28,7 +28,7 @@ clusterReads <- function(map_data, subgroups)
     #Check how many different gene id's are in each cluster id
     gene_count <- vector("integer", length(cluster_reads))
     for (i in 1:length(cluster_reads)){
-        gene_count[i] <- length(table(mcols(cluster_reads[[i]])))
+        gene_count[i] <- length(table(unlist(mcols(cluster_reads[[i]]))))
     }
     
     return(gene_count)
