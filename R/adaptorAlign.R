@@ -52,9 +52,9 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     }
     
     if(sum(is_reverse)!=0){
-        for (i in is_reverse){
+        for (i in which(is_reverse)){
             quality_char <- as.character(quality[i])
-            quality[i] <- BString(reverse.string(quality_char))
+            quality[i] <- reverse.string(quality_char)
         }
         
     }
