@@ -11,6 +11,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     adaptor1_revcomp <- reverseComplement(adaptor1)
     adaptor2_revcomp <- reverseComplement(adaptor2)
 
+    tolerance <- pmin(tolerance, width(reads))
     reads.start <- subseq(reads, start = 1, width = tolerance)
     reads.end <- subseq(reads, end = width(reads), width = tolerance)
     reads.start.rev <- reverseComplement(reads.end)
@@ -29,16 +30,21 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     rscore <- pmax(score(align_revcomp_start), score(align_revcomp_end))
     is_reverse <- fscore < rscore
 
-    # Coercing them to lists.
-    align_start <- as.list(align_start)
-    align_end <- as.list(align_end)
-    align_revcomp_start <- as.list(align_revcomp_start)
-    align_revcomp_end <- as.list(align_revcomp_end)
+    # Extracting all the useful information out of them.
+    align_start <- .align_info_extractor(align_start)
+    align_end <- .align_info_extractor(align_end)
+    align_revcomp_start <- .align_info_extractor(align_revcomp_start)
+    align_revcomp_end <- .align_info_extractor(align_revcomp_end)
 
     # Replacing the alignments.
-    align_start[is_reverse] <- align_revcomp_end[is_reverse]
-    align_end[is_reverse] <- align_revcomp_start[is_reverse]
+    align_start[is_reverse,] <- align_revcomp_end[is_reverse,]
+    align_end[is_reverse,] <- align_revcomp_start[is_reverse,]
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
+
+    # Adjusting the reverse coordinates for the read length.
+    adjustments <- width(reads) - tolerance # guaranteed to be at least zero, by pmin() above.
+    align_end$start.pattern <- align_end$start.pattern + adjustments
+    align_end$end.pattern <- align_end$end.pattern + adjustments
        
     # Read quality, if provided.
     if (!is.null(quality)){
@@ -51,4 +57,10 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, quality=quality, reversed=is_reverse))
 }
 
-
+.align_info_extractor <- function(alignments) {
+    P <- pattern(alignments)
+    S <- subject(alignments)
+    data.frame(pattern=as.character(P), start.pattern=start(P), end.pattern=end(P),
+               subject=as.character(S), start.subject=start(S), end.subject=end(S),
+               score=score(alignments))
+}
