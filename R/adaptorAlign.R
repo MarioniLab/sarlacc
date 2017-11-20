@@ -50,18 +50,14 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
             quality <- BStringSet(quality)
         }
     }
-    
     if(sum(is_reverse)!=0){
-        for (i in which(is_reverse)){
-            quality_char <- as.character(quality[i])
-            quality[i] <- reverse.string(quality_char)
-        }
-        
+        quality[is_reverse] <- reverse.string(as.character(quality[is_reverse]))
     }
+
     
     
     
-    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, quality=quality))
+    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, quality=quality, is_reverse=is_reverse))
 }
 
 
