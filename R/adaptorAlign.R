@@ -8,7 +8,6 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     if (is.character(adaptor2)) {
         adaptor2 <- DNAString(adaptor2)
     }
-    adaptor2 <- DNAString(reverse.string(as.character(adaptor2)))
     adaptor1_revcomp <- reverseComplement(adaptor1)
     adaptor2_revcomp <- reverseComplement(adaptor2)
     rev_reads <- reverseComplement(reads)
@@ -51,7 +50,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
         }
     }
     if(sum(is_reverse)!=0){
-        quality[is_reverse] <- reverse.string(as.character(quality[is_reverse]))
+        quality[is_reverse] <- reverse(quality[is_reverse])
     }
 
     
