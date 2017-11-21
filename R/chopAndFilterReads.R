@@ -23,6 +23,7 @@ chopAndFilterReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, sc
     aligned$adaptor2 <- aligned$adaptor2[keep,]   
 
     # Finding the cut points of each adaptor.
+    # Score is filtered again to also mark adaptors that are not essential for chopping.
     start_point <- rep(1L, nrow(aligned$adaptor1))
     has1 <- aligned$adaptor1$score >= score1
     start_point[has1] <- aligned$adaptor1$end.pattern[has1] + 1L
