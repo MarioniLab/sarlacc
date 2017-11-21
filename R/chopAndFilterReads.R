@@ -17,10 +17,13 @@ chopAndFilterReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, sc
     
     keep <- id1 & id2
     aligned$reads <- aligned$reads[keep]
-    aligned$quality <- aligned$quality[keep]
     aligned$reversed <- aligned$reversed[keep]
     aligned$adaptor1 <- aligned$adaptor1[keep,]   
-    aligned$adaptor2 <- aligned$adaptor2[keep,]   
+    aligned$adaptor2 <- aligned$adaptor2[keep,]
+    
+    if(!is.null(aligned$quality)){
+        aligned$quality <- aligned$quality[keep]
+    }
 
     # Finding the cut points of each adaptor.
     # Score is filtered again to also mark adaptors that are not essential for chopping.
@@ -33,8 +36,14 @@ chopAndFilterReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, sc
     end_point[has2] <- aligned$adaptor2$start.pattern[has2] - 1L
 
     aligned$reads <- subseq(aligned$reads, start=start_point, end=end_point)
-    aligned$quality <- subseq(aligned$quality, start=start_point, end=end_point)
-
+    if(!is.null(aligned$quality)){
+        aligned$quality <- subseq(aligned$quality, start=start_point, end=end_point)
+    }
+    
+    if(is.null(names(aligned$reads))){
+        names(aligned$reads) <- seq(1, length(aligned$reads))
+    }
+    
     # Destroying pattern positional information, as this is no longer valid after chopping.
     if (essential1) { 
         aligned$adaptor1$start.pattern <- NULL    
