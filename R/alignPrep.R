@@ -26,7 +26,7 @@ alignPrep <- function(SAM_as_txt_file, txdb = NULL)
         grange <- .mColAdd(grange = grange, txdb = txdb)
     }
     
-    return(list(grange = grange, map_data = mapped.reads))
+    return(list(grange = grange, data = mapped.reads))
 }
 
 

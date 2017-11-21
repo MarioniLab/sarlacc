@@ -13,6 +13,7 @@ clusterGrouping <- function(overlap.reads, map_data)
         cluster_id[cluster_id%in%change.id] <- as.integer(element)
         cluster_id[reads] <- as.integer(element)
     }
+    cluster_id[cluster_id==0] <- NA
     subgroups <- split(map_data$grange, cluster_id) #split reads in respective cluster
     
     return(subgroups)

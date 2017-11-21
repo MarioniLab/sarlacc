@@ -1,28 +1,41 @@
-clusterReads <- function(map_data, subgroups)
+clusterReads <- function(map_data, subgroups, geneCount = FALSE, cluster_length = 1)
 
 #Returns list of read names grouped by their cluster id 
 
 {
-    clustered.id <- lapply(subgroups, FUN="names") #list of cluster id's containing list of reads that were assigned to the particular cluster id
+    cluster.id <- lapply(subgroups, FUN="names") # Read names clustered in same way as reads in subgroups.
+
     
-    gene_count <- .geneCount(grange = map_data$grange, clustered.id = clustered.id)
-    clustered.seq <- .seqAssign(map_data = map_data$mapping_data, subgroups = subgroups, clustered.id = clustered.id)
-    clustered.filtered <- .geneReadFilter(clustered.seq = clustered.seq, gene_count = gene_count)
+    gene_count <- .geneCount(grange = map_data$grange, cluster.id = cluster.id)
+    cluster.seq <- .seqAssign(map_data = map_data$mapping_data, subgroups = subgroups, cluster.id = cluster.id)
+
+    if(geneCount){
+        cluster.seq <- cluster.seq[gene_count==1]
+    }
     
-    return(list(cluster.reads = clustered.filtered, geneCount = gene_count, clusterSeq = clustered.seq))
+    # Filter cluster to contain more reads than cluster_length.
+    if(!is.null(cluster_length)){
+        len.id <- lapply(cluster.seq, "length")
+        clustered.filter <- id_seq_filt[len.id > cluster_length]
+        
+        return(list(clusterReads = clustered.filter, geneCount = gene_count))
+    }else{
+        return(list(clusterReads = cluster.seq, geneCount = gene_count))
+    }
+
 }
 
 
 
-.geneCount <- function(grange, clustered.id)
+.geneCount <- function(grange, cluster.id)
     #Returns vector with length of number of cluster id's containing the respective number of gene id's
 {
     
     #Subgroup gr4 by cluster id reads and store them in cluster_reads as 
     #cluster id subgroups containing respective reads and gene id in mcols
-    cluster_reads <- vector('list', length(clustered.id))
-    for (element in 1:length(clustered.id)){
-        reads <- clustered.id[[element]]
+    cluster_reads <- vector('list', length(cluster.id))
+    for (element in 1:length(cluster.id)){
+        reads <- cluster.id[[element]]
         cluster_reads[[element]] <- grange[reads]
     }
     #Check how many different gene id's are in each cluster id
@@ -34,29 +47,19 @@ clusterReads <- function(map_data, subgroups)
     return(gene_count)
 }
 
-.seqAssign <- function(map_data, subgroups, clustered.id)
+.seqAssign <- function(map_data, subgroups, cluster.id)
     #Returns list of cluster id groups that contain the corresponding sequences
 {
     seqs <- map_data$SEQ
     names(seqs) <- map_data$QNAME
     
     #List of lists of sequence of reads that are assigned to the same cluster_id
-    clustered.seq <- vector("list", length(subgroups))
+    cluster.seq <- vector("list", length(subgroups))
     for (i in 1:length(subgroups)){
-        reads <- clustered.id[[i]]
-        clustered.seq[[i]] <- seqs[reads]
+        reads <- cluster.id[[i]]
+        cluster.seq[[i]] <- seqs[reads]
     }
     
-    return(clustered.seq)
-}
-
-.geneReadFilter <- function(clustered.seq, gene_count)
-    #Returns a list of cluster id sequences filtered for containing only one gene and more than one read per cluster id
-{
-    id_seq_filt <- clustered.seq[gene_count==1] #cluster with one particular gene id
-    len.id <- lapply(id_seq_filt, "length") #number of reads in each cluster id
-    clustered.filtered <- id_seq_filt[len.id>1] #filter for more than one read per cluster
-    
-    return(clustered.filtered)
+    return(cluster.seq)
 }
 
