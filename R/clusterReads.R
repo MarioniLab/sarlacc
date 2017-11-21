@@ -3,7 +3,8 @@ clusterReads <- function(map_data, overlap.reads, geneCount = FALSE, cluster_len
 #Returns list of read names grouped by their cluster id 
 
 {
-    subgroups <- .clusterGrouping(overlap.reads = overlap.reads, map_data = map_data)
+    id <- .clusterGrouping(overlap.reads = overlap.reads, map_data = map_data)
+    subgroups <- split(map_data$grange, id) #split reads in respective cluster
     
     cluster.name <- lapply(subgroups, FUN="names") # Read names clustered in same way as reads in subgroups.
     
@@ -17,7 +18,7 @@ clusterReads <- function(map_data, overlap.reads, geneCount = FALSE, cluster_len
     # Filter cluster to contain more reads than cluster_length.
     if(!is.null(cluster_length)){
         len.id <- lapply(cluster.seq, "length")
-        clustered.filter <- id_seq_filt[len.id > cluster_length]
+        clustered.filter <- cluster.seq[len.id > cluster_length]
     }
     
     if(!is.null(cluster_length)){
@@ -45,9 +46,9 @@ clusterReads <- function(map_data, overlap.reads, geneCount = FALSE, cluster_len
         cluster_id[reads] <- as.integer(element)
     }
     cluster_id[cluster_id==0] <- NA
-    subgroups <- split(map_data$grange, cluster_id) #split reads in respective cluster
     
-    return(subgroups)
+    
+    return(id = cluster_id)
 }
 
 
