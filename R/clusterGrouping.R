@@ -1,13 +1,13 @@
-clusterGrouping <- function(overlap, splitted_overlap, map_data)
+clusterGrouping <- function(overlap.reads, map_data)
 
-#Returns subgroups of reads that were ordered by their cluster id
+# Returns subgroups of reads that were ordered by their cluster id.
 
 {
   
-    cluster_id <- rep(0, queryLength(overlap))
+    cluster_id <- rep(0,  as.integer(names(overlap.reads)[length(overlap.reads)]))
   
-    for (element in names(splitted_overlap)) {
-        reads <- splitted_overlap[[element]]
+    for (element in names(overlap.reads)) {
+        reads <- overlap.reads[[element]]
         change.id <- cluster_id[reads]
         change.id <- change.id[change.id!=0]
         cluster_id[cluster_id%in%change.id] <- as.integer(element)
