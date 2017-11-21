@@ -21,9 +21,9 @@ clusterReads <- function(map_data, overlap.reads, geneCount = FALSE, cluster_len
     }
     
     if(!is.null(cluster_length)){
-        return(list(clusterReads = clustered.filter, geneCount = gene_count))
+        return(list(clusterReads = clustered.filter, geneCount = gene_count, subgroups = subgroups))
     }else{
-        return(list(clusterReads = cluster.seq, geneCount = gene_count))
+        return(list(clusterReads = cluster.seq, geneCount = gene_count, subgroups = subgroups))
     }
 
 }
