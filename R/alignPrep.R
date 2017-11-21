@@ -2,31 +2,41 @@
 #therefore the bash script stored in /init has to be executed before running alignPrep.
 #In order to be then read into the pipeline, .sam file has to be converted into .txt that only contains the first six columns:
 #bash command: "awk '{print $1,$2,$3,$4,$5,$6,$10}' alignment.sam > alignment.txt" #first 6 columns in new file.
-alignPrep <- function(SAM_as_txt_file, txdb = NULL)
 
+alignPrep <- function(sam, minq = 10)
 #Returns an GRanges object containing read name, position, length, strand and chr location  
-
 {
-  
-    mapping = read.table(SAM_as_txt_file, skip=1)
-    
-    # Table modification.
-    colnames(mapping) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR", "SEQ")
-    Read_len <- cigarWidthAlongReferenceSpace(mapping[,6]) # Extract length from CIGAR string without softclips.
-    Query_len <- cigarWidthAlongQuerySpace(mapping[,6]) # With softclipped regions.
-    align_len <- cbind(mapping, Read_len, Query_len)
-    align_len$POS <- as.numeric(as.character(align_len$POS))
-    mapped.reads <- align_len[complete.cases(align_len[ ,4]),] # Removes NA from the 4th column.
-    mapped.reads[,3] <- gsub("^", "chr", mapped.reads[,3])# Extend RNAME with "chr" to fit GRanges format.
-    
-    # Transform table to GRanges object.
-    grange = with(mapped.reads, GRanges(RNAME, IRanges(start = POS, width = Read_len, names = QNAME), strand = ifelse(FLAG=="0", "+", "-")))   
-    
-    if(!is.null(txdb)){
-        grange <- .mColAdd(grange = grange, txdb = txdb)
+    # Figuring out how many headers to skip.
+    N <- 0L
+    curfile <- file(sam, open="r")
+    repeat {
+        curline <- readLines(curfile, n=1)
+        if (!grepl("^@", curline)) {
+            break
+        }
+        N <- N + 1L
     }
-    
-    return(list(grange = grange, data = mapped.reads))
+    close(curfile)
+
+    # Setting "100" to ignore everything afterwards.
+    what <- c(list("character","integer","character", "character", "integer", "character"), vector("list", 100))
+    suppressWarnings(mapping <- read.table(sam, skip=N, colClasses=what, fill=TRUE, stringsAsFactors=FALSE))
+    colnames(mapping) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR")
+   
+    # Keeping only mapped reads and non-secondary reads. 
+    keep <- !bitwAnd(mapping$FLAG, 0x4) & !bitwAnd(mapping$FLAG, 0x100)
+    if (!is.null(minq)) {
+        keep <- keep & mapping$MAPQ >= minq
+    }
+    mapping <- mapping[keep,]
+
+    # Creating a GRanges object.
+    align.len <- cigarWidthAlongReferenceSpace(mapping$CIGAR)
+    pos <- as.integer(as.character(mapping$POS))
+    granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"))
+
+    # Splitting by the mapping names
+    return(split(granges, mapping$QNAME))    
 }
 
 
