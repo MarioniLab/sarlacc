@@ -16,17 +16,17 @@ alignPrep <- function(SAM_as_txt_file, txdb = NULL)
     Query_len <- cigarWidthAlongQuerySpace(mapping[,6]) # With softclipped regions.
     align_len <- cbind(mapping, Read_len, Query_len)
     align_len$POS <- as.numeric(as.character(align_len$POS))
-    align_len <- align_len[complete.cases(align_len[ ,4]),] # Removes NA from the 4th column.
-    align_len[,3] <- gsub("^", "chr", align_len[,3])# Extend RNAME with "chr" to fit GRanges format.
+    mapped.reads <- align_len[complete.cases(align_len[ ,4]),] # Removes NA from the 4th column.
+    mapped.reads[,3] <- gsub("^", "chr", mapped.reads[,3])# Extend RNAME with "chr" to fit GRanges format.
     
     # Transform table to GRanges object.
-    grange = with(align_len, GRanges(RNAME, IRanges(start = POS, width = Read_len, names = QNAME), strand = ifelse(FLAG=="0", "+", "-")))   
+    grange = with(mapped.reads, GRanges(RNAME, IRanges(start = POS, width = Read_len, names = QNAME), strand = ifelse(FLAG=="0", "+", "-")))   
     
     if(!is.null(txdb)){
         grange <- .mColAdd(grange = grange, txdb = txdb)
     }
     
-    return(list(grange = grange, mapping_data = align_len))
+    return(list(grange = grange, map_data = mapped.reads))
 }
 
 
