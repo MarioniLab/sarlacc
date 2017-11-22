@@ -1,7 +1,7 @@
 export(
     adaptorAlign, chopAndFilterReads, UMIRetriev, 
-    alignPrep, readOverlap, clusterReads,
-    UMIfilt, UMIgraphIndex,
+    alignPrep, readOverlap, clusterReadsNew,
+    UMIgroup,
     MSA, consSeqMajority
 )
 
@@ -13,7 +13,7 @@ importFrom("ShortRead", readFastq, sread, id)
 importFrom("tcR", reverse.string)
 importFrom("seqinr", read.fasta)
 importFrom("stringdist", stringdist)
-importFrom("igraph", components, graph.adjacency, membership)
+importFrom("igraph", components, graph.adjacency, membership, make_graph)
 
 
 
