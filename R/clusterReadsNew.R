@@ -1,5 +1,5 @@
 # For use after readOverlap.
-# Filters reads and UMIs for each subgroup.
+# Filters reads for each subgroup.
 
 clusterReadsNew <- function(map_data, overlap.reads, GroupSize = 1)
 {
