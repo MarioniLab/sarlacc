@@ -34,13 +34,13 @@ UMIgroup <- function(UMI_filt, UMI_length = 0, Levensh_threshold = 2)
         UMI_graph <- make_graph(as.vector(t(UMI_mat_prep)), n = length(sortedUMI), directed = FALSE)
 
         # Indexing the input UMIs to be able to subset the corresponding reads.
-        UMI_cluster <- split(UMI1_sort, membership(components(UMI_graph)))
+        UMI_cluster <- split(UMI_sort, membership(components(UMI_graph)))
 
         UMI_index <- vector("list", length(UMI_cluster))
         for (i in 1:length(UMI_cluster)){
             len <- 1
             for (a in 1:length(UMI_cluster[[i]])){
-                id <- which(UMI1_filt==UMI_cluster[[i]][a])
+                id <- which(UMI_filt==UMI_cluster[[i]][a])
                 for (b in 1:length(id)){
                     UMI_index[[i]][len] <- id[b] 
                     len <- len+1
