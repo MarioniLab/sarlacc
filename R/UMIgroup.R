@@ -49,7 +49,7 @@ UMIgroup <- function(UMI_filt, UMI_length = 0, Levensh_threshold = 2)
         }
     
     }else{
-        UMI_index <- NA
+        UMI_index <- NULL
         
     }
     
