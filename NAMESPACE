@@ -1,7 +1,7 @@
 export(
     adaptorAlign, chopAndFilterReads, UMIRetriev, 
     alignPrep, readOverlap, clusterReadsNew,
-    UMIgroup,
+    UMIgroup, umiGroup1
     MSA, consSeqMajority
 )
 
