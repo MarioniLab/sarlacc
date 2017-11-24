@@ -1,7 +1,7 @@
 # For use after readOverlap.
 # Filters reads for each subgroup.
 
-clusterReadsNew <- function(map_data, overlap.reads, GroupSize = 1)
+clusterReads <- function(map_data, overlap.reads, GroupSize = 1)
 {
     cluster_id <- rep(0,  as.integer(names(overlap.reads)[length(overlap.reads)]))
     for (element in names(overlap.reads)) {
