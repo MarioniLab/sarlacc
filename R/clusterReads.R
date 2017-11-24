@@ -25,6 +25,8 @@ clusterReads <- function(map_data, overlap.reads, GroupSize = 1)
         id.filt[[i]] <- unique(names(unlist(cluster.name[[greater[i]]])))
     }
     
+    return(list(id.filt = id.filt, cluster.filt = cluster.filt))
+    
     # Preparation for msa and consensus sequence.
     # Probably better after UMIgroup.
     # Subgrouping reads with id.
