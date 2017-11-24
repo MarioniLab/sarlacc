@@ -5,13 +5,38 @@
 # id.filt needs to be specified.
 # umiGroup adds the levenshtein distances of both UMI's up and then proceeds as in the initial UMIgroup function.
 
-umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_threshold = 2)
+umiGroup <- function(id.filt, UMI1, UMI2 = NULL, Levensh_threshold = 2)
+{
+    UMI_members = NULL
+    for(i in 1:length(id.filt)){
+        id.nfilt <- as.integer(id.filt[[i]])
+        UMI1_filt <- UMI1[id.nfilt]
+        UMI1_filtDNA <- DNAStringSet(UMI1_filt)
+        
+        if(!is.null(UMI2)){
+            UMI2_filt <- UMI2[id.nfilt]
+            UMI2_filtDNA <- DNAStringSet(UMI2_filt)
+        }else{
+            UMI2_filtDNA <- NULL
+        }
+        
+        UMI.id <- .umiClust(UMI1 = UMI1_filtDNA, UMI2 = UMI2_filtDNA, Levensh_threshold = Levensh_threshold)
+        if(!is.null(UMI.id)){
+            UMI_members <- append(UMI_members, paste(i, UMI.id))
+        }
+    }
+    
+    return(UMI_members)
+}
+
+.umiClust <- function(UMI1, UMI2 = NULL, Levensh_threshold = 2)
 {
     if(!is.null(UMI2)){
-        sort.dist1 <- .umiLevensh(id.filt, UMI1, UMI_length)
-        sort.dist2 <- .umiLevensh(id.filt, UMI2, UMI_length)
         
-        UMI.distance <- matrix(unlist(sort.dist2$UMI_levenshtein.out), length(sort.dist2$UMI_levenshtein.out))+matrix(unlist(sort.dist1$UMI_levenshtein.out), length(sort.dist1$UMI_levenshtein.out))
+        UMI1_levenshtein.out <- .UMIlevenshtein(UMI_filtDNA = UMI1)
+        UMI2_levenshtein.out <- .UMIlevenshtein(UMI_filtDNA = UMI2)
+        
+        UMI.distance <- matrix(unlist(UMI2_levenshtein.out), length(UMI2_levenshtein.out))+matrix(unlist(UMI1_levenshtein.out), length(UMI1_levenshtein.out))
         Levensh_threshold <- Levensh_threshold*2
         
         sortedUMI <- vector("list", length = nrow(UMI.distance))
@@ -24,11 +49,11 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
         }
         
     }else{
-        sort.dist1 <- .umiLevensh(id.filt, UMI1, UMI_length)
-        UMI.distance <- sort.dist1$UMI_levenshtein.out
+        UMI1_levenshtein.out <- .UMIlevenshtein(UMI_filtDNA = UMI1)
+        UMI.distance <- UMI1_levenshtein.out
         
-        sortedUMI <- vector("list", length(sort.dist1$UMI_levenshtein.out))
-        for (i in 1:length(sort.dist1$UMI_levenshtein.out)){
+        sortedUMI <- vector("list", length(UMI1_levenshtein.out))
+        for (i in 1:length(UMI1_levenshtein.out)){
             if (length((which(UMI.distance[[i]]<=Levensh_threshold)))!=0){
                 sortedUMI[[i]] <- rbind(i, which(UMI.distance[[i]]<=Levensh_threshold))
             }else{
@@ -64,35 +89,14 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
     
 }
 
-
-.umiLevensh <- function(id.filt, UMI, UMI_length)
-{
-    id.nfilt <- as.integer(id.filt)
-    UMI_filt <- UMI[id.nfilt]
-    UMI_filtDNA <- DNAStringSet(UMI_filt)
-    UMI_levenshtein.out <- .UMIlevenshtein(UMI_filtDNA, levenshtein_max = UMI_length)
-    
-    return(list(UMI_levenshtein.out = UMI_levenshtein.out, UMI_filtDNA = UMI_filtDNA, UMI_filt = UMI_filt))
-}
-
-.addDistance <- function(UMI1_levenshtein.out, UMI2_levenshtein.out)
-{
-    UMI.distance <- vector("list", length(UMI1_levenshtein.out))
-    for(i in 1:length(UMI1_levenshtein.out)){
-        UMI.distance[[i]] <- UMI1_levenshtein.out[[i]] + UMI2_levenshtein.out[[i]]
-    }
-    
-    return(UMI.distance)
-}
-
 # Calculates levenshtein distance between UMIs.
-.UMIlevenshtein <- function(UMI_filtDNA, levenshtein_max = 6)
+.UMIlevenshtein <- function(UMI_filtDNA)
 {
     UMI_levenshtein <- vector("list", length(UMI_filtDNA))
     
     for (i in 1:length(UMI_filtDNA)){
         UMI_levenshtein[[i]] <- stringdist(UMI_filtDNA[i], UMI_filtDNA)
-        UMI_levenshtein[[i]][i] <- levenshtein_max
+        UMI_levenshtein[[i]][i] <- length(UMI_filtDNA)
     } 
     
     return(UMI_levenshtein)
