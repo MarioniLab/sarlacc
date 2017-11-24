@@ -13,7 +13,7 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
         
         UMI.distance <- matrix(unlist(sort.dist2$UMI_levenshtein.out), length(sort.dist2$UMI_levenshtein.out))+matrix(unlist(sort.dist1$UMI_levenshtein.out), length(sort.dist1$UMI_levenshtein.out))
         Levensh_threshold <- Levensh_threshold*2
-
+        
         sortedUMI <- vector("list", length = nrow(UMI.distance))
         for (i in 1:nrow(UMI.distance)){
             if (length((which(UMI.distance[i,]<=Levensh_threshold)))!=0){
@@ -42,7 +42,7 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
     if(!is.null(sortedUMI.bind)){
         UMI_mat_prep <- matrix(sortedUMI.bind, nc = 2, byrow = TRUE)
         UMI_mat_prep_rev <- cbind(UMI_mat_prep[,2], UMI_mat_prep[,1])
-          
+        
         for(i in 1:nrow(UMI_mat_prep)){
             for(a in 1:nrow(UMI_mat_prep)){ 
                 if (sum(UMI_mat_prep[i,]==UMI_mat_prep_rev[a,]) > 1){
@@ -54,13 +54,7 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
         UMI_graph <- make_graph(as.vector(t(UMI_mat_prep)), n = length(sortedUMI), directed = FALSE)
         
         # Indexing the input UMIs to be able to subset the corresponding reads.
-        if(!is.null(UMI2)){
-            UMI1_index <- .umiIndex(UMI_graph = UMI_graph, UMI_filt = sort.dist1$UMI_filt)
-            UMI2_index <- .umiIndex(UMI_graph = UMI_graph, UMI_filt = sort.dist2$UMI_filt)
-            UMI_index <- list(UMI1_index, UMI2_index)
-        }else{
-            UMI_index <- .umiIndex(UMI_graph = UMI_graph, UMI_filt = sort.dist1$UMI_filt)
-        }
+        UMI_index <- membership(components(UMI_graph))
     }else{
         UMI_index <- NULL
         
@@ -70,25 +64,6 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
     
 }
 
-
-
-.umiIndex <- function(UMI_graph, UMI_filt)
-{
-    UMI_cluster <- split(UMI_filt, membership(components(UMI_graph)))
-    
-    UMI_index <- vector("list", length(UMI_cluster))
-    for (i in 1:length(UMI_cluster)){
-        len <- 1
-        for (a in 1:length(UMI_cluster[[i]])){
-            id <- which(UMI_filt==UMI_cluster[[i]][a])
-            for (b in 1:length(id)){
-                UMI_index[[i]][len] <- id[b] 
-                len <- len+1
-            }
-        }
-    }
-    return(UMI_index)
-}
 
 .umiLevensh <- function(id.filt, UMI, UMI_length)
 {
@@ -109,14 +84,6 @@ umiGroup <- function(id.filt, UMI1, UMI2 = NULL, UMI_length = 12, Levensh_thresh
     
     return(UMI.distance)
 }
-
-
-
-
-
-
-
-
 
 # Calculates levenshtein distance between UMIs.
 .UMIlevenshtein <- function(UMI_filtDNA, levenshtein_max = 6)

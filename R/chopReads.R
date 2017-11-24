@@ -1,6 +1,6 @@
 chopReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, score1 = NULL, score2 = NULL) 
 # This filters out reads that don't have essential adaptors aligning on either or both ends.
-# We also chop out the adaptor sequences for furture use.    
+# We also chop out the adaptor sequences for future use.    
 {
     # Dropping reads if adaptor is essential but doesn't get detected.
     if(essential1){
