@@ -40,24 +40,24 @@ alignPrep <- function(sam, minq = 10)
 }
 
 
-.mColAdd <- function(grange, txdb)
+#.mColAdd <- function(grange, txdb)
     # Adds gene_id containing metacolumn to grange.
-{
-    exon_data <- exons(txdb)
-    gene_id <- mapIds(txdb, keytype="EXONID", key= as.character(exon_data$exon_id), column="GENEID")
+#{
+#    exon_data <- exons(txdb)
+#    gene_id <- mapIds(txdb, keytype="EXONID", key= as.character(exon_data$exon_id), column="GENEID")
     
     # Overlap between mapped reads and annotated exons.
-    alignment_gr_reads <- findOverlaps(grange, exon_data)
+#    alignment_gr_reads <- findOverlaps(grange, exon_data)
     
     # Assign gene ids as metacolumn to gr4 and add NA for reads without an identified gene id
     
-    gene_id_uni <- gene_id[subjectHits(alignment_gr_reads[which(duplicated(queryHits(alignment_gr_reads))==FALSE)])]
+#    gene_id_uni <- gene_id[subjectHits(alignment_gr_reads[which(duplicated(queryHits(alignment_gr_reads))==FALSE)])]
     
-    gene_id_allread <- rep(NA, length(grange))
-    gene_id_allread[unique(queryHits(alignment_gr_reads))] <- gene_id_uni
-    mcols(grange) <- gene_id_allread
-    names(mcols(grange)) <- "gene_id"
-    gr_gene <- grange
+#    gene_id_allread <- rep(NA, length(grange))
+#    gene_id_allread[unique(queryHits(alignment_gr_reads))] <- gene_id_uni
+#    mcols(grange) <- gene_id_allread
+#    names(mcols(grange)) <- "gene_id"
+#    gr_gene <- grange
     
-    return(gr_gene)
-}
+#    return(gr_gene)
+#}
