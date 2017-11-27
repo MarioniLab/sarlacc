@@ -17,15 +17,13 @@ clusterReads <- function(map_data, overlap.reads, GroupSize = 1)
     
     greater <- which(unlist(lapply(cluster.name, "length")) >= GroupSize)
     
-    cluster.filt <- vector("list", length(greater))
     id.filt <- vector("list", length(greater))
     
     for(i in 1:length(greater)){
-        cluster.filt[[i]] <- cluster.name[[greater[i]]]
         id.filt[[i]] <- unique(names(unlist(cluster.name[[greater[i]]])))
     }
     
-    return(list(id.filt = id.filt, cluster.filt = cluster.filt))
+    return(id.filt)
     
     # Preparation for msa and consensus sequence.
     # Probably better after UMIgroup.
