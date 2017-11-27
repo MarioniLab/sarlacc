@@ -1,4 +1,4 @@
-umiRetriev <- function(align.stats, position=NULL) 
+umiExtract <- function(align.stats, position=NULL) 
 # Pull out UMIs from the adaptor alignment data.
 {
     if (is.null(position)) { 
