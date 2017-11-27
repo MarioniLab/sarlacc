@@ -1,4 +1,4 @@
-multiSeqAlign <- function(reads, groups, ...)
+multiReadAlign <- function(reads, groups, ...)
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id
 {
     Nreads <- length(reads)
@@ -15,6 +15,11 @@ multiSeqAlign <- function(reads, groups, ...)
 
     for (g in names(by.group)) { 
         cur.reads <- reads[by.group[[g]]]
+        if (length(cur.reads)==1L) {
+            msalign[[g]] <- cur.reads
+            next
+        }
+
         cur.align <- muscle(cur.reads, ..., quiet=TRUE)
         msalign[[g]] <- DNAStringSet(cur.align)
     }
