@@ -1,6 +1,6 @@
 export(
-    adaptorAlign, chopReads, umiRetriev, 
-    alignPrep, readOverlap, clusterReads,
+    adaptorAlign, chopReads, umiExtract, 
+    alignPrep, clusterReads,
     umiGroup,
     MSA, consSeqMajority
 )
@@ -10,14 +10,8 @@ importFrom("GenomicAlignments", cigarWidthAlongReferenceSpace, cigarWidthAlongQu
 importFrom("GenomicFeatures", exons)
 importFrom("AnnotationDbi", mapIds)
 importFrom("ShortRead", readFastq, sread, id)
-importFrom("tcR", reverse.string)
 importFrom("seqinr", read.fasta)
-importFrom("stringdist", stringdist)
 importFrom("igraph", components, graph.adjacency, membership, make_graph)
-
-
-
-
 
 # packages in "Depends":
 import(GenomicAlignments)
