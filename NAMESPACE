@@ -2,7 +2,7 @@ export(
     adaptorAlign, chopReads, umiExtract, 
     alignPrep, clusterReads,
     umiGroup,
-    MSA, consSeqMajority
+    multiReadAlign, consensusReadSeq
 )
 
 importFrom("muscle", muscle)
