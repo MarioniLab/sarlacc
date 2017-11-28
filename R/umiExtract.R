@@ -16,6 +16,9 @@ umiExtract <- function(align.stats, position=NULL)
     bump.start <- bump.end <- integer(nrow(align.stats))
     for (i in seq_len(nrow(align.stats))) {
         dels <- as.integer(all.dels[[i]])
+        if (length(dels)==1L && dels==-1L) { 
+            next
+        }
         true.pos <- dels - seq_along(dels)
         bump.start[i] <- sum(true.pos < position[1])
         bump.end[i] <- sum(true.pos < position[2])
@@ -24,7 +27,8 @@ umiExtract <- function(align.stats, position=NULL)
     # Pulling out the UMI and cleaning it up.
     umi <- substr(align.stats$pattern, start=bump.start+position[1], stop=bump.end+position[2])
     umi <- gsub("-", "", umi)
-    return(umi)
+    names(umi) <- rownames(align.stats)
+    return(DNAStringSet(umi))
 }
 
 
