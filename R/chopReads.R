@@ -33,7 +33,7 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
 
     end_point <- width(aligned$reads)
     has2 <- aligned$adaptor2$score >= score2
-    end_point[has2] <- aligned$adaptor2$start.pattern[has2] - 1L
+    end_point[has2] <- aligned$adaptor2$end.pattern[has2] - 1L
 
     aligned$reads <- subseq(aligned$reads, start=start_point, end=end_point)
     if(!is.null(aligned$quality)){

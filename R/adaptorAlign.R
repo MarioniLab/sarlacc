@@ -9,8 +9,6 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     if (is.character(adaptor2)) {
         adaptor2 <- DNAString(adaptor2)
     }
-    adaptor1_revcomp <- reverseComplement(adaptor1)
-    adaptor2_revcomp <- reverseComplement(adaptor2)
 
     # Checking the sensibility of the reads.
     if (is.character(reads)) {
@@ -23,16 +21,15 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     tolerance <- pmin(tolerance, width(reads))
     reads.start <- subseq(reads, start = 1, width = tolerance)
     reads.end <- subseq(reads, end = width(reads), width = tolerance)
-    reads.start.rev <- reverseComplement(reads.end)
-    reads.end.rev <- reverseComplement(reads.start)
+    reads.end <- reverseComplement(reads.end)
     
     # Aligning all sequences.
     submat <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
     all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension, substitutionMatrix=submat)
     align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1), all.args))
-    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2_revcomp), all.args))
-    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end.rev, subject=adaptor1), all.args))
-    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start.rev, subject=adaptor2_revcomp), all.args))
+    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2), all.args))
+    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor1), all.args))
+    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor2), all.args))
     
     # Figuring out the strand.
     fscore <- pmax(score(align_start), score(align_end))
@@ -51,9 +48,10 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
     # Adjusting the reverse coordinates for the read length.
-    adjustments <- width(reads) - tolerance # guaranteed to be at least zero, by pmin() above.
-    align_end$start.pattern <- align_end$start.pattern + adjustments
-    align_end$end.pattern <- align_end$end.pattern + adjustments
+    old.start <- align_end$start.pattern
+    old.end <- align_end$end.pattern
+    align_end$start.pattern <- width(reads) - old.start + 1L
+    align_end$end.pattern <- width(reads) - old.end + 1L
        
     # Read quality, if provided.
     if (!is.null(quality)){

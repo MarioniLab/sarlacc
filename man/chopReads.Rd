@@ -35,7 +35,7 @@ A list with the following components:
 \item{\code{adaptor1}:}{A DataFrame containing alignment strings for adaptor 1 to the original read sequence, only returned if \code{essential1=TRUE}.
 Each entry corresponds to an element of the output \code{reads}.
 This is similar to \code{aligned$adaptor1} except that all positional information on the pattern (i.e., read) has been removed, as this is no longer valid after trimming.}
-\item{\code{adaptor2}:}{A DataFrame containing alignment strings for (reverse-complemented) adaptor 2 to the original read sequence, only returned if \code{essential2=TRUE}.
+\item{\code{adaptor2}:}{A DataFrame containing alignment strings for adaptor 2 to the original read sequence, only returned if \code{essential2=TRUE}.
 Each entry corresponds to an element of \code{reads}.
 This is similar to \code{aligned$adaptor2} except without positional information on the pattern.}
 }
