@@ -1,6 +1,6 @@
 adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1, gapExtension=5, match=2, mismatch=-5, tolerance=100) 
 # This function aligns both adaptors to the read sequence with the specified parameters,
-# and returns the alignments that best match the sequence (with reverse complementing if necessary).    
+# and returns the alignments that best match the sequence (with reverse complementing if necessary).
 {
     if (is.character(adaptor1)) { 
         adaptor1 <- DNAString(adaptor1)
@@ -22,8 +22,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension, substitutionMatrix=submat)
     align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1), all.args))
     align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2_revcomp), all.args))
-    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start.rev, subject=adaptor2), all.args))
-    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end.rev, subject=adaptor1_revcomp), all.args))
+    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end.rev, subject=adaptor1), all.args))
+    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start.rev, subject=adaptor2_revcomp), all.args))
     
     # Figuring out the strand.
     fscore <- pmax(score(align_start), score(align_end))
@@ -37,8 +37,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     align_revcomp_end <- .align_info_extractor(align_revcomp_end)
 
     # Replacing the alignments.
-    align_start[is_reverse,] <- align_revcomp_end[is_reverse,]
-    align_end[is_reverse,] <- align_revcomp_start[is_reverse,]
+    align_start[is_reverse,] <- align_revcomp_start[is_reverse,]
+    align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
     # Adjusting the reverse coordinates for the read length.
