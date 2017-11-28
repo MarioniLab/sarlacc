@@ -1,4 +1,4 @@
-chopReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, score1 = NULL, score2 = NULL) 
+chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = TRUE)
 # This filters out reads that don't have essential adaptors aligning on either or both ends.
 # We also chop out the adaptor sequences for future use.    
 {
@@ -38,10 +38,6 @@ chopReads <- function(aligned, essential1 = TRUE, essential2 = TRUE, score1 = NU
     aligned$reads <- subseq(aligned$reads, start=start_point, end=end_point)
     if(!is.null(aligned$quality)){
         aligned$quality <- subseq(aligned$quality, start=start_point, end=end_point)
-    }
-    
-    if(is.null(names(aligned$reads))){
-        names(aligned$reads) <- seq(1, length(aligned$reads))
     }
     
     # Destroying pattern positional information, as this is no longer valid after chopping.
