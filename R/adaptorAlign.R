@@ -2,6 +2,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 {
+    # Checking the sensibility of the adaptors.
     if (is.character(adaptor1)) { 
         adaptor1 <- DNAString(adaptor1)
     }
@@ -11,6 +12,14 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     adaptor1_revcomp <- reverseComplement(adaptor1)
     adaptor2_revcomp <- reverseComplement(adaptor2)
 
+    # Checking the sensibility of the reads.
+    if (is.character(reads)) {
+        reads <- DNAString(reads)
+    }
+    if (is.null(names(reads))) { 
+        names(reads) <- paste0("READ", seq_along(reads))
+    }     
+   
     tolerance <- pmin(tolerance, width(reads))
     reads.start <- subseq(reads, start = 1, width = tolerance)
     reads.end <- subseq(reads, end = width(reads), width = tolerance)
@@ -52,8 +61,11 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
             quality <- BStringSet(quality)
         }
         quality[is_reverse] <- reverse(quality[is_reverse])
+        names(quality) <- names(reads)
     }
-    
+   
+    rownames(align_start) <- rownames(align_end) <- names(reads) 
+    names(is_reverse) <- names(reads)
     return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, quality=quality, reversed=is_reverse))
 }
 
