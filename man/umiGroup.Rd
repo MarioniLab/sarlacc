@@ -5,14 +5,14 @@
 \description{Identify reads originating from the same DNA molecule, based on similar sequences for the unique molecular identifiers (UMIs).}
 
 \usage{
-umiGroup(UMI1, UMI2=NULL, groups=NULL, threshold=2, flip=FALSE) 
+umiGroup(UMI1, UMI2=NULL, groups=NULL, threshold=2, flip=NULL) 
 }
 
 \arguments{
 \item{UMI1, UMI2}{A DNAStringSet object containing the UMI sequence(s) for each read.}
 \item{groups}{A factor specifying the groupings of reads, where only UMIs from the same group are compared to each other.}
 \item{threshold}{An integer scalar specifying the maximum Levenshtein distance between the UMI sequences of two reads in order for them to be considered equivalent.}
-\item{flip}{A logical scalar indicating whether strandedness should be ignored.}
+\item{flip}{A logical vector indicating whether UMIs 1 and 2 should be flipped for each read.}
 }
 
 \details{
@@ -28,16 +28,21 @@ The Levenshtein distance between a pair of reads is then defined as the sum of t
 Similarly, \code{threshold} applies to the sum of distances rather than the distance for each individual UMI.
 
 By default, sequences in \code{UMI1} are compared to other sequences in \code{UMI1}, and sequences in \code{UMI2} are compared to other sequences in \code{UMI2}.
-If \code{flip=TRUE}, sequences in \code{UMI1} will be compared to sequences in \code{UMI2} and vice versa.
-This can be useful in some situations, e.g., when each UMI is obtained from identical adaptors at both end of the reads.
+If \code{flip} is \code{TRUE} for any read, UMIs 1 and 2 for that read will be swapped before any comparison is performed.
+This can be useful in some situations, e.g., to ensure that all read sequences are on the same strand if the adaptors are the same on both ends.
 
 If \code{groups} is supplied, pairwise distances are only computed between pairs of reads in the same level of \code{groups}.
 This is useful for reducing the computational complexity, as well as serving as a sanity check to only compare UMIs for reads that are actually similar.
 Groupings can be defined in any manner; a simple approach is to use \code{\link{clusterReads}} and group reads based on similar alignment locations.
+
+% In theory, we could identify which reads are on the opposite strand based on the UMIs alone.
+% However, this results in some unresolvable edge cases whereby a group might consist of both the read *and* its reverse complement.
+% This could arise if UMI1-UMI2 matches (directly or indirectly) to UMI2-UMI1, and it's not clear which one is right or wrong.
+% It is safer to use the entire read sequence during alignment and grouping to determine the sequence, if that is necessary.
 }
 
 \value{
-An integer vector containing the groupings for all reads, where reads in the same group have the same level.
+An integer vector containing the groupings for all reads, where reads in the same group are assigned to the same level.
 }
 
 \seealso{
@@ -62,5 +67,5 @@ umiGroup(umi1, threshold=0)
 umi2 <- DNAStringSet(c("AACCGGTT", "CACCGGTT", 
     "AACCCGGTA", "AACGGGTT"))
 umiGroup(umi1, umi2)
-umiGroup(umi1, umi2, flip=TRUE)
+umiGroup(umi1, umi2, flip=c(TRUE, FALSE, FALSE, TRUE))
 }
