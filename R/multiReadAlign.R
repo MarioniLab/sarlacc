@@ -1,4 +1,4 @@
-multiReadAlign <- function(reads, groups, ...)
+multiReadAlign <- function(reads, groups, flip=NULL, ...)
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id
 {
     Nreads <- length(reads)
@@ -8,6 +8,9 @@ multiReadAlign <- function(reads, groups, ...)
     if (length(groups)!=Nreads) {
         stop("length of 'reads' and 'groups' should be the same")
     }   
+    if (!is.null(flip) && length(flip)!=Nreads) {
+        stop("length of 'flip' and 'reads' should be the same")
+    }
 
     by.group <- split(seq_len(Nreads), groups)
     msalign <- vector("list", length(by.group))
@@ -18,6 +21,11 @@ multiReadAlign <- function(reads, groups, ...)
         if (length(cur.reads)==1L) {
             msalign[[g]] <- cur.reads
             next
+        }
+
+        if (!is.null(flip)) {
+            curflip <- flip[by.group[[g]]]
+            cur.reads[curflip] <- reverseComplement(cur.reads[curflip])
         }
 
         cur.align <- muscle(cur.reads, ..., quiet=TRUE)
