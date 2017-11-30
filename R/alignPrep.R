@@ -35,6 +35,9 @@ alignPrep <- function(sam, minq = 10)
     pos <- as.integer(as.character(mapping$POS))
     granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"))
 
+    seq_filt <- sort(c(which(seqnames(granges)=='15'), which(seqnames(granges)=='7'), which(seqnames(granges)=='1'), which(seqnames(granges)=='2'),which(seqnames(granges)=='3'),which(seqnames(granges)=='4'),which(seqnames(granges)=='5'), which(seqnames(granges)=='6'), which(seqnames(granges)=='8'), which(seqnames(granges)=='9'), which(seqnames(granges)=='10'), which(seqnames(granges)=='11'), which(seqnames(granges)=='12'), which(seqnames(granges)=='13'), which(seqnames(granges)=='14'), which(seqnames(granges)=='16'), which(seqnames(granges)=='17'), which(seqnames(granges)=='18'), which(seqnames(granges)=='19'), which(seqnames(granges)=='X'), which(seqnames(granges)=='Y'), which(seqnames(granges)=='MT')))
+    
+    granges <- granges[seq_filt]
     # Splitting by the mapping names
     return(split(granges, mapping$QNAME))    
 }
