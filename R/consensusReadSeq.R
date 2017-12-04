@@ -17,7 +17,7 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6)
         # Keeping only the base positions with sufficient coverage. 
         x <- consensusMatrix(current) 
         x <- x[nucleotides,,drop=FALSE] # Why not x <- x[rownames(x)%in% nucleotides,]
-        base.exists <- colSums(x) >= min.coverage * length(current)
+        base.exists <- colSums(x) >= min.coverage * nrow(current)
         x <- x[,base.exists,drop=FALSE]
 
         # Defining the consensus sequence based on relative majority coverage
