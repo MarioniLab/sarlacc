@@ -13,6 +13,7 @@ multiReadAlign <- function(reads, groups, flip=NULL, ...)
     }
 
     by.group <- split(seq_len(Nreads), groups)
+    by.group$"0" <- NULL
     msalign <- vector("list", length(by.group))
     names(msalign) <- names(by.group)
 
