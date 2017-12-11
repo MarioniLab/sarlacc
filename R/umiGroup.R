@@ -20,8 +20,9 @@ umiGroup <- function(UMI1, UMI2 = NULL, groups=NULL, threshold=2, flip=NULL)
     output <- integer(Nreads)
     last <- 0L
     cur.UMI2 <- NULL
-
-    for (f in names(by.group)) { 
+    
+    filt.group <- which(lapply(by.group, length)>1)
+    for (f in filt.group) { 
         current <- by.group[[f]]
         cur.UMI1 <- UMI1[current]
 
@@ -33,7 +34,7 @@ umiGroup <- function(UMI1, UMI2 = NULL, groups=NULL, threshold=2, flip=NULL)
                 cur.tmp <- cur.UMI1[cur.flip]
                 cur.UMI1[cur.flip] <- cur.UMI2[cur.flip]
                 cur.UMI2[cur.flip] <- cur.tmp
-            } 
+            }  
         }
 
         UMI.id <- .umiClust(UMI1=cur.UMI1, UMI2=cur.UMI2, threshold=threshold)
