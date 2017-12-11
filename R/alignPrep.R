@@ -39,13 +39,22 @@ alignPrep <- function(sam, minq = 10, restricted = NULL)
     read.names <- mapping$QNAME
     if (!is.null(restricted)){ 
         keep <- seqnames(granges) %in% restricted
-        granges <- granges[keep]
+	granges <- granges[keep]
         read.names <- factor(read.names)
-        read.names <- read.names[keep]
+        read.names <- read.names[as.logical(keep)]
     }
+        
+    granges <- split(granges, read.names, drop=FALSE)
 
+    granges.frame <- as.data.frame(granges)
+    granges.frame <- granges.frame[-which(duplicated(granges.frame$group)),]
+
+    abund.reads <- levels(read.names) %in% granges.frame$group_name
+    
+    flip <- logical(nlevels(read.names))
+    flip[abund.reads] <- granges.frame$strand=="+"
     # Splitting by the mapping names
-    return(split(granges, read.names, drop=FALSE))
+    return(list(granges = granges, flip = flip))
 }
 
 
