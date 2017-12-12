@@ -1,6 +1,11 @@
 levExpect <- function(align.stats, x=100)
 {
     align.stats <- align.stats[1:x,]
+    
+    curseq <- gsub("-", "", align.stats$subject[1])
+    all.Ns <- gregexpr("N+", curseq)[[1]]
+    position <- c(all.Ns, all.Ns+attr(all.Ns, "match.length")-1L)
+    
     all.dels <- gregexpr("-", align.stats$subject)
     bump.start <- bump.end <- integer(nrow(align.stats))
     for (i in seq_len(nrow(align.stats))) {
