@@ -1,4 +1,4 @@
-umiExtract <- function(align.stats, position=NULL) 
+umiExtract <- function(align.stats, position=NULL, length=NULL) 
 # Pull out UMIs from the adaptor alignment data.
 {
     if (is.null(position)) { 
@@ -9,6 +9,9 @@ umiExtract <- function(align.stats, position=NULL)
         if (length(position)!=2L || position[1] > position[2] || position[1] <= 0L) {
             stop("invalid 'position' vector")
         }
+    }
+    if(length == position[2]-position[1]+1){
+        stop("Please enter correct length")
     }
     
     # Identifying the number of deletions in the pattern before the start of the game.
