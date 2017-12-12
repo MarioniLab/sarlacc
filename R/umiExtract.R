@@ -10,7 +10,7 @@ umiExtract <- function(align.stats, position=NULL, length=NULL)
             stop("invalid 'position' vector")
         }
     }
-    if(length == position[2]-position[1]+1){
+    if(!length == position[2]-position[1]+1){
         stop("Please enter correct length")
     }
     
