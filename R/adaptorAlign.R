@@ -23,13 +23,24 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
     reads.end <- subseq(reads, end = width(reads), width = tolerance)
     reads.end <- reverseComplement(reads.end)
     
+    if (!is.null(quality)){
+        if (is.character(quality)) { 
+            quality <- BStringSet(quality)
+        }
+        qualities.start <- subseq(quality, start = 1, width = tolerance)
+        qualities.end <- subseq(quality, end = width(quality), width = tolerance)
+        qualities.end <- reverse(qualities.end)
+    }
+    
+    
     # Aligning all sequences.
     submat <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
-    all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension, substitutionMatrix=submat)
-    align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1), all.args))
-    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2), all.args))
-    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor1), all.args))
-    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor2), all.args))
+    if (!is.null(quality)){ submat <- NULL }
+    all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension, substitutionMatrix=submat, subjectQuality = PhredQuality(100L))
+    align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1), all.args, patternQuality = PhredQuality(qualities.start)))
+    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2), all.args, patternQuality = PhredQuality(qualities.end)))
+    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor1), all.args, patternQuality = PhredQuality(qualities.end)))
+    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor2), all.args, patternQuality = PhredQuality(qualities.start)))
     
     # Figuring out the strand.
     fscore <- pmax(score(align_start), score(align_end))
@@ -55,9 +66,6 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, quality = NULL, gapOpening=1
        
     # Read quality, if provided.
     if (!is.null(quality)){
-        if (is.character(quality)) { 
-            quality <- BStringSet(quality)
-        }
         quality[is_reverse] <- reverse(quality[is_reverse])
         names(quality) <- names(reads)
     }
