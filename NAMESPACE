@@ -1,5 +1,5 @@
 export(
-    adaptorAlign, chopReads, umiExtract, levExpect,
+    adaptorAlign, chopReads, umiExtract, levExpect, phredExtract,
     alignPrep, clusterReads,
     umiGroup,
     multiReadAlign, consensusReadSeq
