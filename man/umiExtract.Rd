@@ -10,7 +10,7 @@ umiExtract(align.stats, position=NULL)
 }
 
 \arguments{
-\item{align.stats}{A DataFrame of alignment information, including the alignment strings for the pattern (read) and subject (adaptor).}
+\item{align.stats}{A DataFrame of alignment information, including the alignment strings for the read and adaptor.}
 \item{position}{An integer vector of length 2 specifying the positions of first and last base of the UMI on the adaptor sequence.}
 }
 
@@ -39,8 +39,8 @@ adaptor <- "ACTACGACNNNNCAACGACT"
 read <- "ACTACGACACTGCAACGACTCACAGCATCA"
 pw.aln <- pairwiseAlignment(pattern=read, subject=adaptor,
     type="local-global")
-stats <- DataFrame(pattern=as.character(pattern(pw.aln)),
-    subject=as.character(subject(pw.aln))) 
+stats <- DataFrame(read=as.character(pattern(pw.aln)),
+    adaptor=as.character(subject(pw.aln))) 
 rownames(stats) <- "WHEE"
 
 umiExtract(stats)

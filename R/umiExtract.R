@@ -1,4 +1,4 @@
-umiExtract <- function(align.stats, position=NULL, length=NULL) 
+umiExtract <- function(align.stats, position=NULL) 
 # Pull out UMIs from the adaptor alignment data.
 #
 # written by Florian Bieberich
@@ -13,9 +13,6 @@ umiExtract <- function(align.stats, position=NULL, length=NULL)
         if (length(position)!=2L || position[1] > position[2] || position[1] <= 0L) {
             stop("invalid 'position' vector")
         }
-    }
-    if(!length == position[2]-position[1]+1){
-        stop("Please enter correct length")
     }
     
     # Identifying the number of deletions in the adaptor before the start of the UMI.
@@ -45,8 +42,8 @@ umiExtract <- function(align.stats, position=NULL, length=NULL)
 
 .compute_position_bump <- function(align.str, position) {
     all.dels <- gregexpr("-", align.str)
-    bump.start <- bump.end <- integer(nrow(align.stats))
-    for (i in seq_len(nrow(align.stats))) {
+    bump.start <- bump.end <- integer(length(align.str))
+    for (i in seq_along(bump.start)) { 
         dels <- as.integer(all.dels[[i]])
         if (length(dels)==1L && dels==-1L) { 
             next
