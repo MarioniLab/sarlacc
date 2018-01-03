@@ -24,10 +24,11 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
     reads.start <- subseq(reads, start = 1, width = tolerance)
     reads.end <- subseq(reads, end = width(reads), width = tolerance)
     reads.end <- reverseComplement(reads.end)
-    
+
     # Aligning all sequences to the adaptor.
     all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension)
-    if (!is(reads, "QualityScaledDNAStringSet")) { 
+    has.quality <- is(reads, "QualityScaledDNAStringSet")
+    if (!has.quality) { 
         all.args$substitutionMatrix <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
     }
 
@@ -42,10 +43,18 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
     is_reverse <- fscore < rscore
 
     # Extracting all the useful information out of them.
-    align_start <- .align_info_extractor(align_start, quality=quality(reads.start))
-    align_end <- .align_info_extractor(align_end, quality=quality(reads.end))
-    align_revcomp_start <- .align_info_extractor(align_revcomp_start, quality=quality(reads.end))
-    align_revcomp_end <- .align_info_extractor(align_revcomp_end, quality=quality(reads.start))
+    if (has.quality) {
+        qual.start <- quality(reads.start)
+        qual.end <- quality(reads.end)
+    } else {
+        qual.start <- NULL
+        qual.end <- NULL
+    }
+
+    align_start <- .align_info_extractor(align_start, quality=qual.start)
+    align_end <- .align_info_extractor(align_end, quality=qual.end)
+    align_revcomp_start <- .align_info_extractor(align_revcomp_start, quality=qual.end)
+    align_revcomp_end <- .align_info_extractor(align_revcomp_end, quality=qual.start)
 
     # Replacing the alignments.
     align_start[is_reverse,] <- align_revcomp_start[is_reverse,]
@@ -53,10 +62,10 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
     # Adjusting the reverse coordinates for the read length.
-    old.start <- align_end$start.pattern
-    old.end <- align_end$end.pattern
-    align_end$start.pattern <- width(reads) - old.start + 1L
-    align_end$end.pattern <- width(reads) - old.end + 1L
+    old.start <- align_end$start
+    old.end <- align_end$end
+    align_end$start <- width(reads) - old.start + 1L
+    align_end$end <- width(reads) - old.end + 1L
        
     rownames(align_start) <- rownames(align_end) <- names(reads) 
     names(is_reverse) <- names(reads)
@@ -69,7 +78,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, gapOpening=1, gapExtension=5
     output <- DataFrame(score=score(alignments), adaptor=as.character(P), 
                         read=as.character(S), start=start(P), end=end(P))
     if (!is.null(quality)) {
-        pattern.qual <- subseq(quality, start=output$start.pattern, end=output$end.pattern)
+        pattern.qual <- subseq(quality, start=output$start, end=output$end)
         output$quality <- pattern.qual
     }    
     return(output)
