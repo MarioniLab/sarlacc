@@ -1,8 +1,12 @@
 umiExtract <- function(align.stats, position=NULL, length=NULL) 
 # Pull out UMIs from the adaptor alignment data.
+#
+# written by Florian Bieberich
+# with modifications by Aaron Lun
+# created 27 November 2017    
 {
     if (is.null(position)) { 
-        curseq <- gsub("-", "", align.stats$subject[1])
+        curseq <- gsub("-", "", align.stats$adaptor[1])
         all.Ns <- gregexpr("N+", curseq)[[1]]
         position <- c(all.Ns, all.Ns+attr(all.Ns, "match.length")-1L)
     } else {
@@ -14,8 +18,33 @@ umiExtract <- function(align.stats, position=NULL, length=NULL)
         stop("Please enter correct length")
     }
     
-    # Identifying the number of deletions in the pattern before the start of the game.
-    all.dels <- gregexpr("-", align.stats$subject)
+    # Identifying the number of deletions in the adaptor before the start of the UMI.
+    # This is the number of bases we have to shift to the 3' in the read alignment string. 
+    read.bump <- .compute_position_bump(align.stats$adaptor, position)
+    bumped.start <- read.bump$start + position[1]
+    bumped.end <- read.bump$end + position[2]
+
+    # Pulling out the UMI and cleaning it up.
+    umi <- substr(align.stats$read, start=bumped.start, stop=bumped.end)
+    umi <- gsub("-", "", umi)
+    names(umi) <- rownames(align.stats)
+    out <- DNAStringSet(umi)
+
+    if (!is.null(align.stats$quality)) { 
+        # Pulling out the Phred scores (this time, we need to know the deletions in the read,
+        # as the Phred scores do not contain the deletions in the alignment string).
+        read.unbump <- .compute_position_bump(align.stats$read, c(bumped.start, bumped.end))
+        unbumped.start <- bumped.start - read.unbump$start[1]
+        unbumped.end <- bumped.end - read.unbump$end[1]
+
+        umi.qual <- subseq(align.stats$quality, start=unbumped.start, end=unbumped.end)
+        out <- QualityScaledDNAStringSet(out, umi.qual)
+    }
+    return(out)
+}
+
+.compute_position_bump <- function(align.str, position) {
+    all.dels <- gregexpr("-", align.str)
     bump.start <- bump.end <- integer(nrow(align.stats))
     for (i in seq_len(nrow(align.stats))) {
         dels <- as.integer(all.dels[[i]])
@@ -26,12 +55,6 @@ umiExtract <- function(align.stats, position=NULL, length=NULL)
         bump.start[i] <- sum(true.pos < position[1])
         bump.end[i] <- sum(true.pos < position[2])
     }
-
-    # Pulling out the UMI and cleaning it up.
-    umi <- substr(align.stats$pattern, start=bump.start+position[1], stop=bump.end+position[2])
-    umi <- gsub("-", "", umi)
-    names(umi) <- rownames(align.stats)
-    return(DNAStringSet(umi))
+    return(list(start=bump.start, end=bump.end))
 }
-
 
