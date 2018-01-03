@@ -5,15 +5,10 @@ umiExtract <- function(align.stats, position=NULL)
 # with modifications by Aaron Lun
 # created 27 November 2017    
 {
-    if (is.null(position)) { 
-        curseq <- gsub("-", "", align.stats$adaptor[1])
-        all.Ns <- gregexpr("N+", curseq)[[1]]
-        position <- c(all.Ns, all.Ns+attr(all.Ns, "match.length")-1L)
-    } else {
-        if (length(position)!=2L || position[1] > position[2] || position[1] <= 0L) {
-            stop("invalid 'position' vector")
-        }
+    if (nrow(align.stats)==0L){ 
+        stop("'align.stats' should have non-zero rows")
     }
+    position <- .guess_umi_position(position, align.stats$adaptor[1])
     
     # Identifying the number of deletions in the adaptor before the start of the UMI.
     # This is the number of bases we have to shift to the 3' in the read alignment string. 
@@ -38,6 +33,19 @@ umiExtract <- function(align.stats, position=NULL)
         out <- QualityScaledDNAStringSet(out, umi.qual)
     }
     return(out)
+}
+
+.guess_umi_position <- function(position, adaptor) { 
+    if (is.null(position)) { 
+        curseq <- gsub("-", "", adaptor)
+        all.Ns <- gregexpr("N+", curseq)[[1]]
+        position <- c(all.Ns, all.Ns+attr(all.Ns, "match.length")-1L)
+    } else {
+        if (length(position)!=2L || position[1] > position[2] || position[1] <= 0L) {
+            stop("invalid 'position' vector")
+        }
+    }
+    return(position)
 }
 
 .compute_position_bump <- function(align.str, position) {
