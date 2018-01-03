@@ -5,13 +5,14 @@
 \description{Identify reads originating from the same DNA molecule, based on similar sequences for the unique molecular identifiers (UMIs).}
 
 \usage{
-umiGroup(UMI1, UMI2=NULL, groups=NULL, threshold=2, flip=NULL) 
+umiGroup(UMI1, threshold, UMI2=NULL, groups=NULL, flip=NULL) 
 }
 
 \arguments{
-\item{UMI1, UMI2}{A DNAStringSet object containing the UMI sequence(s) for each read.}
+\item{UMI1}{A DNAStringSet or QualityScaledDNAStringSet object containing the UMI sequence for each read.}
+\item{threshold}{A numeric scalar specifying the maximum distance between the UMI sequences of two reads in order for them to be considered equivalent.}
+\item{UMI2}{A DNAStringSet or QualityScaledDNAStringSet object containing a second UMI sequence for each read, if present.}
 \item{groups}{A factor specifying the groupings of reads, where only UMIs from the same group are compared to each other.}
-\item{threshold}{An integer scalar specifying the maximum Levenshtein distance between the UMI sequences of two reads in order for them to be considered equivalent.}
 \item{flip}{A logical vector indicating whether UMIs 1 and 2 should be flipped for each read.}
 }
 
@@ -19,12 +20,13 @@ umiGroup(UMI1, UMI2=NULL, groups=NULL, threshold=2, flip=NULL)
 This function will identify groups of reads originating from the same DNA molecule, based on the presence of similar UMI sequences.
 Each read is represented by a UMI sequence in \code{UMI1}, obtained using functions like \code{\link{umiExtract}}.
 
-By default, the Levenshtein distance between all pairs of reads in \code{UMI1} is computed.
+Similarity between UMI sequences is computed by \code{\link{stringDist}}, using the Levenshtein distance if \code{UMI1} is a DNAStringSet object.
+Otherwise, the distance calculation will incorporate the quality information in the QualityScaledDNAStringSet object. 
 Distances below \code{threshold} are used to define edges on an undirected graph where each read is represented by a node (Smith et al., 2017).
 Each connected component of the graph defines a group of reads originating from the same molecule.
 
 If \code{UMI2} is supplied, we assume that each read is represented by two UMI sequences (e.g., on both ends of the read).
-The Levenshtein distance between a pair of reads is then defined as the sum of the distances for both UMIs.
+The distance between a pair of reads is then defined as the sum of the distances for both UMIs.
 Similarly, \code{threshold} applies to the sum of distances rather than the distance for each individual UMI.
 
 By default, sequences in \code{UMI1} are compared to other sequences in \code{UMI1}, and sequences in \code{UMI2} are compared to other sequences in \code{UMI2}.

@@ -1,6 +1,10 @@
-umiGroup <- function(UMI1, UMI2 = NULL, groups=NULL, threshold=2, flip=NULL) 
-# Function for both UMIs.
-# umiGroup adds the levenshtein distances of both UMI's up and then proceeds as in the initial UMIgroup function.
+umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL) 
+# Computes the distances between UMIs of different reads 
+# and assigns them to the same group if they are low-distance.
+# 
+# written by Florian Bieberich
+# with modifications by Aaron Lun
+# created 24 November 2017
 {
     Nreads <- length(UMI1)
     if (missing(groups)) {
@@ -45,10 +49,12 @@ umiGroup <- function(UMI1, UMI2 = NULL, groups=NULL, threshold=2, flip=NULL)
     return(output) 
 }
 
-.umiClust <- function(UMI1, UMI2=NULL, threshold=2) {
-    lev.dist <- as.vector(stringDist(UMI1, method = "levenshtein"))
+.umiClust <- function(UMI1, UMI2, threshold) {
+    # stringDist defaults to method="quality" for QualityScaledXStringSet inputs.
+    # Otherwise it remains as method="levenstein".
+    lev.dist <- as.vector(stringDist(UMI1)) 
     if (!is.null(UMI2)) {
-        lev.dist <- lev.dist + as.vector(stringDist(UMI2, method = "levenshtein"))
+        lev.dist <- lev.dist + as.vector(stringDist(UMI2))
     }
    
     # Identifying links between reads, based on combined distance below the threshold.
