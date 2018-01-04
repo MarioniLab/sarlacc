@@ -1,19 +1,11 @@
 #include "sarlacc.h"
 
-SEXP count_deletions(SEXP _alignments, SEXP _posstart, SEXP _posend) {
+SEXP count_deletions(SEXP _alignments, SEXP posstart, SEXP posend) {
     BEGIN_RCPP
     Rcpp::StringVector alignments(_alignments);
     const size_t N=alignments.size();
-    
-    Rcpp::IntegerVector posstart(_posstart);
-    if (posstart.size()!=1) {
-        throw std::runtime_error("UMI position start should be an integer scalar");
-    }
-    Rcpp::IntegerVector posend(_posend);
-    if (posend.size()!=1) {
-        throw std::runtime_error("UMI position end should be an integer scalar");
-    }
-    const size_t Start=posstart[0] - 1, End=posend[0]; // Zero indexed start, open end.
+    const size_t Start=check_integer_scalar(posstart, "UMI start position") - 1, 
+                 End=check_integer_scalar(posend, "UMI end position"); // Zero indexed start, open end.
 
     Rcpp::IntegerVector beforeS(N), beforeE(N);
     for (size_t i=0; i<N; ++i) {
