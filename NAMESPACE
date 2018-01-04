@@ -1,3 +1,5 @@
+useDynLib(sarlacc, .registration=TRUE, .fixes="cxx_")
+
 export(
     adaptorAlign, chopReads, 
     umiExtract, expectedDist, 
@@ -6,12 +8,11 @@ export(
     multiReadAlign, consensusReadSeq
 )
 
+importFrom("Rcpp", sourceCpp)
 importFrom("muscle", muscle)
 importFrom("GenomicAlignments", cigarWidthAlongReferenceSpace, cigarWidthAlongQuerySpace)
 importFrom("GenomicFeatures", exons)
 importFrom("AnnotationDbi", mapIds)
-importFrom("ShortRead", readFastq, sread, id)
-importFrom("seqinr", read.fasta)
 importFrom("igraph", components, graph.adjacency, membership, make_graph)
 
 # packages in "Depends":
