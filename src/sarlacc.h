@@ -21,8 +21,10 @@ std::string check_string(Rcpp::RObject, const char*);
 
 extern "C" {
 
+SEXP count_deletions(SEXP, SEXP, SEXP);
+
 SEXP mask_bad_bases(SEXP, SEXP, SEXP);
 
-SEXP count_deletions(SEXP, SEXP, SEXP);
+SEXP unmask_bases(SEXP, SEXP);
 
 }
