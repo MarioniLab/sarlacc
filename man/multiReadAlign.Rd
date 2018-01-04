@@ -5,13 +5,14 @@
 \description{Perform a multiple sequence alignment of reads in the same UMI group, i.e., originating from the same DNA molecule.}
 
 \usage{
-multiReadAlign(reads, groups, ...)
+multiReadAlign(reads, groups, flip=FALSE, threshold=10, ...)
 }
 
 \arguments{
     \item{reads}{A DNAStringSet object containing read sequences.}
     \item{groups}{A factor specifying which reads belong to the same UMI group, e.g., from \code{\link{umiGroup}}.}
     \item{flip}{A logical vector specifying whether each read should be reverse-complemented.}
+    \item{threshold}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
     \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
 }
 
@@ -25,6 +26,11 @@ The MUSCLE aligner is used to perform efficient multiple sequence alignment of m
 However, for DNA sequences, MUSCLE assumes that all reads are on the same strand.
 Reads on the other strand should be indicated as such via \code{flip} so that their reverse complement sequences are used in the multiple sequence alignment.
 In general, this is only necessary if the same adaptors were used on both ends such that the strand of the sequence is unknown.
+
+MUSCLE is not aware of quality strings, so we mask low-quality bases prior to the multiple sequence alignment.
+All bases with quality scores (i.e., the \code{-10*log10()} error probabilities) below \code{threshold} are set to \code{"N"}.
+This ensures that poor base calls do not compromise the alignment quality.
+If \code{threshold=NA}, no masking is performed.
 }
 
 \value{
@@ -34,7 +40,7 @@ Each DNAStringSet contains alignment strings for all reads in one UMI group.
 
 \author{
 Florian Bieberich,
-Aaron Lun
+with modifications from Aaron Lun
 }
 
 \seealso{
