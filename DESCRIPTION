@@ -6,8 +6,8 @@ Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
         "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "ctb"))
 Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
 Depends: R (>= 3.4), GenomicRanges, Biostrings, S4Vectors
-Imports: IRanges, XVector, GenomicFeatures, AnnotationDbi, muscle, 
-        GenomicAlignments, igraph, Rcpp
+Imports: methods, IRanges, XVector, GenomicFeatures, AnnotationDbi, 
+        muscle, GenomicAlignments, igraph, Rcpp
 Suggests: TxDb.Mmusculus.UCSC.mm10.knownGene
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 

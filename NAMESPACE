@@ -20,5 +20,8 @@ import(GenomicAlignments)
 import(GenomicRanges)
 import(Biostrings)
 import(S4Vectors)
+
+# packages required for Biostrings C API:
+import(methods)
 import(XVector)
 import(IRanges)
