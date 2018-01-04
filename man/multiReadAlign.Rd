@@ -5,7 +5,8 @@
 \description{Perform a multiple sequence alignment of reads in the same UMI group, i.e., originating from the same DNA molecule.}
 
 \usage{
-multiReadAlign(reads, groups, flip=FALSE, threshold=10, ...)
+multiReadAlign(reads, groups, flip=FALSE, threshold=10, 
+    keep.mask=FALSE, ...)
 }
 
 \arguments{
@@ -13,6 +14,7 @@ multiReadAlign(reads, groups, flip=FALSE, threshold=10, ...)
     \item{groups}{A factor specifying which reads belong to the same UMI group, e.g., from \code{\link{umiGroup}}.}
     \item{flip}{A logical vector specifying whether each read should be reverse-complemented.}
     \item{threshold}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
+    \item{keep.mask}{A logical scalar indicating whether masked bases should remain masked in the output.}
     \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
 }
 
@@ -31,6 +33,7 @@ MUSCLE is not aware of quality strings, so we mask low-quality bases prior to th
 All bases with quality scores (i.e., the \code{-10*log10()} error probabilities) below \code{threshold} are set to \code{"N"}.
 This ensures that poor base calls do not compromise the alignment quality.
 If \code{threshold=NA}, no masking is performed.
+All masks are removed in the output strings unless \code{keep.mask=TRUE}, in which case the strings may contain \code{"N"}'s.
 }
 
 \value{
