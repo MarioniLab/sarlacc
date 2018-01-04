@@ -12,15 +12,15 @@ T check_scalar(Rcpp::RObject incoming, const char* arg, const char* val) {
 }
 
 int check_integer_scalar(Rcpp::RObject incoming, const char* arg) {
-    check_scalar<int, Rcpp::IntegerVector>(incoming, arg, "an integer scalar");
+    return check_scalar<int, Rcpp::IntegerVector>(incoming, arg, "an integer scalar");
 }
 
 double check_numeric_scalar(Rcpp::RObject incoming, const char* arg) {
-    check_scalar<double, Rcpp::NumericVector>(incoming, arg, "a numeric scalar");
+    return check_scalar<double, Rcpp::NumericVector>(incoming, arg, "a numeric scalar");
 }
 
 bool check_logical_scalar(Rcpp::RObject incoming, const char* arg) {
-    check_scalar<bool, Rcpp::LogicalVector>(incoming, arg, "a logical scalar");
+    return check_scalar<bool, Rcpp::LogicalVector>(incoming, arg, "a logical scalar");
 }
 
 std::string check_string(Rcpp::RObject incoming, const char* arg) {
