@@ -49,17 +49,8 @@ umiExtract <- function(align.stats, position=NULL)
 }
 
 .compute_position_bump <- function(align.str, position) {
-    all.dels <- gregexpr("-", align.str)
-    bump.start <- bump.end <- integer(length(align.str))
-    for (i in seq_along(bump.start)) { 
-        dels <- as.integer(all.dels[[i]])
-        if (length(dels)==1L && dels==-1L) { 
-            next
-        }
-        true.pos <- dels - seq_along(dels)
-        bump.start[i] <- sum(true.pos < position[1])
-        bump.end[i] <- sum(true.pos < position[2])
-    }
-    return(list(start=bump.start, end=bump.end))
+    out <- .Call(cxx_count_deletions, align.str, position[1], position[2])
+    names(out) <- c("start", "end")
+    return(out)
 }
 
