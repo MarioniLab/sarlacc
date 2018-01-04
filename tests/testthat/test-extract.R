@@ -21,10 +21,10 @@ test_that("position shift calculations are correct", {
 
     # Insert deletions throughout to mimic an alignment string for the adaptor.
     additional <- c("ACAGTGACGTNNNNACACT",
-                    "ACAGTG-ACGTNNNNACACT",
-                    "ACAGTGACGTNNNNACA-CT",
-                    "ACAGTGACGTNN-NNACACT",
-                    "ACAGTGACGTN-NN-NACACT",
+                    "ACAGTG-ACGTNNNNACACT", # before the UMI
+                    "ACAGTGACGTNNNNACA-CT", # after the UMI
+                    "ACAGTGACGTNN-NNACACT", # within the UMI... and so on.
+                    "ACAGTGACGTN-NN-NACACT", 
                     "ACAG-TGACGTNN-NNACACT",
                     "A-CAGTGAC-GTNN-NNACACT",
                     "-ACAGTGACGTNNNNACACT",
