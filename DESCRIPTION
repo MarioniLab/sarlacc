@@ -6,8 +6,8 @@ Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
         "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "ctb"))
 Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
 Depends: R (>= 3.4), GenomicRanges, Biostrings, S4Vectors
-Imports: GenomicFeatures, AnnotationDbi, muscle, GenomicAlignments, 
-        igraph, Rcpp
+Imports: IRanges, XVector, GenomicFeatures, AnnotationDbi, muscle, 
+        GenomicAlignments, igraph, Rcpp
 Suggests: TxDb.Mmusculus.UCSC.mm10.knownGene
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
@@ -16,6 +16,6 @@ Description: Implements a variety of low-level analyses of single-cell
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
-LinkingTo: Rcpp
+LinkingTo: Rcpp, Biostrings, IRanges, XVector, S4Vectors
 SystemRequirements: C++11
 Author: Florina Bieberich [aut, cre], Aaron Lun [ctb]

@@ -7,7 +7,7 @@
 extern "C" {
 
 static const R_CallMethodDef all_call_entries[] = {
-    REGISTER(mask_bad_bases, 4),    
+    REGISTER(mask_bad_bases, 3),    
     REGISTER(count_deletions, 3),
     {NULL, NULL, 0}
 };

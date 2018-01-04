@@ -20,7 +20,6 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, ...)
     by.group <- split(seq_len(Nreads), groups)
     msalign <- vector("list", length(by.group))
     names(msalign) <- names(by.group)
-    reads <- .mask_bad_bases(reads, threshold=min.qual)
 
     for (g in names(by.group)) { 
         cur.reads <- reads[by.group[[g]]]
@@ -34,8 +33,10 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, ...)
             cur.reads[curflip] <- reverseComplement(cur.reads[curflip])
         }
 
+        cur.reads <- .mask_bad_bases(cur.reads, threshold=min.qual)
         cur.align <- muscle(cur.reads, ..., quiet=TRUE)
-        msalign[[g]] <- DNAStringSet(cur.align)
+
+        msalign[[g]] <- cur.align
     }
     return(msalign)
 }
@@ -48,9 +49,8 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, ...)
     } else {
         enc <- encoding(quality(incoming))
         lowerbound <- names(enc)[min(which(enc>=threshold))]
-        out <- .Call(cxx_mask_bad_bases, as.character(incoming),
-                     as.character(quality(incoming)), 
-                     max(width(incoming)), lowerbound)
+        out <- .Call(cxx_mask_bad_bases, incoming, quality(incoming), lowerbound)
         return(DNAStringSet(out))
     }
 }
+

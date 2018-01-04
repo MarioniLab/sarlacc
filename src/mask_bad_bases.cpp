@@ -1,32 +1,33 @@
 #include "sarlacc.h"
 
-SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP maxwidth, SEXP threshold) {
+SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     BEGIN_RCPP
 
-    // Checking inputs.        
-    Rcpp::StringVector seq(sequences), qual(qualities);
-    const size_t nseq=seq.size();
-    if (nseq!=qual.size()) {
+    // Checking inputs.       
+    auto seq=hold_XStringSet(sequences); 
+    const size_t nseq=get_length_from_XStringSet_holder(&seq);
+    
+    auto qual=hold_XStringSet(qualities); 
+    if (nseq!=get_length_from_XStringSet_holder(&qual)) { 
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
 
-    char lowerbound=0;
-    {
-        Rcpp::StringVector limit(threshold);   
-        if (limit.size()!=1) {
-            throw std::runtime_error("threshold should be a single character");
-        }
-        Rcpp::String first(limit[0]);
-        lowerbound=first.get_cstring()[0]; // should have at least 1 character, the NULL.
+    std::string curstring=check_string(threshold, "quality threshold");
+    if (curstring.size()!=1) {
+        throw std::runtime_error("quality threshold should be a string of length 1");
     }
-
+    const char lowerbound=curstring[0]; 
+    
+    // Getting the width of the buffer that should be set.
     int buffersize=0;
     {
-        Rcpp::IntegerVector mw(maxwidth);
-        if (mw.size()!=1) {
-            throw std::runtime_error("maximum string width should be an integer scalar");
+        for (size_t i=0; i<nseq; ++i) { 
+            auto curseq=get_elt_from_XStringSet_holder(&seq, i);
+            if (curseq.length > buffersize) {
+                buffersize=curseq.length;
+            }
         }
-        buffersize=mw[0]+1; // for the NULL.
+        ++buffersize; // for the NULL.
     }
 
     // Iterating through the sequences and masking bad bases.
@@ -34,25 +35,25 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP maxwidth, SEXP thresho
     std::vector<char> buffer(buffersize);
     
     for (size_t i=0; i<nseq; ++i) {
-        Rcpp::String curseq(seq[i]);
-        Rcpp::String curqual(qual[i]);
-        const char* sstr=curseq.get_cstring();
-        const char* qstr=curqual.get_cstring();
+        auto curseq=get_elt_from_XStringSet_holder(&seq, i);
+        const char* sstr=curseq.ptr;
+        const size_t slen=curseq.length;
 
-        int counter=0;
-        while (*sstr!='\0' && *qstr!='\0') {
-            buffer[counter]=(*qstr < lowerbound ? 'N' : *sstr);
-            ++qstr;
-            ++sstr;
-            ++counter;
-            if (counter >= buffersize) {
-                throw std::runtime_error("maximum string length exceeded");
-            }
-        }
-        if (*sstr!=*qstr) {
+        auto curqual=get_elt_from_XStringSet_holder(&qual, i);
+        const char* qstr=curqual.ptr;
+        const size_t qlen=curqual.length;
+        
+        if (slen!=qlen) {
             throw std::runtime_error("sequence and quality strings are not the same length");
         }
 
+        for (size_t counter=0; counter<slen; ++counter) {
+            buffer[counter]=(*qstr < lowerbound ? 'N' : DNAdecode(*sstr));
+            ++qstr;
+            ++sstr;
+        }
+
+        buffer[slen]='\0';
         output[i]=Rcpp::String(buffer.data());
     } 
 
