@@ -29,4 +29,8 @@ SEXP mask_bad_bases(SEXP, SEXP, SEXP);
 
 SEXP unmask_bases(SEXP, SEXP);
 
+SEXP create_consensus_basic(SEXP, SEXP, SEXP);
+
+SEXP create_consensus_quality(SEXP, SEXP, SEXP);
+
 }

@@ -9,7 +9,9 @@ extern "C" {
 static const R_CallMethodDef all_call_entries[] = {
     REGISTER(count_deletions, 3),
     REGISTER(mask_bad_bases, 3),    
-    REGISTER(unmask_bases, 2),    
+    REGISTER(unmask_bases, 2),
+    REGISTER(create_consensus_basic, 3), 
+    REGISTER(create_consensus_quality, 3), 
     {NULL, NULL, 0}
 };
 
