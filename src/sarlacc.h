@@ -19,6 +19,8 @@ bool check_logical_scalar(Rcpp::RObject, const char*);
 
 std::string check_string(Rcpp::RObject, const char*);
 
+int check_alignment_width(XStringSet_holder*);    
+
 extern "C" {
 
 SEXP count_deletions(SEXP, SEXP, SEXP);

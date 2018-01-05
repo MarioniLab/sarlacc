@@ -28,3 +28,18 @@ std::string check_string(Rcpp::RObject incoming, const char* arg) {
     check_scalar<Rcpp::String, Rcpp::StringVector>(stuff, arg, "a string");
     return Rcpp::as<std::string>(stuff[0]);
 }
+
+int check_alignment_width(XStringSet_holder* aln) {
+    const size_t naligns=get_length_from_XStringSet_holder(aln);
+    int ref=0;
+
+    for (size_t i=0; i<naligns; ++i) { 
+        auto curaln=get_elt_from_XStringSet_holder(aln, i);
+        if (i==0) { 
+            ref=curaln.length;
+        } else if (curaln.length!=ref) {
+            throw std::runtime_error("alignment strings should have the same length");
+        }
+    }
+    return ref;
+}

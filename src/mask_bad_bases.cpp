@@ -73,20 +73,11 @@ SEXP unmask_bases (SEXP alignments, SEXP originals) {
     
     auto seq=hold_XStringSet(originals); 
     if (nseq!=get_length_from_XStringSet_holder(&seq)) { 
-        throw std::runtime_error("alignment and original sequences should have the same length");
+        throw std::runtime_error("alignment and original sequences should have the same number of entries");
     }
 
-    // Getting the width of the buffer that should be set.
-    int buffersize=0;
-    {
-        for (size_t i=0; i<nseq; ++i) { 
-            auto curaln=get_elt_from_XStringSet_holder(&aln, i);
-            if (curaln.length > buffersize) {
-                buffersize=curaln.length;
-            }
-        }
-        ++buffersize; // for the NULL.
-    }
+    // Getting the width of the buffer that should be set (+1 for the NULL).
+    const int buffersize=check_alignment_width(&aln)+1;
   
     // Running through the output and restoring the masked bases. 
     Rcpp::StringVector output(nseq);
