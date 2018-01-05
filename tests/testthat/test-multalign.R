@@ -26,8 +26,10 @@ test_that("masking of bad bases works correctly", {
     }
 
     # Repeating with some more random sequences.
+    set.seed(1000)
     all.seq <- character(50)
     all.qual <- vector("list", length(all.seq))
+
     for (i in seq_along(all.seq)) {
         len <- round(runif(1, 10, 50))
         all.seq[i] <- paste(sample(c("A", "C", "T", "G"), len, replace=TRUE), collapse="")
@@ -53,7 +55,8 @@ test_that("unmasking of previously masked bases works correctly", {
     }
 
     # Simple case, no deletions.
-    seq.in <- c("acacgtagtgtcagtctaacatcagctacgttacat",
+    seq.in <- c("acacgtagtgtcagtctaacatcagctacgttacat", # no mask
+                "ACACGTAGTGTCAGTCTAACATCAGCTACGTTACAT", # all masked 
                 "acacgtcgtgtcagtctaaCatcagctacgttacat", # mask in the middle
                 "Acacgttgtgtcagtctaacatcagctacgttacat", # mask at the start 
                 "acacgtggtgtcagtctaacatcagctacgttacaT") # mask at the end
@@ -62,6 +65,7 @@ test_that("unmasking of previously masked bases works correctly", {
 
     # Deletions in the middle.
     seq.in <- c("acacgtagtgtcagtc-taacatcagctacgttacat",
+                "ACACGTAGTGTCAGTC-TAACATCAGCTACGTTACAT",
                 "acacgtcgtgtcagtc-taaCatcagctacgttacat", 
                 "Acacgttgtgtcagtc-taacatcagctacgttacat", 
                 "acacgtggtgtcagtc-taacatcagctacgttacaT") 
@@ -70,6 +74,7 @@ test_that("unmasking of previously masked bases works correctly", {
 
     # Deletions at the start.
     seq.in <- c("-acacgtcgtgtcagtctaacatcagctacgttacat",
+                "-ACACGTAGTGTCAGTCTAACATCAGCTACGTTACAT",
                 "-acacgtcgtgtcagtctaaCatcagctacgttacat", 
                 "-Acacgtcgtgtcagtctaacatcagctacgttacat", 
                 "-acacgtcgtgtcagtctaacatcagctacgttacaT") 
@@ -78,6 +83,7 @@ test_that("unmasking of previously masked bases works correctly", {
 
     # Deletions at the end.
     seq.in <- c("acacgtcgtgtcagtctaacatcagctacgttacat-",
+                "ACACGTAGTGTCAGTCTAACATCAGCTACGTTACAT-",
                 "acacgtcgtgtcagtctaaCatcagctacgttacat-", 
                 "Acacgtcgtgtcagtctaacatcagctacgttacat-", 
                 "acacgtcgtgtcagtctaacatcagctacgttacaT-") 
@@ -90,7 +96,7 @@ test_that("unmasking of previously masked bases works correctly", {
     expect_error(sarlacc:::.unmask_bases(DNAStringSet("NNNNN"), DNAStringSet("AAA")),
                 "sequence in alignment string is longer than the original")
     expect_error(sarlacc:::.unmask_bases(DNAStringSet(c("AAAA", "GGGG")), DNAStringSet("AAA")),
-                "alignment and original sequences should have the same length")
+                "alignment and original sequences should have the same number of entries")
 
     # This should be fine:
     expect_identical(length(sarlacc:::.unmask_bases(DNAStringSet(), DNAStringSet())), 0L)

@@ -1,4 +1,4 @@
-# This script tests various aspects of the UMI extract machinery.
+# This script tests various aspects of the UMI extraction machinery.
 # library(sarlacc); library(testthat); source("test-extract.R")
 
 SHIFTFUN <- function(align.str, position) {
