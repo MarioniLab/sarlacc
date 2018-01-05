@@ -106,7 +106,7 @@ SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
         auto curalign=get_elt_from_XStringSet_holder(&aln, a);
         const char* astr=curalign.ptr;
 
-        Rcpp::IntegerVector curqual(qual[a]);
+        Rcpp::NumericVector curqual(qual[a]);
         auto sIt=scores.begin();
         int position=0;
 
@@ -117,6 +117,9 @@ SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
             }
             ++incidences[i];
 
+            if (position >= curqual.size()) {
+                throw std::runtime_error("quality vector is shorter than the alignment sequence");
+            }
             const double newqual=curqual[position];
             const double right=std::log1p(-newqual); // using base e to make life easier.
             const double wrong=std::log(newqual/(NBASES-1));
@@ -126,6 +129,10 @@ SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
             for (size_t b=0; b<NBASES; ++b) {
                 *(sIt+b) += (curbase==BASES[b] ? right : wrong);
             }
+        }
+
+        if (position!=curqual.size()) { 
+            throw std::runtime_error("quality vector is longer than the alignment sequence");
         }
     }
 
