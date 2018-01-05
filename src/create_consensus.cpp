@@ -24,7 +24,8 @@ SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
         auto sIt=scores.begin();
 
         for (size_t i=0; i<alignwidth; ++i) {
-            switch (DNAdecode(aln_str[i])) { 
+            const char curbase=DNAdecode(aln_str[i]);
+            switch (curbase) { 
                 case 'A': case 'a':
                     ++(*sIt);
                     break;
@@ -38,10 +39,12 @@ SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
                     ++(*(sIt+3));
                     break;
             }
-
+            
             // We use a separate vector for holding incidences, just in case
             // there are "N"'s (such that the sum of ACTG counts != incidences).
-            ++incidences[i];
+            if (curbase!='-') {
+                ++incidences[i];
+            }
             sIt+=NBASES;
         }
     }
@@ -66,12 +69,11 @@ SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
         // Denominator computed from the non-N bases only; N's neither help nor hinder, as the data is missing.
         const double total=std::accumulate(sIt, sIt+NBASES, 0);
         (*qIt)=(*maxed + pseudo_num)/(total + pseudo_denom);
+        (*qIt)=1-(*qIt); // the ERROR probability, remember.
         ++qIt;
     }
 
-    // Determining the quality scores.
-    return Rcpp::List::create(Rcpp::String(consensus.data()),
-                              Rcpp::NumericVector(qualities.begin(), qIt));
+    return Rcpp::List::create(Rcpp::String(consensus.data()), Rcpp::NumericVector(qualities.begin(), qIt));
     END_RCPP
 }
 
@@ -153,13 +155,11 @@ SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
             denom+=R::log1pexp(leftover);
         }
         
-        (*qIt)=std::exp(numerator - denom);
+        (*qIt)=-std::expm1(numerator - denom); // -expm1() for the ERROR probability.
         ++qIt;
     }
 
-    // Determining the quality scores.
-    return Rcpp::List::create(Rcpp::String(consensus.data()),
-                              Rcpp::NumericVector(qualities.begin(), qIt));
+    return Rcpp::List::create(Rcpp::String(consensus.data()), Rcpp::NumericVector(qualities.begin(), qIt));
     END_RCPP
 }
 

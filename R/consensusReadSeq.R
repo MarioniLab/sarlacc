@@ -1,51 +1,42 @@
 consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6)
-#ConsensusSequence by majority decision
-#Returns List of consensus sequences for each cluster id and a list with the corresponding phredscores (which is named by the coverage of reads per consensus)
+# Create a consensus sequence for each MRA.
+# 
+# written by Florian Bieberich
+# with modifications by Aaron Lun
+# created 27 November 2017    
 {
-    Nalign <- nrow(alignments)
+    Nalign <- length(alignments)
     consensus <- character(Nalign)
-    phred <- list(Nalign)
-    nucleotides <- c("A", "T", "C", "G")
+    phred <- vector("list", Nalign)
     
     for (i in seq_along(alignments)) {
         current <- alignments[[i]]
+        quals <- elementMetadata(current)$quality
+        has.quals <- !is.null(quals)
+
+        # Skipping if we've only got one read in the alignment.
         if (length(current)==1L) { 
             consensus[[i]] <- as.character(current)[1]
-            phred[[i]] <- PhredQuality(rep(1/(1+pseudo.count), nchar(aln_char)))
+            if (has.quals) { 
+                phred[[i]] <- quals
+            } else {
+                phred[[i]] <- PhredQuality(rep(1/(1+pseudo.count), nchar(aln_char)))
+            }
+            next
         }
-  
-        # Keeping only the base positions with sufficient coverage. 
-        x <- consensusMatrix(current) 
-        x <- x[nucleotides,,drop=FALSE] # Why not x <- x[rownames(x)%in% nucleotides,]
-        base.exists <- colSums(x) >= min.coverage * nrow(current)
-        x <- x[,base.exists,drop=FALSE]
 
-        # Defining the consensus sequence based on relative majority coverage
-        # (at least one base must be above 25%, as we only keep 'x' in "ATCG")
-        x <- t(x)
-        majority.base <- max.col(x)
-        conseq <- nucleotides[majority.base]
-        consensus[i] <- paste(conseq, collapse="")
-    
-        # Computing the Phred score.
-        n.chosen <- numeric(length(conseq))
-        for (j in nucleotides) { 
-            chosen <- conseq==j
-            n.chosen[chosen] <- x[chosen,j]
+        # Creating a consensus sequence that may or may not be Phred-aware.
+        if (has.quals) {
+            probs <- as.list(as(quals, "NumericList"))
+            out <- .Call(cxx_create_consensus_quality, current, probs, min.coverage)
+        } else {
+            out <- .Call(cxx_create_consensus_basic, current, min.coverage, pseudo.count)
         }
-        phred[[i]] <- PhredQuality(1 - n.chosen/(rowSums(x)+pseudo.count))
+
+        consensus[i] <- out[[1]]
+        phred[[i]] <- PhredQuality(out[[2]])
     }
 
-    return(list(sequence=DNAStringSet(consensus),
-                quality=do.call(c, phred)))
+    return(QualityScaledDNAStringSet(DNAStringSet(consensus), do.call(c, phred)))
 }
 
-
-# Majority decision does not work:
-# [355,] 0 1 1 1
-# [356,] 0 0 0 3
-# [357,] 0 0 3 0
-# [358,] 0 1 0 2
-# [359,] 0 1 0 2
-# [360,] 1 1 1 0
-# -> 2 4 3 4 4 2
