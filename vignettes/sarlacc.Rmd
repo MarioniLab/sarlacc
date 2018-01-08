@@ -1,0 +1,55 @@
+---
+title: "Error correction of long ONT reads with UMIs"
+author: "Florian Bieberich and Aaron Lun"
+package: sarlacc
+output: 
+  BiocStyle::html_document
+vignette: >
+  %\VignetteIndexEntry{Error correction of long ONT reads with UMIs}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}  
+---
+
+
+```{r, echo=FALSE, results="hide", message=FALSE}
+require(knitr)
+opts_chunk$set(error=FALSE, message=FALSE, warning=FALSE)
+```
+
+```{r setup, echo=FALSE, message=FALSE}
+library(sarlacc)
+```
+
+# Introduction
+
+The `r Biocpkg("sarclacc")` package is designed to perform error correction on long reads such as those generated with the Oxford Nanpore Technology (ONT).
+This is done by considering the unique molecular identifier (UMI) associated with each read.
+Reads with the same UMI are groups together and used to construct a consensus sequence, thereby correcting for any sequencing errors unique to each read.
+In this manner, we can overcome the higher error rate of ONT data while still retaining the long-read capabilities.
+
+# Setting up some sequence data
+
+To demonstrate the various `r Biocpkg("sarlacc")` functions in this vignette, we will mock up some data and save it as a FASTQ file.
+Needless to say, this is not necessary for users with sequencing data from real experiments.
+
+```{r}
+source(system.file("scripts", "create_mock_seqs.R", package="sarlacc"))
+fastq
+```
+
+Data from any FASTQ file can be loaded in using methods from the `r Biocpkg("ShortRead")` package.
+This requires some further processing to obtain a `DNAStringSet` object for entry into the `r Biocpkg("sarlacc")` pipeline.
+
+```{r}
+library(ShortRead)
+read.data <- readFastq(fastq)
+read.seq <- sread(read.data)
+quals <- quality(read.data)
+input <- QualityScaledDNAStringSet(read.seq, as(quals, "PhredQuality"))
+input
+```
+
+We use a `QualityScaledDNAStringSet` to exploit the availability of base-calling scores in this example.
+If such information is not available, a `DNAStringSet` will suffice as input to `r Biocpkg("sarlacc")` functions.
+
+ 
