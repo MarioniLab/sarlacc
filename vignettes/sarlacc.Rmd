@@ -22,7 +22,7 @@ library(sarlacc)
 
 # Introduction
 
-The `r Biocpkg("sarclacc")` package is designed to perform error correction on long reads such as those generated with the Oxford Nanpore Technology (ONT).
+The `r Biocpkg("sarlacc")` package is designed to perform error correction on long reads such as those generated with the Oxford Nanpore Technology (ONT).
 This is done by considering the unique molecular identifier (UMI) associated with each read.
 Reads with the same UMI are groups together and used to construct a consensus sequence, thereby correcting for any sequencing errors unique to each read.
 In this manner, we can overcome the higher error rate of ONT data while still retaining the long-read capabilities.
