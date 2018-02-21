@@ -33,4 +33,6 @@ SEXP create_consensus_basic(SEXP, SEXP, SEXP);
 
 SEXP create_consensus_quality(SEXP, SEXP, SEXP);
 
+SEXP umi_group(SEXP, SEXP);
+
 }
