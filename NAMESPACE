@@ -14,6 +14,9 @@ importFrom("GenomicAlignments", cigarWidthAlongReferenceSpace, cigarWidthAlongQu
 importFrom("GenomicFeatures", exons)
 importFrom("AnnotationDbi", mapIds)
 importFrom("igraph", components, graph.adjacency, membership, make_graph)
+importFrom("irlba", prcomp_irlba)
+importFrom("flowCore", flowFrame)
+importFrom("FlowSOM", ReadInput, BuildSOM)
 
 # packages in "Depends":
 import(GenomicAlignments)
