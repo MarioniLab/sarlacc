@@ -1,208 +1,214 @@
 #include "sarlacc.h"
 
-/**********************************************************************
- * A functor to calculate the levenshtein distance between DNAStrings.
- **********************************************************************/
- 
-struct lev_dist {
-private:
-    const XStringSet_holder * ptr;
-public:
-    lev_dist(const XStringSet_holder* p) : ptr(p) {};
+const char START='x';
 
-    int operator()(const int left, const int right) const {
-        auto lData=get_elt_from_XStringSet_holder(ptr, left);
-        auto rData=get_elt_from_XStringSet_holder(ptr, right);
-        const char * sL=lData.ptr, * sR=rData.ptr;
-        const size_t lenL = lData.length, lenR = rData.length;
+struct trie_node {
+    std::deque<int>* indices;
+    std::vector<trie_node>* children;
+    
+    trie_node() : indices(NULL), children(NULL) {}
+    ~trie_node() {
+        if (indices) { delete indices; }
+        if (children) { delete children; }
+    }
 
-        // Modified from http://en.wikibooks.org/wiki/Algorithm_Implementation/Strings/Levenshtein_distance
-        std::vector<std::vector<unsigned int> > d(lenL + 1, std::vector<unsigned int>(lenR + 1));
-        
-        d[0][0] = 0;
-        for(unsigned int i = 1; i <= lenL; ++i) {
-            d[i][0] = i;
+    void _insert (const int index, const std::vector<char>& current, size_t position) {
+        if (position==current.size()) {
+            if (!indices) {            
+                indices=new std::deque<int>();
+            }
+            indices->push_back(index);
+            return;
         }
-        for(unsigned int i = 1; i <= lenR; ++i) {
-            d[0][i] = i;
+
+        if (!children) {
+            children = new std::vector<trie_node>(4);
+        }
+
+        switch (current[position]) {
+            case 'A': 
+                (*children)[0]._insert(index, current, position+1);
+                break;
+            case 'C': 
+                (*children)[1]._insert(index, current, position+1);
+                break;
+            case 'G': 
+                (*children)[2]._insert(index, current, position+1);
+                break;
+            case 'T':
+                (*children)[3]._insert(index, current, position+1);
+                break;
+        }
+        return;
+    }
+
+    // Top-level insert function. 
+    void insert (int index, const std::vector<char>& current) {
+        _insert(index, current, 0);
+        return;
+    }
+    
+    // Debugging function to explore tree shape.
+    void _dump(int depth, char base) {
+        for (int d=0; d<depth; ++d) {
+            Rprintf("    ");
+        }
+        Rprintf("%c", base);
+        if (indices) {
+            Rprintf(": ");
+            for (const auto& i : *indices) {
+                Rprintf("%i ", i);
+            }
+        }
+        Rprintf("\n");
+        
+        ++depth;
+        if (children) {
+            (*children)[0]._dump(depth, 'A');
+            (*children)[1]._dump(depth, 'C');
+            (*children)[2]._dump(depth, 'G');
+            (*children)[3]._dump(depth, 'T');
+        }
+        return;
+    }
+    
+    void dump() {
+        _dump(0, START);        
+    }
+
+    // Computing the progressive levenshtein distance across the trie.
+    void _find_within(std::deque<int>& collected, const std::vector<char>& current, char this_base, 
+                      std::deque<std::vector<int> >& running, int limit) const {
+
+        if (!indices && !children) {
+            // Don't bother computing if I have no indices or children.
+            return; 
         }
         
-        for (unsigned int i = 1; i <= lenL; ++i) {
-            for(unsigned int j = 1; j <= lenR; ++j) {
-                // note that std::min({arg1, arg2, arg3}) works only in C++11,
-                d[i][j] = std::min({ d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (DNAdecode(sL[i - 1]) == DNAdecode(sR[j - 1]) ? 0 : 1) });
+//      Rprintf("Searching for %c\n", this_base);        
+        const size_t cur_len=current.size();
+        auto last_space_it = running.back().begin();
+        running.push_back(std::vector<int>(cur_len+1));
+        auto cur_space_it=running.back().begin();
+
+//      Rprintf("Last: ");
+//        for (size_t i=0; i<=cur_len; ++i) {
+//            Rprintf("%i, ", *(last_space_it+i));
+//        }
+//      Rprintf("\n");
+
+//      Rprintf("This base is %c\n", this_base);
+        // Picking up from the last memory.
+        *(cur_space_it)=*(last_space_it)+1;
+        for (size_t i=1; i<=cur_len; ++i) {
+            *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
+                                           *(cur_space_it + i - 1) + 1, 
+                                           *(last_space_it + i - 1) + (current[i-1] == this_base ? 0 : 1) });
+        }
+
+//        Rprintf("Current: ");
+//        for (size_t i=0; i<=cur_len; ++i) {
+//            Rprintf("%i, ", *(cur_space_it+i));
+//        }
+//        Rprintf("\n");
+//        
+//        for (size_t i=0; i<cur_len; ++i) {
+//            Rprintf("%c", current[i]);
+//        }
+//        Rprintf("\n");
+
+        // Adding indices to the result list, if they exist.
+        const int cur_score = *(cur_space_it + cur_len); 
+//        Rprintf("\tcurrent score is %i %i\n", cur_score, limit);        
+        if (limit >= cur_score && indices) {  
+            for (const auto& s : *indices) {
+                collected.push_back(s);
             }
         }
 
-        return d[lenL][lenR]; 
+        /* Checking if we should recurse through the children. 
+         * This is not done if none of the scores across the final row of the
+         * programming matrix are below or equal to limit, meaning that even 
+         * a perfect match from here on in would always exceed limit. The 
+         * current score doesn't count unless it's less than the limit,
+         * as any extra extension would result in a +1 from that entry.
+         */
+        if (children) { 
+            bool recurse_child = (limit > cur_score);
+            if (!recurse_child) { 
+                for (size_t i=0; i<cur_len; ++i) {
+                    if (*(cur_space_it + i) <= limit) {
+                        recurse_child=true;
+                        break;
+                    }
+                }
+            }
+            if (recurse_child) {
+                (*children)[0]._find_within(collected, current, 'A', running, limit);
+                (*children)[1]._find_within(collected, current, 'C', running, limit);
+                (*children)[2]._find_within(collected, current, 'G', running, limit);
+                (*children)[3]._find_within(collected, current, 'T', running, limit);
+            }
+        }
+
+        // Popping off the vector we added before returning to the calling function.
+        running.pop_back();
+        return;
+    }
+
+    void find_within(std::deque<int>& collected, const std::vector<char>& current, int limit) const {
+        std::deque<std::vector<int> > running(1, std::vector<int>(current.size()+1));
+        std::iota(running.back().begin(), running.back().end(), 0); // Initializing the first level of the levenshtein array here.
+
+        if (children) {
+            (*children)[0]._find_within(collected, current, 'A', running, limit);
+            (*children)[1]._find_within(collected, current, 'C', running, limit);
+            (*children)[2]._find_within(collected, current, 'G', running, limit);
+            (*children)[3]._find_within(collected, current, 'T', running, limit);
+        }
+
+        return;
     }
 };
 
-/*
- * BK-tree implementation in C++
- * Copyright (C) 2012 Eiichi Sato
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
+struct sorted_trie {
+    sorted_trie(const XStringSet_holder * p) : ptr(p) {
+        const size_t nseq=get_length_from_XStringSet_holder(ptr);
 
-/* This file was obtained from https://gist.github.com/eiiches/2016232, 2018/02/21.
- * I have modified it to use the Biostrings access methods.
- */
+        for (size_t s=0; s<nseq; ++s) {
+            auto cur_data=get_elt_from_XStringSet_holder(ptr, s);
+            const char * cur_str=cur_data.ptr;
+            const size_t cur_len=cur_data.length;
 
-#include <map>
-#include <cmath>
-#include <vector>
+            std::vector<char> current(cur_str, cur_str + cur_len);
+            for (auto& x : current) { x=DNAdecode(x); }
 
-namespace qq {
-
-typedef int MetricType;
-typedef int KeyType;
-
-/**********************************************************************
- * A class for the nodes of the BK tree.
- **********************************************************************/
-
-namespace detail {
-
-class tree_node {
-private:
-	KeyType value;
-	std::map<MetricType, tree_node*> * children;
-    const lev_dist * distptr;
-
-public:
-	tree_node(const KeyType &key, const lev_dist& d) : value(key), children(NULL), distptr(&d) { }
-
-	~tree_node() {
-		if (children) {
-			for (auto iter = children->begin(); iter != children->end(); ++iter) {
-				delete iter->second;
-            }
-			delete children;
-		}
-	}
-
-	bool insert(tree_node *node) {
-		if (!node) {
-			return false;
+            toplevel.insert(s, current);
         }
-	
-        MetricType distance = (*distptr)(node->value, this->value);
-		if (distance == 0) {
-			return false; /* value already exists */
-        }
+        return;
+    }
 
-		if (!children) {
-			children = new std::map<MetricType, tree_node*>();
-        }
+    void find_within(std::deque<int>& results, int index, int limit) {
+        auto cur_data=get_elt_from_XStringSet_holder(ptr, index);
+        const char * cur_str=cur_data.ptr;
+        const size_t cur_len=cur_data.length;
+        
+        std::vector<char> current(cur_str, cur_str + cur_len);
+        for (auto& x : current) { x=DNAdecode(x); }
 
-		auto iterator = children->find(distance);
-		if (iterator == children->end()) {
-			children->insert(std::make_pair(distance, node));
-			return true;
-		}
+        toplevel.find_within(results, current, limit);
+        return;
+    }
 
-		return iterator->second->insert(node);
-	}
-
-protected:
-	bool has_children() const {
-		return this->children && this->children->size();
-	}
-
-	void _find_within(std::vector<std::pair<KeyType, MetricType>> &result, const KeyType &key, MetricType d) const {
-		MetricType n = (*distptr)(key, this->value);
-        if (n <= d) {
-			result.push_back(std::make_pair(this->value, n));
-        }
-
-		if (!this->has_children()) {
-			return;
-        }
-
-        // Triangle inequality magic applies here.
-		for (auto iter = children->begin(); iter != children->end(); ++iter) {
-			MetricType distance = iter->first;
-			if (n - d <= distance && distance <= n + d) {
-				iter->second->_find_within(result, key, d);
-            }
-		}
-	}
-
-public:
-	std::vector<std::pair<KeyType, MetricType>> find_within(const KeyType &key, MetricType d) const {
-		std::vector<std::pair<KeyType, MetricType>> result;
-		_find_within(result, key, d);
-		return result;
-	}
-
-	void dump_tree(int depth = 0) {
-		for (int i = 0; i < depth; ++i) {
-			Rprintf("    ");
-        }
-		Rprintf("%i\n", this->value);
-		if (this->has_children()) {
-            for (auto iter = children->begin(); iter != children->end(); ++iter) {
-                iter->second->dump_tree(depth + 1);
-            }
-        }
-	}
+    void dump() {
+        toplevel.dump();
+    }
+    
+    trie_node toplevel;
+    const XStringSet_holder * ptr;
 };
 
-} /* namespace detail */
-
-class bktree {
-private:
-    detail::tree_node *m_top;
-	size_t m_n_nodes;
-    lev_dist dist_fun;
-
-public:
-	bktree(const XStringSet_holder* p) : m_top(NULL), m_n_nodes(0), dist_fun(p) { }
-
-public:
-	void insert(const KeyType &key) {
-        detail::tree_node *node = new detail::tree_node(key, dist_fun);
-		if (!m_top) {
-			m_top = node;
-			m_n_nodes = 1;
-			return;
-		}
-		if (m_top->insert(node)) {
-			++m_n_nodes;
-        }
-	};
-
-public:
-	std::vector<std::pair<KeyType, MetricType>> find_within(KeyType key, MetricType d) const {
-		return m_top->find_within(key, d);
-	}
-
-	void dump_tree() {
-		m_top->dump_tree();
-	}
-
-public:
-	size_t size() const {
-		return m_n_nodes;
-	}
-};
-
-} /* namespace qq */
-
-
-SEXP umi_group (SEXP umi, SEXP threshold) {
+SEXP umi_group_x (SEXP umi, SEXP threshold) {
     BEGIN_RCPP
         
     // Checking inputs.       
@@ -210,15 +216,17 @@ SEXP umi_group (SEXP umi, SEXP threshold) {
     const size_t nseq=get_length_from_XStringSet_holder(&seq);
     int limit=check_integer_scalar(threshold, "distance threshold");
 
-    // Creating the BK-tree.
-    qq::bktree dic(&seq);
+    sorted_trie dic(&seq);
+    std::deque<int> collected;
+    Rcpp::List output(nseq);
+
     for (size_t i=0; i<nseq; ++i) {
-        Rprintf("Currently at: %i\n", i);
-        dic.insert(i);
-        auto out=dic.find_within(i, limit);
-        Rprintf("%i\n", out.size());
+        dic.find_within(collected, i, limit);
+        for (auto& x : collected) { ++x; }
+        output[i]=Rcpp::IntegerVector(collected.begin(), collected.end());
+        collected.clear();
     }
    
-    return Rcpp::IntegerVector::create(1);
+    return output;
     END_RCPP
 }
