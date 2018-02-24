@@ -1,15 +1,22 @@
 #include "sarlacc.h"
 
-const char START='x';
+const std::vector<char> BASES={'A', 'C', 'G', 'T'};
 
 struct trie_node {
     std::deque<int>* indices;
     std::vector<trie_node>* children;
+    std::vector<int>* scores;
+    size_t history;
     
-    trie_node() : indices(NULL), children(NULL) {}
+    trie_node() : indices(NULL), children(NULL), scores(NULL), history(0) {}
     ~trie_node() {
         if (indices) { delete indices; }
         if (children) { delete children; }
+        if (scores) { delete scores; }
+    }
+
+    bool dead_end () const {
+        return (!indices && !children);
     }
 
     void _insert (const int index, const std::vector<char>& current, size_t position) {
@@ -64,43 +71,46 @@ struct trie_node {
         
         ++depth;
         if (children) {
-            (*children)[0]._dump(depth, 'A');
-            (*children)[1]._dump(depth, 'C');
-            (*children)[2]._dump(depth, 'G');
-            (*children)[3]._dump(depth, 'T');
+            for (size_t i=0; i<BASES.size(); ++i) { 
+                (*children)[i]._dump(depth, BASES[i]);
+            }
         }
         return;
     }
     
     void dump() {
-        _dump(0, START);        
+        _dump(0, 'x');        
     }
 
     // Computing the progressive levenshtein distance across the trie.
-    void _find_within(std::deque<int>& collected, const std::vector<char>& current, char this_base, 
-                      std::deque<std::vector<int> >& running, int limit) const {
+    void _find_within(std::deque<int>& collected, const std::vector<char>& current, size_t offset, 
+                      char this_base, std::vector<int>& previous, int limit, size_t iter) {
 
-        if (!indices && !children) {
-            // Don't bother computing if I have no indices or children.
-            return; 
-        }
-        
-//      Rprintf("Searching for %c\n", this_base);        
         const size_t cur_len=current.size();
-        auto last_space_it = running.back().begin();
-        running.push_back(std::vector<int>(cur_len+1));
-        auto cur_space_it=running.back().begin();
+        if (!scores) {
+            scores = new std::vector<int>(cur_len+1);
+            *(scores->begin()) = *(previous.begin()) + 1;
+            offset = 0;
+        } else if (scores->size() <= cur_len) {
+            scores->resize(cur_len + 1);
+            if (history+1!=iter) {
+                offset=0;
+            }
+        }
+        history = iter;
 
+        auto cur_space_it = scores->begin();
+        auto last_space_it = previous.begin();
 //      Rprintf("Last: ");
 //        for (size_t i=0; i<=cur_len; ++i) {
 //            Rprintf("%i, ", *(last_space_it+i));
 //        }
 //      Rprintf("\n");
-
+//
 //      Rprintf("This base is %c\n", this_base);
+
         // Picking up from the last memory.
-        *(cur_space_it)=*(last_space_it)+1;
-        for (size_t i=1; i<=cur_len; ++i) {
+        for (size_t i=offset+1; i<=cur_len; ++i) {
             *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
                                            *(cur_space_it + i - 1) + 1, 
                                            *(last_space_it + i - 1) + (current[i-1] == this_base ? 0 : 1) });
@@ -135,36 +145,42 @@ struct trie_node {
          */
         if (children) { 
             bool recurse_child = (limit > cur_score);
-            if (!recurse_child) { 
-                for (size_t i=0; i<cur_len; ++i) {
-                    if (*(cur_space_it + i) <= limit) {
+            if (!recurse_child && cur_len) { 
+                for (auto rit = scores -> rbegin() + 1; rit!= (scores -> rend()); ++rit) {  
+                    // Backwards, as scores at the end are probably lower and will trigger a break sooner.
+                    if (*rit <= limit) {
                         recurse_child=true;
                         break;
                     }
                 }
             }
             if (recurse_child) {
-                (*children)[0]._find_within(collected, current, 'A', running, limit);
-                (*children)[1]._find_within(collected, current, 'C', running, limit);
-                (*children)[2]._find_within(collected, current, 'G', running, limit);
-                (*children)[3]._find_within(collected, current, 'T', running, limit);
+                for (size_t i=0; i<BASES.size(); ++i) {
+                    auto& child=(*children)[i];
+                    if (!child.dead_end()) { 
+                        child._find_within(collected, current, offset, BASES[i], *scores, limit, iter);
+                    }
+                }
             }
         }
-
-        // Popping off the vector we added before returning to the calling function.
-        running.pop_back();
         return;
     }
 
-    void find_within(std::deque<int>& collected, const std::vector<char>& current, int limit) const {
-        std::deque<std::vector<int> > running(1, std::vector<int>(current.size()+1));
-        std::iota(running.back().begin(), running.back().end(), 0); // Initializing the first level of the levenshtein array here.
+    void find_within(std::deque<int>& collected, const std::vector<char>& current, int offset, int limit, size_t iter) {
+        if (!scores) {
+            scores = new std::vector<int>(current.size()+1);
+        } else {
+            scores->resize(current.size() + 1);
+        }
+        std::iota(scores->begin(), scores->end(), 0); // Initializing the first level of the levenshtein array here.
 
         if (children) {
-            (*children)[0]._find_within(collected, current, 'A', running, limit);
-            (*children)[1]._find_within(collected, current, 'C', running, limit);
-            (*children)[2]._find_within(collected, current, 'G', running, limit);
-            (*children)[3]._find_within(collected, current, 'T', running, limit);
+            for (size_t i=0; i<BASES.size(); ++i) { 
+                auto& child=(*children)[i];
+                if (!child.dead_end()) { 
+                    child._find_within(collected, current, offset, 'A', *scores, limit, iter);
+                }
+            }
         }
 
         return;
@@ -188,16 +204,55 @@ struct sorted_trie {
         return;
     }
 
-    void find_within(std::deque<int>& results, int index, int limit) {
-        auto cur_data=get_elt_from_XStringSet_holder(ptr, index);
-        const char * cur_str=cur_data.ptr;
-        const size_t cur_len=cur_data.length;
-        
-        std::vector<char> current(cur_str, cur_str + cur_len);
-        for (auto& x : current) { x=DNAdecode(x); }
+    Rcpp::List find_within(int limit) { 
+        const size_t nseq=get_length_from_XStringSet_holder(ptr);
+        std::vector<char> current;
+        current.reserve(50); // should probably be enough.
 
-        toplevel.find_within(results, current, limit);
-        return;
+        Rcpp::List output(nseq);
+        std::deque<int> collected;
+        size_t counter=0;
+
+        for (size_t i=0; i<nseq; ++i) {
+            auto cur_data=get_elt_from_XStringSet_holder(ptr, i);
+            const char * cur_str=cur_data.ptr;
+            const size_t cur_len=cur_data.length;
+
+            // Figuring out the common prefix.
+            size_t idx=0;
+            while (idx < current.size() && idx < cur_len && DNAdecode(cur_str[idx])==current[idx]) {
+                ++idx;
+            }
+            const size_t common=idx;
+
+            // If it's fully common, this implies that this string is the same as the previous string, 
+            // so we use the previous results and skip to avoid redundant work.
+            if (common==cur_len && cur_len==current.size() && i) { 
+                output[i]=output[i-1];
+                continue;
+            }
+
+            // Replacing the remaining elements in 'current'.
+            current.resize(cur_len);
+            while (idx < cur_len) {
+                current[idx]=DNAdecode(cur_str[idx]);
+                ++idx;                
+            }
+
+//            for (size_t i=0; i<cur_len; ++i) {
+//                Rprintf("%c", current[i]);
+//            }
+//            Rprintf("\n");
+//            Rprintf("Common is %i\n", common);
+
+            // Searching through the trie.
+            toplevel.find_within(collected, current, common, limit, counter++);
+            for (auto& x : collected) { ++x; }
+            output[i]=Rcpp::IntegerVector(collected.begin(), collected.end());
+            collected.clear();
+        }
+        
+        return output;
     }
 
     void dump() {
@@ -208,7 +263,7 @@ struct sorted_trie {
     const XStringSet_holder * ptr;
 };
 
-SEXP umi_group_x (SEXP umi, SEXP threshold) {
+SEXP umi_group (SEXP umi, SEXP threshold) {
     BEGIN_RCPP
         
     // Checking inputs.       
@@ -216,17 +271,8 @@ SEXP umi_group_x (SEXP umi, SEXP threshold) {
     const size_t nseq=get_length_from_XStringSet_holder(&seq);
     int limit=check_integer_scalar(threshold, "distance threshold");
 
+    // Compiling into an output list.
     sorted_trie dic(&seq);
-    std::deque<int> collected;
-    Rcpp::List output(nseq);
-
-    for (size_t i=0; i<nseq; ++i) {
-        dic.find_within(collected, i, limit);
-        for (auto& x : collected) { ++x; }
-        output[i]=Rcpp::IntegerVector(collected.begin(), collected.end());
-        collected.clear();
-    }
-   
-    return output;
+    return dic.find_within(limit);
     END_RCPP
 }
