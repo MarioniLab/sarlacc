@@ -63,7 +63,7 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
         return(seq_along(UMI1))
     }
 
-    # Getting indices without expanding the dist, 
+    # Getting indices without expanding the dist object. 
     N <- length(UMI1)
     col.ends <- cumsum((N-1L):1L)
     current.col <- findInterval(to.link, col.ends, left.open=TRUE) + 1L
@@ -73,4 +73,73 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
     # Identifying the graph components.
     g <- make_graph(rbind(current.col, current.row), n=N)
     return(membership(components(g)))
+}
+
+umiGroup2 <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1) 
+# Uses a greedy approach to define UMI groupings, using only the Levenshtein distances.
+# 
+# written by Florian Bieberich
+# with modifications by Aaron Lun
+# created 25 February 2018
+{
+    UMI1 <- as(UMI1, "DNAStringSet")
+    o1 <- order(UMI1)
+    out1 <- .Call(cxx_umi_group, UMI1, o1 - 1L, max.lev1)
+
+    if (!is.null(UMI2)) { 
+        UMI2 <- as(UMI2, "DNAStringSet")
+        o2 <- order(UMI2)
+        out2 <- .Call(cxx_umi_group, UMI2, o2 - 1L, max.lev2)
+    }
+
+    out1 <- out    
+    all.lengths <- lengths(out1)
+    lost <- logical(length(all.lengths))
+    group <- integer(length(all.lengths))
+    counter <- 1L
+    chosen <- which.max(all.lengths)
+
+    repeat {
+        # Deciding what to perform pairwise alignments to.
+        targets <- out1[[chosen]]
+        is.lost <- lost[targets]
+        
+        if (any(is.lost)) { 
+            targets <- targets[!is.lost]
+            out1[[chosen]] <- targets
+            all.lengths[chosen] <- length(targets)
+            new.chosen <- which.max(all.lengths)
+            if (all.lengths[new.chosen] > length(targets)) {
+                chosen <- new.chosen
+                next 
+            }
+        }
+
+        # Performing those pairwise alignments.
+#        cur.scores <- pairwiseAlignment(umis[targets], umis[chosen], gapOpening = gapOpening, gapExtension = gapExtension, # ..., 
+#                                        scoreOnly=TRUE)
+#        success <- cur.scores >= min.score1
+
+        group[targets] <- counter
+        counter <- counter + 1L  
+
+        lost[targets] <- TRUE
+        all.lengths[targets] <- 0L
+#        print(c(length(targets), sum(success), sum(all.lengths==0L)))
+        print(sum(all.lengths==0))
+        if (all(all.lengths==0L)) {
+            break
+        }
+
+#        # Eradicating the current choice from the failures.
+#        failures <- targets[!success]
+#        for (failed in failures) {
+#            out1[[failed]] <- setdiff(out1[[failed]], chosen)
+#        }
+#        all.lengths[failures] <- all.lengths[failures] - 1L
+
+        chosen <- which.max(all.lengths)
+    }
+    
+    return(group)
 }
