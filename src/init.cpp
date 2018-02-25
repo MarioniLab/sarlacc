@@ -12,7 +12,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(unmask_bases, 2),
     REGISTER(create_consensus_basic, 3), 
     REGISTER(create_consensus_quality, 3), 
-    REGISTER(umi_group, 2),
+    REGISTER(umi_group, 3),
     REGISTER(get_kmer_matrix, 2),
     {NULL, NULL, 0}
 };

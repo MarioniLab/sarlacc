@@ -188,10 +188,10 @@ struct trie_node {
 };
 
 struct sorted_trie {
-    sorted_trie(const XStringSet_holder * p) : ptr(p) {
+    sorted_trie(const XStringSet_holder * p, SEXP o) : ptr(p), ordering(o) {
         const size_t nseq=get_length_from_XStringSet_holder(ptr);
 
-        for (size_t s=0; s<nseq; ++s) {
+        for (auto s : ordering) {
             auto cur_data=get_elt_from_XStringSet_holder(ptr, s);
             const char * cur_str=cur_data.ptr;
             const size_t cur_len=cur_data.length;
@@ -212,9 +212,10 @@ struct sorted_trie {
         Rcpp::List output(nseq);
         std::deque<int> collected;
         size_t counter=0;
+        size_t last_s=0;
 
-        for (size_t i=0; i<nseq; ++i) {
-            auto cur_data=get_elt_from_XStringSet_holder(ptr, i);
+        for (auto s : ordering) {
+            auto cur_data=get_elt_from_XStringSet_holder(ptr, s);
             const char * cur_str=cur_data.ptr;
             const size_t cur_len=cur_data.length;
 
@@ -227,8 +228,8 @@ struct sorted_trie {
 
             // If it's fully common, this implies that this string is the same as the previous string, 
             // so we use the previous results and skip to avoid redundant work.
-            if (common==cur_len && cur_len==current.size() && i) { 
-                output[i]=output[i-1];
+            if (common==cur_len && cur_len==current.size() && counter) { 
+                output[s]=output[last_s];
                 continue;
             }
 
@@ -246,10 +247,13 @@ struct sorted_trie {
 //            Rprintf("Common is %i\n", common);
 
             // Searching through the trie.
-            toplevel.find_within(collected, current, common, limit, counter++);
+            toplevel.find_within(collected, current, common, limit, counter);
             for (auto& x : collected) { ++x; }
-            output[i]=Rcpp::IntegerVector(collected.begin(), collected.end());
+            output[s]=Rcpp::IntegerVector(collected.begin(), collected.end());
             collected.clear();
+
+            ++counter;
+            last_s=s;
         }
         
         return output;
@@ -260,10 +264,11 @@ struct sorted_trie {
     }
     
     trie_node toplevel;
+    Rcpp::IntegerVector ordering;
     const XStringSet_holder * ptr;
 };
 
-SEXP umi_group (SEXP umi, SEXP threshold) {
+SEXP umi_group (SEXP umi, SEXP order, SEXP threshold) {
     BEGIN_RCPP
         
     // Checking inputs.       
@@ -272,7 +277,7 @@ SEXP umi_group (SEXP umi, SEXP threshold) {
     int limit=check_integer_scalar(threshold, "distance threshold");
 
     // Compiling into an output list.
-    sorted_trie dic(&seq);
+    sorted_trie dic(&seq, order);
     return dic.find_within(limit);
     END_RCPP
 }
