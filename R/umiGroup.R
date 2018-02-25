@@ -75,19 +75,26 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
     return(membership(components(g)))
 }
 
-umiGroup2 <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1) 
+umiGroup2 <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, min.qual=10) 
 # Uses a greedy approach to define UMI groupings, using only the Levenshtein distances.
+# Some acknowledgement of the quality of the base calls is obtained with 'min.qual'.
 # 
-# written by Florian Bieberich
-# with modifications by Aaron Lun
+# written by Aaron Lun
 # created 25 February 2018
 {
     UMI1 <- as(UMI1, "DNAStringSet")
+    if (!is.na(min.qual)) {
+        UMI1 <- .mask_bad_bases(UMI1, threshold=min.qual)
+    }
     o1 <- order(UMI1)
     out1 <- .Call(cxx_umi_group, UMI1, o1 - 1L, max.lev1)
 
+    # Repeating for the second UMI, if it is available.
     if (!is.null(UMI2)) { 
         UMI2 <- as(UMI2, "DNAStringSet")
+        if (!is.na(min.qual)) {
+            UMI2 <- .mask_bad_bases(UMI2, threshold=min.qual)
+        }
         o2 <- order(UMI2)
         out2 <- .Call(cxx_umi_group, UMI2, o2 - 1L, max.lev2)
     }

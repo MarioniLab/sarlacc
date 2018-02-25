@@ -1,6 +1,6 @@
 #include "sarlacc.h"
 
-const std::vector<char> BASES={'A', 'C', 'G', 'T'};
+const std::vector<char> BASES={'A', 'C', 'G', 'T', 'N'};
 
 struct trie_node {
     std::deque<int>* indices;
@@ -29,7 +29,7 @@ struct trie_node {
         }
 
         if (!children) {
-            children = new std::vector<trie_node>(4);
+            children = new std::vector<trie_node>(BASES.size());
         }
 
         switch (current[position]) {
@@ -44,6 +44,9 @@ struct trie_node {
                 break;
             case 'T':
                 (*children)[3]._insert(index, current, position+1);
+                break;
+            case 'N':
+                (*children)[4]._insert(index, current, position+1);
                 break;
         }
         return;
@@ -109,11 +112,20 @@ struct trie_node {
 //
 //      Rprintf("This base is %c\n", this_base);
 
-        // Picking up from the last memory.
-        for (size_t i=offset+1; i<=cur_len; ++i) {
-            *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
-                                           *(cur_space_it + i - 1) + 1, 
-                                           *(last_space_it + i - 1) + (current[i-1] == this_base ? 0 : 1) });
+        // Filling out the latest row of the levenshtein distance matrix, picking up from the last memory (offset).
+        // If the current base is 'N', this _always_ triggers a mismatch.
+        if (this_base!='N') { 
+            for (size_t i=offset+1; i<=cur_len; ++i) {
+                *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
+                                               *(cur_space_it + i - 1) + 1, 
+                                               *(last_space_it + i - 1) + (current[i-1] == this_base ? 0 : 1) });
+            }
+        } else {
+            for (size_t i=offset+1; i<=cur_len; ++i) {
+                *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
+                                               *(cur_space_it + i - 1) + 1, 
+                                               *(last_space_it + i - 1) + 1 });
+            }
         }
 
 //        Rprintf("Current: ");
@@ -178,7 +190,7 @@ struct trie_node {
             for (size_t i=0; i<BASES.size(); ++i) { 
                 auto& child=(*children)[i];
                 if (!child.dead_end()) { 
-                    child._find_within(collected, current, offset, 'A', *scores, limit, iter);
+                    child._find_within(collected, current, offset, BASES[i], *scores, limit, iter);
                 }
             }
         }
