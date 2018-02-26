@@ -5,13 +5,13 @@
 \description{Perform a multiple sequence alignment of reads in the same UMI group, i.e., originating from the same DNA molecule.}
 
 \usage{
-multiReadAlign(reads, groups, threshold=10, keep.masked=FALSE, ...)
+multiReadAlign(reads, groups, min.qual=10, keep.masked=FALSE, ...)
 }
 
 \arguments{
     \item{reads}{A DNAStringSet object containing read sequences.}
     \item{groups}{A factor specifying which reads belong to the same UMI group, e.g., from \code{\link{umiGroup}}.}
-    \item{threshold}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
+    \item{min.qual}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
     \item{keep.masked}{A logical scalar indicating whether masked bases should remain masked in the output.}
     \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
 }
@@ -28,9 +28,9 @@ This should automatically be the case if \code{\link{adaptorAlign}} was used wit
 However, if the same adaptors were used on both ends, the strand of the sequence is unknown and may require other information to discern.
 
 MUSCLE is not aware of quality strings, so we mask low-quality bases prior to the multiple sequence alignment.
-All bases with quality scores (i.e., the \code{-10*log10()} error probabilities) below \code{threshold} are set to \code{"N"}.
+All bases with quality scores (i.e., the \code{-10*log10(error)} probabilities) below \code{min.qual} are set to \code{"N"}.
 This ensures that poor base calls do not compromise the alignment quality.
-If \code{threshold=NA}, no masking is performed.
+If \code{min.qual=NA}, no masking is performed.
 All masks are removed in the output strings unless \code{keep.mask=TRUE}, in which case the strings may contain \code{"N"}'s.
 }
 
