@@ -5,7 +5,7 @@
 \description{Import alignment positions in a SAM file to a GenomicRanges object.}
 
 \usage{
-alignPrep(sam, minq = 10, restricted = NULL)
+sam2ranges(sam, minq = 10, restricted = NULL)
 }
 
 \arguments{
