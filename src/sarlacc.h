@@ -35,6 +35,8 @@ SEXP create_consensus_quality(SEXP, SEXP, SEXP);
 
 SEXP umi_group(SEXP, SEXP, SEXP);
 
+SEXP compute_lev_masked(SEXP);
+
 SEXP get_kmer_matrix(SEXP, SEXP);
 
 }
