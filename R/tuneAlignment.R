@@ -11,6 +11,16 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
 # written by Aaron Lun
 # created 26 February 2018
 {
+    if (is.character(adaptor1)) {
+        adaptor1 <- DNAString(adaptor1)
+    } 
+    if (is.character(adaptor2)) { 
+        adaptor2 <- DNAString(adaptor2)
+    }
+    if (is.character(reads)) {
+        reads <- DNAStringSet(reads)
+    }
+
     # Taking subsequences of the reads for pairwise alignment.
     reads.out <- .get_front_and_back(reads, tolerance)
     reads.start <- reads.out$front
@@ -45,8 +55,6 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
                     scrambled.scores <- .obtain_max_scores(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args)
                     
                     cur.score <- sum(findInterval(reads.scores, sort(scrambled.scores)))
-                    print(c(mm, ma, go, ge))
-                    print(cur.score)
                     if (max.score < cur.score) {
                         max.score <- cur.score
 
