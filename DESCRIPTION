@@ -8,7 +8,7 @@ Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
 Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors
 Imports: methods, utils, IRanges, XVector, muscle, BiocGenerics, 
         GenomicAlignments, igraph, Rcpp
-Suggests: irlba, scran, knitr, testthat
+Suggests: Rsamtools, knitr, testthat
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
         cell-specific biases, assignment of cell cycle phase, and 
