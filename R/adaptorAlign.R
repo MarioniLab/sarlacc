@@ -2,7 +2,7 @@
 #' @importFrom Biostrings DNAString DNAStringSet reverseComplement pairwiseAlignment
 #' @importFrom BiocGenerics score
 #' @importFrom methods is
-adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=2, mismatch=-5)
+adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0)
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
