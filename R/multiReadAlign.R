@@ -1,9 +1,9 @@
 #' @export
-#' @importFrom Biostrings reverseComplement unmasked
+#' @importFrom Biostrings unmasked
 #' @importFrom S4Vectors elementMetadata
 #' @importFrom methods is as
 #' @importFrom muscle muscle
-multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FALSE, ...)
+multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ...)
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
 #
@@ -20,9 +20,6 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FA
     }   
 
     # Setting up some other constants.
-    if (!is.null(flip) && length(flip)!=Nreads) {
-        stop("length of 'flip' and 'reads' should be the same")
-    }
     has.quals <- is(reads, "QualityScaledDNAStringSet") 
     do.mask <- !is.na(min.qual)
 
@@ -35,11 +32,6 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FA
         if (length(cur.reads)==1L) {
             msalign[[g]] <- cur.reads
             next
-        }
-
-        if (!is.null(flip)) {
-            curflip <- flip[by.group[[g]]]
-            cur.reads[curflip] <- reverseComplement(cur.reads[curflip])
         }
 
         # Performing the MSA on potentially masked reads.

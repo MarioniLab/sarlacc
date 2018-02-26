@@ -1,5 +1,5 @@
 #' @export
-umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL) 
+umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL)
 # Computes the distances between UMIs of different reads 
 # and assigns them to the same group if they are low-distance.
 # 
@@ -17,9 +17,6 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
     if (!is.null(UMI2) && Nreads!=length(UMI2)) {
         stop("lengths of 'UMI1' and 'UMI2' should be the same")
     }
-    if (!is.null(flip) && Nreads!=length(flip)) {
-        stop("lengths of 'flip' and 'UMI1' should be the same")
-    }
 
     by.group <- split(seq_len(Nreads), groups)
     output <- integer(Nreads)
@@ -33,13 +30,6 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
 
         if (!is.null(UMI2)) {
             cur.UMI2 <- UMI2[current]
-            if (!is.null(flip)) { 
-                cur.UMI2 <- UMI2[current]
-                cur.flip <- flip[current]
-                cur.tmp <- cur.UMI1[cur.flip]
-                cur.UMI1[cur.flip] <- cur.UMI2[cur.flip]
-                cur.UMI2[cur.flip] <- cur.tmp
-            }  
         }
 
         UMI.id <- .umiClust(UMI1=cur.UMI1, UMI2=cur.UMI2, threshold=threshold)

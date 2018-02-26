@@ -5,16 +5,14 @@
 \description{Perform a multiple sequence alignment of reads in the same UMI group, i.e., originating from the same DNA molecule.}
 
 \usage{
-multiReadAlign(reads, groups, flip=FALSE, threshold=10, 
-    keep.mask=FALSE, ...)
+multiReadAlign(reads, groups, threshold=10, keep.masked=FALSE, ...)
 }
 
 \arguments{
     \item{reads}{A DNAStringSet object containing read sequences.}
     \item{groups}{A factor specifying which reads belong to the same UMI group, e.g., from \code{\link{umiGroup}}.}
-    \item{flip}{A logical vector specifying whether each read should be reverse-complemented.}
     \item{threshold}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
-    \item{keep.mask}{A logical scalar indicating whether masked bases should remain masked in the output.}
+    \item{keep.masked}{A logical scalar indicating whether masked bases should remain masked in the output.}
     \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
 }
 
@@ -25,9 +23,9 @@ The aim is to use the alignments to form a consensus sequence using \code{\link{
 This allows us to obtain accurate sequences of the original molecule, overcoming the high error rate of ONT.
 
 The MUSCLE aligner is used to perform efficient multiple sequence alignment of many reads.
-However, for DNA sequences, MUSCLE assumes that all reads are on the same strand.
-Reads on the other strand should be indicated as such via \code{flip} so that their reverse complement sequences are used in the multiple sequence alignment.
-In general, this is only necessary if the same adaptors were used on both ends such that the strand of the sequence is unknown.
+Note that, for DNA sequences, MUSCLE assumes that all reads are on the same strand.
+This should automatically be the case if \code{\link{adaptorAlign}} was used with two different adaptors on either end of the read.
+However, if the same adaptors were used on both ends, the strand of the sequence is unknown and may require other information to discern.
 
 MUSCLE is not aware of quality strings, so we mask low-quality bases prior to the multiple sequence alignment.
 All bases with quality scores (i.e., the \code{-10*log10()} error probabilities) below \code{threshold} are set to \code{"N"}.

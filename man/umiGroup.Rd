@@ -5,7 +5,7 @@
 \description{Identify reads originating from the same DNA molecule, based on similar sequences for the unique molecular identifiers (UMIs).}
 
 \usage{
-umiGroup(UMI1, threshold, UMI2=NULL, groups=NULL, flip=NULL) 
+umiGroup(UMI1, threshold, UMI2=NULL, groups=NULL)
 }
 
 \arguments{
@@ -13,7 +13,6 @@ umiGroup(UMI1, threshold, UMI2=NULL, groups=NULL, flip=NULL)
 \item{threshold}{A numeric scalar specifying the maximum distance between the UMI sequences of two reads in order for them to be considered equivalent.}
 \item{UMI2}{A DNAStringSet or QualityScaledDNAStringSet object containing a second UMI sequence for each read, if present.}
 \item{groups}{A factor specifying the groupings of reads, where only UMIs from the same group are compared to each other.}
-\item{flip}{A logical vector indicating whether UMIs 1 and 2 should be flipped for each read.}
 }
 
 \details{
@@ -26,12 +25,9 @@ Distances below \code{threshold} are used to define edges on an undirected graph
 Each connected component of the graph defines a group of reads originating from the same molecule.
 
 If \code{UMI2} is supplied, we assume that each read is represented by two UMI sequences (e.g., on both ends of the read).
+Sequences in \code{UMI1} are compared to other sequences in \code{UMI1}, and sequences in \code{UMI2} are compared to other sequences in \code{UMI2}.
 The distance between a pair of reads is then defined as the sum of the distances for both UMIs.
 Similarly, \code{threshold} applies to the sum of distances rather than the distance for each individual UMI.
-
-By default, sequences in \code{UMI1} are compared to other sequences in \code{UMI1}, and sequences in \code{UMI2} are compared to other sequences in \code{UMI2}.
-If \code{flip} is \code{TRUE} for any read, UMIs 1 and 2 for that read will be swapped before any comparison is performed.
-This can be useful in some situations, e.g., to ensure that all read sequences are on the same strand if the adaptors are the same on both ends.
 
 If \code{groups} is supplied, pairwise distances are only computed between pairs of reads in the same level of \code{groups}.
 This is useful for reducing the computational complexity, as well as serving as a sanity check to only compare UMIs for reads that are actually similar.
