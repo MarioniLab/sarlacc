@@ -20,17 +20,13 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     }     
 
     # Taking subsequences of the reads for pairwise alignment.
-    tolerance <- pmin(tolerance, width(reads))
-    reads.start <- subseq(reads, start = 1, width = tolerance)
-    reads.end <- subseq(reads, end = width(reads), width = tolerance)
-    reads.end <- reverseComplement(reads.end)
+    reads.out <- .get_front_and_back(reads, tolerance)
+    reads.start <- reads.out$front
+    reads.end <- reads.out$back
 
     # Aligning all sequences to the adaptor.
-    all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension)
     has.quality <- is(reads, "QualityScaledDNAStringSet")
-    if (!has.quality) { 
-        all.args$substitutionMatrix <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
-    }
+    all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
 
     align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1), all.args))
     align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2), all.args))
@@ -70,6 +66,22 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     rownames(align_start) <- rownames(align_end) <- names(reads) 
     names(is_reverse) <- names(reads)
     return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, reversed=is_reverse))
+}
+
+.get_front_and_back <- function(reads, tolerance) {
+    tolerance <- pmin(tolerance, width(reads))
+    reads.start <- subseq(reads, start = 1, width = tolerance)
+    reads.end <- subseq(reads, end = width(reads), width = tolerance)
+    reads.end <- reverseComplement(reads.end)
+    return(list(front=reads.start, back=reads.end))
+}
+
+.setup_alignment_args <- function(has.quality, gapOpening, gapExtension, match, mismatch) {
+    all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension)
+    if (!has.quality) { 
+        all.args$substitutionMatrix <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
+    }
+    return(all.args)
 }
 
 .align_info_extractor <- function(alignments, quality=NULL) {

@@ -1,6 +1,7 @@
 useDynLib(sarlacc, .registration=TRUE, .fixes="cxx_")
 
 export(
+    tuneAlignment, 
     adaptorAlign, chopReads, 
     umiExtract, expectedDist, 
     alignPrep, clusterReads,
