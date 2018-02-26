@@ -18,7 +18,7 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
     if (essential2){
         id2 <- aligned$adaptor2$score >= score2
     }else{
-        id2 <- rep(TRUE, nrow(align_data$adaptor1))
+        id2 <- rep(TRUE, nrow(aligned$adaptor1))
     }
     
     keep <- id1 & id2

@@ -98,7 +98,6 @@ umiGroup2 <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, min.
         out2 <- .Call(cxx_umi_group, UMI2, o2 - 1L, max.lev2)
     }
 
-    out1 <- out    
     all.lengths <- lengths(out1)
     lost <- logical(length(all.lengths))
     group <- integer(length(all.lengths))

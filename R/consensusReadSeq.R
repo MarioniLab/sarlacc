@@ -24,7 +24,7 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6)
             if (has.quals) { 
                 phred[[i]] <- quals
             } else {
-                phred[[i]] <- PhredQuality(rep(1/(1+pseudo.count), nchar(aln_char)))
+                phred[[i]] <- PhredQuality(rep(1/(1+pseudo.count), nchar(consensus[i])))
             }
             next
         }
