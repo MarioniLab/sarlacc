@@ -1,5 +1,5 @@
-# This tests various aspects of the multiple alignment and consensus calculation machinery.
-# library(sarlacc); library(testthat); source("test-multalign.R")
+# This tests various aspects of the masking machinery.
+# library(sarlacc); library(testthat); source("test-masking.R")
 
 test_that("masking of bad bases works correctly", {
     CHECKFUN <- function(incoming, qualities, threshold) {          
