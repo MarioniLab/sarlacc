@@ -4,7 +4,7 @@
 #' @importFrom S4Vectors split
 #' @importFrom IRanges IRanges
 #' @importFrom GenomicRanges GRanges
-alignPrep <- function(sam, minq = 10, restricted = NULL)
+sam2ranges <- function(sam, minq = 10, restricted = NULL)
 # Returns an GRanges object containing read name, position, length, strand and chr location.
 # This is a bit more complicated due to the need to parse a SAM file, not a BAM file 
 # (which would have been easy via Rsamtools, but ONT CIGARs don't fit inside BAM fields).
@@ -48,7 +48,6 @@ alignPrep <- function(sam, minq = 10, restricted = NULL)
     if (!is.null(restricted)){ 
         keep <- seqnames(granges) %in% restricted
         granges <- granges[keep]
-        read.names <- factor(read.names)
         read.names <- read.names[as.logical(keep)]
     }
         
