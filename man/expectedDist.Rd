@@ -5,7 +5,8 @@
 \description{Calculate expected distances between subsequences of the adaptor that should be identical across reads.}
 
 \usage{
-expectedDist(align.stats, position=NULL, offset=NULL, number=100, get.seq=FALSE)
+expectedDist(align.stats, position=NULL, offset=NULL, 
+    number=100, get.seq=FALSE, min.qual=10)
 }
 
 \arguments{
@@ -14,6 +15,7 @@ expectedDist(align.stats, position=NULL, offset=NULL, number=100, get.seq=FALSE)
 \item{offset}{An integer scalar in \code{[0, UMI length]} specifying the offset with which subsequences are extracted from the adaptor.}
 \item{number}{An integer scalar specifying the number of reads to process.}
 \item{get.seq}{A logical scalar indicating whether the extracted sequences should be returned.}
+\item{min.qual}{A integer scalar specifying the minimum Phred-scaled quality, i.e., \code{-10*log10(error)}.}
 }
 
 \details{
@@ -31,12 +33,14 @@ By default, \code{offset} is set to half of \code{LEN}.
 If \code{offset=0}, only the flanking interval on the 3' end of the UMI on the adaptor sequence is used.
 Conversely, if \code{offset=LEN}, only the flanking interval on the 5' end is used.
 
-Pairwise distances between all extracted distances are computed using \code{\link{stringDist}}.
-This is quite computationally expensive, so we can only proecss a subset of these sequences by setting \code{number}.
+Pairwise Levenshtein distances are computed between all extracted sequences.
+This is quite computationally expensive, so we only process a random subset of these sequences by setting \code{number}.
+If \code{align.stats} contains quality scores, bases with Phred-scaled qualities below \code{min.qual} are replaced with \code{N}s.
+Any \code{N}s are treated as missing and always manifest as mismatches, even for matches to other \code{N}s - see \code{?\link{umiGroup}} for details.
 }
 
 \value{
-If \code{get.seq=FALSE}, a vector of pairwise distances between sequences that should be identical.
+If \code{get.seq=FALSE}, a vector of pairwise distances between sequences that \emph{should} be identical.
 
 Otherwise, a DNAStringSet or QualityScaledDNAStringSet object is returned containing the extracted sequence for each read.
 }
