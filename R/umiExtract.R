@@ -1,3 +1,6 @@
+#' @export
+#' @importFrom Biostrings DNAStringSet QualityScaledDNAStringSet
+#' @importFrom XVector subseq
 umiExtract <- function(align.stats, position=NULL) 
 # Pull out UMIs from the adaptor alignment data.
 #

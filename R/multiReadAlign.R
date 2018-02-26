@@ -1,3 +1,8 @@
+#' @export
+#' @importFrom Biostrings reverseComplement unmasked
+#' @importFrom S4Vectors elementMetadata
+#' @importFrom methods is as
+#' @importFrom muscle muscle
 multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FALSE, ...)
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
@@ -64,6 +69,7 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FA
     return(msalign)
 }
 
+#' @importFrom Biostrings encoding quality DNAStringSet
 .mask_bad_bases <- function(incoming, threshold) {
     enc <- encoding(quality(incoming))
     lowerbound <- names(enc)[min(which(enc>=threshold))]
@@ -71,11 +77,14 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FA
     return(DNAStringSet(out))
 }
 
+#' @importFrom Biostrings DNAStringSet
 .unmask_bases <- function(alignments, originals) {
     out <- .Call(cxx_unmask_bases, alignments, originals)
     return(DNAStringSet(out))
 }
 
+#' @importFrom Biostrings QualityScaledDNAStringSet DNAStringSet
+#' @importFrom methods is
 .safe_masker <- function(incoming, threshold) {
     if (is(incoming, "QualityScaledDNAStringSet") && !is.na(threshold)) {
         return(.mask_bad_bases(incoming, threshold))

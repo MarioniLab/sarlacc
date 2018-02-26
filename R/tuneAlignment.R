@@ -1,3 +1,6 @@
+#' @export
+#' @importFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom methods is
 tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100, 
                           gapOp.range=c(4, 10), gapExt.range=c(1, 5), 
                           match.range=c(1, 2), mismatch.range=c(-1, 0)) 
@@ -78,6 +81,7 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
     return(seqs)
 }
 
+#' @importFrom Biostrings pairwiseAlignment
 .obtain_max_scores <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list()) {
     align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1, scoreOnly=TRUE), all.args))
     align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2, scoreOnly=TRUE), all.args))

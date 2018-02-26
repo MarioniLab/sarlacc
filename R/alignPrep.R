@@ -1,10 +1,16 @@
-#The read data already needs to be aligned to the reference genome.
-#therefore the bash script stored in /init has to be executed before running alignPrep.
-#In order to be then read into the pipeline, .sam file has to be converted into .txt that only contains the first six columns:
-#bash command: "awk '{print $1,$2,$3,$4,$5,$6,$10}' alignment.sam > alignment.txt" #first 6 columns in new file.
-
+#' @export
+#' @importFrom utils count.fields read.table
+#' @importFrom GenomicAlignments cigarWidthAlongReferenceSpace
+#' @importFrom S4Vectors split
+#' @importFrom IRanges IRanges
+#' @importFrom GenomicRanges GRanges
 alignPrep <- function(sam, minq = 10, restricted = NULL)
-#Returns an GRanges object containing read name, position, length, strand and chr location  
+# Returns an GRanges object containing read name, position, length, strand and chr location.
+# This is a bit more complicated due to the need to parse a SAM file, not a BAM file 
+# (which would have been easy via Rsamtools, but ONT CIGARs don't fit inside BAM fields).
+#
+# written by Florian Bieberich
+# with modifications by Aaron Lun
 {
     # Figuring out how many headers to skip.
     N <- 0L
@@ -19,8 +25,10 @@ alignPrep <- function(sam, minq = 10, restricted = NULL)
     close(curfile)
 
     # Setting "100" to ignore everything afterwards.
-    what <- c(list("character","integer","character", "character", "integer", "character"), vector("list", 100))
-    suppressWarnings(mapping <- read.table(sam, skip=N, colClasses=what, fill=TRUE, stringsAsFactors=FALSE))
+    nfields <- max(count.fields(sam, skip=N, sep="\t", comment.char="", quote=""), na.rm=TRUE)
+    what <- list("character","integer","character", "character", "integer", "character")
+    what <- c(what, vector("list", nfields - length(what)))
+    suppressWarnings(mapping <- read.table(sam, skip=N, colClasses=what, fill=TRUE, quote="", comment.char="", stringsAsFactors=FALSE))
     colnames(mapping) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR")
    
     # Keeping only mapped reads and non-secondary reads. 
@@ -39,43 +47,11 @@ alignPrep <- function(sam, minq = 10, restricted = NULL)
     read.names <- mapping$QNAME
     if (!is.null(restricted)){ 
         keep <- seqnames(granges) %in% restricted
-	granges <- granges[keep]
+        granges <- granges[keep]
         read.names <- factor(read.names)
         read.names <- read.names[as.logical(keep)]
     }
         
-    granges <- split(granges, read.names, drop=FALSE)
-
-    granges.frame <- as.data.frame(granges)
-    granges.frame <- granges.frame[-which(duplicated(granges.frame$group)),]
-
-    abund.reads <- levels(read.names) %in% granges.frame$group_name
-    
-    flip <- logical(nlevels(read.names))
-    flip[abund.reads] <- granges.frame$strand=="+"
-    # Splitting by the mapping names
-    return(list(granges = granges, flip = flip))
+    split(granges, read.names, drop=FALSE)
 }
 
-
-#.mColAdd <- function(grange, txdb)
-    # Adds gene_id containing metacolumn to grange.
-#{
-#    exon_data <- exons(txdb)
-#    gene_id <- mapIds(txdb, keytype="EXONID", key= as.character(exon_data$exon_id), column="GENEID")
-    
-    # Overlap between mapped reads and annotated exons.
-#    alignment_gr_reads <- findOverlaps(grange, exon_data)
-    
-    # Assign gene ids as metacolumn to gr4 and add NA for reads without an identified gene id
-    
-#    gene_id_uni <- gene_id[subjectHits(alignment_gr_reads[which(duplicated(queryHits(alignment_gr_reads))==FALSE)])]
-    
-#    gene_id_allread <- rep(NA, length(grange))
-#    gene_id_allread[unique(queryHits(alignment_gr_reads))] <- gene_id_uni
-#    mcols(grange) <- gene_id_allread
-#    names(mcols(grange)) <- "gene_id"
-#    gr_gene <- grange
-    
-#    return(gr_gene)
-#}

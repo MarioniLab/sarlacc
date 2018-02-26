@@ -1,3 +1,5 @@
+#' @export
+#' @importFrom XVector subseq
 chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = TRUE)
 # This filters out reads that don't have essential adaptors aligning on either or both ends.
 # We also chop out the adaptor sequences for future use.

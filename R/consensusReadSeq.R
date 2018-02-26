@@ -1,3 +1,7 @@
+#' @export
+#' @importFrom Biostrings PhredQuality QualityScaledDNAStringSet DNAStringSet
+#' @importFrom S4Vectors elementMetadata
+#' @importFrom methods as
 consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6)
 # Create a consensus sequence for each MRA.
 # 

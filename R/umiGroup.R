@@ -1,3 +1,4 @@
+#' @export
 umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL) 
 # Computes the distances between UMIs of different reads 
 # and assigns them to the same group if they are low-distance.
@@ -49,6 +50,8 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
     return(output) 
 }
 
+#' @importFrom Biostrings stringDist
+#' @importFrom igraph make_graph membership components
 .umiClust <- function(UMI1, UMI2, threshold) {
     # stringDist defaults to method="quality" for QualityScaledXStringSet inputs.
     # Otherwise it remains as method="levenstein".
@@ -75,6 +78,8 @@ umiGroup <- function(UMI1, threshold, UMI2 = NULL, groups=NULL, flip=NULL)
     return(membership(components(g)))
 }
 
+#' @export
+#' @importFrom BiocGenerics order
 umiGroup2 <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, min.qual=10) 
 # Uses a greedy approach to define UMI groupings, using only the Levenshtein distances.
 # Some acknowledgement of the quality of the base calls is obtained with 'min.qual'.

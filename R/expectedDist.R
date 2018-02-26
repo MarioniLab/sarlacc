@@ -1,3 +1,6 @@
+#' @export
+#' @importFrom Biostrings DNAStringSet QualityScaledDNAStringSet
+#' @importFrom methods is
 expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, get.seq=FALSE, min.qual=10)
 # This computes the expected distance between a sequence of 
 # the same length as the UMI.     
