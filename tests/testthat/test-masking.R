@@ -39,10 +39,6 @@ test_that("masking of bad bases works correctly", {
     for (threshold in c(0.001, 0.01, 0.05, 0.1)) { 
         CHECKFUN(all.seq, all.qual, threshold)
     }
-
-    # Check that it throws with silly inputs.
-    expect_error(sarlacc:::.mask_bad_bases(QualityScaledDNAStringSet("AAA", PhredQuality(0)), 20),
-                 "sequence and quality strings are not the same length")
 })
 
 
