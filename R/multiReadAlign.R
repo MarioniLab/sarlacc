@@ -75,3 +75,12 @@ multiReadAlign <- function(reads, groups, flip=NULL, min.qual=10, keep.masked=FA
     out <- .Call(cxx_unmask_bases, alignments, originals)
     return(DNAStringSet(out))
 }
+
+.safe_masker <- function(incoming, threshold) {
+    if (is(incoming, "QualityScaledDNAStringSet") && !is.na(threshold)) {
+        return(.mask_bad_bases(incoming, threshold))
+    } else {
+        return(as(incoming, "DNAStringSet"))
+    }
+}
+

@@ -1,4 +1,4 @@
-expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, get.seq=FALSE)
+expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, get.seq=FALSE, min.qual=10)
 # This computes the expected distance between a sequence of 
 # the same length as the UMI.     
 #
@@ -45,7 +45,7 @@ expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, ge
 
     if (get.seq) {
         return(combined)
-    } else {
-        return(as.vector(stringDist(combined)))
-    }
+    } 
+    combined <- .safe_masker(combined, threshold=min.qual)    
+    return(.Call(cxx_compute_lev_masked, combined))
 }
