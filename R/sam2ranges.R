@@ -15,10 +15,17 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     # Figuring out how many headers to skip.
     N <- 0L
     curfile <- file(sam, open="r")
+    collected <- list()
     repeat {
         curline <- readLines(curfile, n=1)
         if (!grepl("^@", curline)) {
             break
+        }
+        if (grepl("^@SQ", curline)) {
+            sections <- strsplit(curline, "\t")[[1]]
+            curname <- sub("^SN:", "", sections[[2]])
+            curlen <- sub("^LN:", "", sections[[3]])
+            collected[[curname]] <- as.integer(curlen)
         }
         N <- N + 1L
     }
@@ -41,7 +48,8 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     # Creating a GRanges object.
     align.len <- cigarWidthAlongReferenceSpace(mapping$CIGAR)
     pos <- as.integer(as.character(mapping$POS))
-    granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"))
+    granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"),
+                       seqinfo=Seqinfo(names(collected), seqlengths=unlist(collected)))
 
     # Restricting to a subset of the alignments on particular chromosomes.
     read.names <- mapping$QNAME
