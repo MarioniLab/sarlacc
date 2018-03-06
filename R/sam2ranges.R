@@ -51,6 +51,10 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"),
                        seqinfo=Seqinfo(names(collected), seqlengths=unlist(collected)))
 
+    # Annotating with left/right soft/hard clips.
+    granges$left.clip <- .get_clip_length(mapping$CIGAR)
+    granges$right.clip <- .get_clip_length(mapping$CIGAR, start=FALSE)
+
     # Restricting to a subset of the alignments on particular chromosomes.
     read.names <- mapping$QNAME
     if (!is.null(restricted)){ 
@@ -60,5 +64,22 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     }
         
     split(granges, read.names, drop=FALSE)
+}
+
+.get_clip_length <- function(cigars, start=TRUE) {
+    cliplen <- integer(length(cigars))
+    for (op in c("H", "S")) { # hard clips before soft clips.
+        if (start) {
+            finder <- paste0("^[0-9]+", op)
+            keeper <- paste0("^([0-9]+)", op, ".*")
+        } else {
+            finder <- paste0("[0-9]+", op, "$")
+            keeper <- paste0(".*[^0-9]([0-9]+)", op, "$")
+        }
+        present <- grepl(finder, cigars)
+        cliplen[present] <- cliplen[present] + as.integer(sub(keeper, "\\1", cigars[present]))
+        cigars <- sub(finder, "", cigars)
+    }
+    return(cliplen)
 }
 
