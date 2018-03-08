@@ -1,5 +1,5 @@
 #' @export
-#' @importFrom utils count.fields read.table
+#' @importFrom utils count.fields read.delim 
 #' @importFrom GenomicAlignments cigarWidthAlongReferenceSpace
 #' @importFrom S4Vectors split
 #' @importFrom IRanges IRanges
@@ -35,7 +35,7 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     nfields <- max(count.fields(sam, skip=N, sep="\t", comment.char="", quote=""), na.rm=TRUE)
     what <- list("character","integer","character", "character", "integer", "character")
     what <- c(what, vector("list", nfields - length(what)))
-    suppressWarnings(mapping <- read.table(sam, skip=N, colClasses=what, fill=TRUE, quote="", comment.char="", stringsAsFactors=FALSE))
+    suppressWarnings(mapping <- read.delim(sam, header=FALSE, skip=N, colClasses=what, fill=TRUE, quote="", comment.char="", stringsAsFactors=FALSE))
     colnames(mapping) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR")
    
     # Keeping only mapped reads and non-secondary reads. 
