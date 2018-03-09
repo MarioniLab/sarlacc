@@ -55,9 +55,9 @@ Aaron Lun
 \examples{
 example(adaptorAlign)
 
-chopReads(out, score1=15, score2=20) # both identified
+chopReads(out, score1=5, score2=5) # both identified
 
-chopReads(out, score1=20, score2=20) # adaptor 1 not identified
+chopReads(out, score1=10, score2=10) # adaptor 1 not identified
 
-chopReads(out, score1=20, score2=20, essential1=FALSE) # ... but that's okay.
+chopReads(out, score1=10, score2=10, essential1=FALSE) # ... but that's okay.
 }
