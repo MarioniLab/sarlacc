@@ -11,21 +11,15 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
 # written by Aaron Lun
 # created 26 February 2018
 {
-    if (is.character(adaptor1)) {
-        adaptor1 <- DNAString(adaptor1)
-    } 
-    if (is.character(adaptor2)) { 
-        adaptor2 <- DNAString(adaptor2)
-    }
-    if (is.character(reads)) {
-        reads <- DNAStringSet(reads)
-    }
+    pre.out <- .preprocess_input(adaptor1, adaptor2, reads)
+    adaptor1 <- pre.out$adaptor1
+    adaptor2 <- pre.out$adaptor2
+    reads <- pre.out$reads
 
     # Taking subsequences of the reads for pairwise alignment.
     reads.out <- .get_front_and_back(reads, tolerance)
     reads.start <- reads.out$front
     reads.end <- reads.out$back
-
     scrambled.start <- .scramble_input(reads.start)
     scrambled.end <- .scramble_input(reads.end)
 
@@ -51,8 +45,10 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
                 for (ge in seq(gapExt.range[1], gapExt.range[2], by=1)) { 
         
                     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
-                    reads.scores <- .obtain_max_scores(adaptor1, adaptor2, reads.start, reads.end, all.args)
-                    scrambled.scores <- .obtain_max_scores(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args)
+                    reads.scores <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args, scoreOnly=TRUE)
+                    read.scores <- do.call(pmax, read.scores)
+                    scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
+                    scrambled.scores <- do.call(pmax, scrambled.scores)
                     
                     cur.score <- sum(findInterval(reads.scores, sort(scrambled.scores)))
                     if (max.score < cur.score) {
@@ -78,22 +74,4 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
                 scores=list(reads=final.reads, scrambled=final.scrambled)))
 }
 
-.scramble_input <- function(seqs) 
-# Scrambles the input sequences. Uses R loops,
-# but it should be fast enough for our purposes.   
-{
-    for (i in seq_along(seqs)) {
-        current <- seqs[[i]]
-        seqs[[i]] <- current[sample(length(current))]
-    }
-    return(seqs)
-}
 
-#' @importFrom Biostrings pairwiseAlignment
-.obtain_max_scores <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list()) {
-    align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1, scoreOnly=TRUE), all.args))
-    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2, scoreOnly=TRUE), all.args))
-    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor1, scoreOnly=TRUE), all.args))
-    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor2, scoreOnly=TRUE), all.args))
-    pmax(align_start, align_end, align_revcomp_start, align_revcomp_end)
-}
