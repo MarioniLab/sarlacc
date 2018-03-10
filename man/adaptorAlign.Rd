@@ -25,11 +25,16 @@ A named list with the following components:
 \item{\code{reads}:}{A DNAStringSet or QualityScaledDNAStringSet object containing the read sequences.
 If necessary, reverse-complementing is performed on specific entries such that the 5' end is always the one that aligns best to adaptor 1.}
 \item{\code{adaptor1}:}{A DataFrame of alignment information for adaptor 1, including the pairwise alignment strings for the adaptor and read sequence; 
-and the start and end positions of the alignment on the read; the alignment score; and the qualities of the read subsequence, if they were originally supplied.
-The read alignment string corresponds to the forward strand of the output \code{reads}, \emph{not} the input \code{reads}.}
+the start and end positions of the alignment on the read; the alignment score; and the qualities of the read subsequence, if they were originally supplied.
+The read alignment string corresponds to the forward strand of the output \code{reads}, \emph{not} the input \code{reads}.
+Alignment positions also refer to the forward strand of the output \code{reads}.
+}
 \item{\code{adaptor2}:}{A similar DataFrame of alignment information for adaptor 2.
-The read alignment string corresponds to the \emph{reverse} strand of the output \code{reads}.}
+The read alignment string corresponds to the \emph{reverse} strand of the output \code{reads}.
+Alignment positions still refer to the forward strand of the output \code{reads}.
+}
 \item{\code{reversed}:}{A logical vector indicating whether each read has been reverse-complemented in the output.}
+\item{\code{parameters}:}{A list containing the values of the arguments supplied to \code{adaptorAlign}, e.g., gap opening/extension penalties, \code{tolerance}.}
 }
 }
 
