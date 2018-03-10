@@ -1,6 +1,8 @@
 #' @export
-#' @importFrom Biostrings DNAStringSet reverseComplement 
+#' @importFrom Biostrings reverseComplement 
 #' @importFrom BiocGenerics score
+#' @importFrom S4Vectors metadata
+#' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0)
 # This function aligns both adaptors to the read sequence with the specified parameters,
@@ -53,8 +55,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
-    metdata(align_start)$adaptor1 <- adaptor1
-    metdata(align_start)$adaptor2 <- adaptor2
+    metadata(align_start)$sequence <- adaptor1
+    metadata(align_end)$sequence <- adaptor2
 
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
@@ -69,7 +71,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
                                 match=match, mismatch=mismatch)))
 }
 
-#' @importFrom Biostrings DNAString 
+#' @importFrom Biostrings DNAString DNAStringSet
 .preprocess_input <- function(adaptor1, adaptor2, reads, add.names=FALSE) 
 # Coerces all inputs to DNAString or DNAStringSet objects.
 {
