@@ -43,14 +43,17 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
         for (ma in seq(match.range[1], match.range[2], by=1)) { 
             for (go in seq(gapOp.range[1], gapOp.range[2], by=1)) { 
                 for (ge in seq(gapExt.range[1], gapExt.range[2], by=1)) { 
-        
                     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
-                    reads.scores <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args, scoreOnly=TRUE)
-                    read.scores <- do.call(pmax, read.scores)
-                    scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
-                    scrambled.scores <- do.call(pmax, scrambled.scores)
+
+                    all.read.scores <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args, scoreOnly=TRUE)
+                    read.scores <- .resolve_strand(all.read.scores$start, all.read.scores$end, 
+                                                   all.read.scores$rc.start, all.read.scores$rc.end)$scores
+
+                    all.scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
+                    scrambled.scores <- .resolve_strand(all.scrambled.scores$start, all.scrambled.scores$end, 
+                                                        all.scrambled.scores$rc.start, all.scrambled.scores$rc.end)$scores
                     
-                    cur.score <- sum(findInterval(reads.scores, sort(scrambled.scores)))
+                    cur.score <- sum(findInterval(read.scores, sort(scrambled.scores)))
                     if (max.score < cur.score) {
                         max.score <- cur.score
 
@@ -61,7 +64,7 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
                             final.mismatch <- mm
                         }
 
-                        final.reads <- reads.scores
+                        final.reads <- read.scores
                         final.scrambled <- scrambled.scores
                     }
                 }
@@ -73,5 +76,3 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
                                 match=final.match, mismatch=final.mismatch),
                 scores=list(reads=final.reads, scrambled=final.scrambled)))
 }
-
-

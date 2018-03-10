@@ -22,7 +22,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     reads.start <- reads.out$front
     reads.end <- reads.out$back
 
-    # Performing the alignment of each adaptor to the start/end.
+    # Performing the alignment of each adaptor to the start/end of the read.
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
     align.out <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args=all.args)
@@ -32,9 +32,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     align_revcomp_end <- align.out$rc.end
     
     # Figuring out the strand.
-    fscore <- pmax(score(align_start), score(align_end))
-    rscore <- pmax(score(align_revcomp_start), score(align_revcomp_end))
-    is_reverse <- fscore < rscore
+    strand.out <- .resolve_strand(score(align_start), score(align_end), score(align_revcomp_start), score(align_revcomp_end))
+    is_reverse <- strand.out$reversed
 
     # Extracting all the useful information out of them.
     if (has.quality) {
@@ -93,8 +92,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 #' @importFrom Biostrings reverseComplement
 #' @importFrom XVector subseq
 .get_front_and_back <- function(reads, tolerance) 
-# Extracting the front part of the read (forward strand) 
-# and the end of the read (reverse strand).
+# Extracting the front part of the read (on the forward strand) 
+# and the end of the read (on the reverse strand).
 {
     tolerance <- pmin(tolerance, width(reads))
     reads.start <- subseq(reads, start = 1, width = tolerance)
@@ -113,12 +112,28 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 }
 
 #' @importFrom Biostrings pairwiseAlignment
-.get_all_alignments <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list(), ...) {
+.get_all_alignments <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list(), ...) 
+# This performs the alignment of adaptor 1 to the start (start) and adaptor 2 to the end (end),
+# or adaptor 1 to the end (rc.start, as it's the start of the reverse complemented read) and 
+# adaptor 2 to the start (rc.end, as it's the end of the reverse complemented read).
+{
     align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1, ...), all.args))
     align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2, ...), all.args))
     align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor1, ...), all.args))
     align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor2, ...), all.args))
     list(start=align_start, end=align_end, rc.start=align_revcomp_start, rc.end=align_revcomp_end)
+}
+
+.resolve_strand <- function(start.score, end.score, rc.start.score, rc.end.score) 
+# This determines whether the read orientation needs to be flipped so that 
+# adaptor 1 is at the start and adaptor 2 is at the end (see ?tuneAlignments 
+# for an explanation of what the 'final.score' means).
+{
+    fscore <- pmax(start.score, 0) + pmax(end.score, 0)
+    rscore <- pmax(rc.start.score, 0) + pmax(rc.end.score, 0)
+    is.reverse <- fscore < rscore
+    final.score <- ifelse(is.reverse, rscore, fscore)
+    return(list(reversed=is.reverse, scores=final.score))
 }
 
 #' @importFrom Biostrings pattern subject

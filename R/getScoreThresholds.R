@@ -25,9 +25,8 @@ getScoreThresholds <- function(aligned, error=0.01)
     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
     scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
 
-    fscore <- pmax(scrambled.scores$start, scrambled.scores$end)
-    rscore <- pmax(scrambled.scores$rc.start, scrambled.scores$rc.end)
-    is.reverse <- rscore > fscore
+    is.reverse <- .resolve_strand(scrambled.scores$start, scrambled.scores$end, 
+                                  scrambled.scores$rc.start, scrambled.scores$rc.end)$reversed
 
     scram.score1 <- ifelse(is.reverse, scrambled.scores$rc.start, scrambled.scores$start)
     scram.score2 <- ifelse(is.reverse, scrambled.scores$rc.end, scrambled.scores$end)
