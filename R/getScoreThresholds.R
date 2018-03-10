@@ -24,9 +24,14 @@ getScoreThresholds <- function(aligned, error=0.01)
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
     scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
-    scram.score1 <- pmax(scrambled.scores$start, scrambled.scores$rc.start)
+
+    fscore <- pmax(scrambled.scores$start, scrambled.scores$end)
+    rscore <- pmax(scrambled.scores$rc.start, scrambled.scores$rc.end)
+    is.reverse <- rscore > fscore
+
+    scram.score1 <- ifelse(is.reverse, scrambled.scores$rc.start, scrambled.scores$start)
+    scram.score2 <- ifelse(is.reverse, scrambled.scores$rc.end, scrambled.scores$end)
     scram.score1 <- sort(scram.score1)
-    scram.score2 <- pmax(scrambled.scores$end, scrambled.scores$rc.end)
     scram.score2 <- sort(scram.score2)
 
     # Computing the expected FDR at each score threshold (a bit conservative, 
