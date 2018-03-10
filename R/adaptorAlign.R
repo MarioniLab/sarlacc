@@ -1,4 +1,7 @@
 #' @export
+#' @importFrom Biostrings DNAStringSet reverseComplement 
+#' @importFrom BiocGenerics score
+#' @importFrom methods is
 adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0)
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
@@ -7,60 +10,17 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 # with modifications by Aaron Lun
 # created 7 November 2017    
 {
-    pre.out <- .preprocess_input(adaptor1, adaptor2, reads)
+    pre.out <- .preprocess_input(adaptor1, adaptor2, reads, add.names=TRUE)
     adaptor1 <- pre.out$adaptor1
     adaptor2 <- pre.out$adaptor2
     reads <- pre.out$reads
 
+    # Getting the start and (rc'd) end of the read.
     reads.out <- .get_front_and_back(reads, tolerance)
     reads.start <- reads.out$front
     reads.end <- reads.out$back
 
-    .internal_align(adaptor1, adaptor2, reads.start, reads.end,
-                    gapOpening=gapOpening, gapExtension=gapExtension,
-                    match=match, mismatch=mismatch)
-}
-
-#' @importFrom Biostrings DNAString 
-.preprocess_input <- function(adaptor1, adaptor2, reads) 
-# Coerces all inputs to DNAString or DNAStringSet objects.
-{
-    if (is.character(adaptor1)) {
-        adaptor1 <- DNAString(adaptor1)
-    } 
-    if (is.character(adaptor2)) { 
-        adaptor2 <- DNAString(adaptor2)
-    }
-    if (is.character(reads)) {
-        reads <- DNAStringSet(reads)
-    }
-    if (is.null(names(reads))) { 
-        names(reads) <- paste0("READ", seq_along(reads))
-    }
-    return(list(adaptor1=adaptor1, adaptor2=adaptor2, reads=reads))
-}
-
-#' @importFrom Biostrings reverseComplement
-#' @importFrom XVector subseq
-.get_front_and_back <- function(reads, tolerance) 
-# Extracting the front part of the read (forward strand) 
-# and the end of the read (reverse strand).
-{
-    tolerance <- pmin(tolerance, width(reads))
-    reads.start <- subseq(reads, start = 1, width = tolerance)
-    reads.end <- subseq(reads, end = width(reads), width = tolerance)
-    reads.end <- reverseComplement(reads.end)
-    return(list(front=reads.start, back=reads.end))
-}
-
-#' @importFrom Biostrings DNAStringSet reverseComplement 
-#' @importFrom BiocGenerics score
-#' @importFrom methods is
-.internal_align <- function(adaptor1, adaptor2, reads.start, reads.end, gapOpening=1, gapExtension=5, match=1, mismatch=0) 
-# Takes adaptor sequences on the forward strand, the start of the read
-# on the forward strand, and the end of the read on the reverse strand,
-# and performs alignments of the adaptors to the read start/ends.
-{
+    # Performing the alignment of each adaptor to the start/end.
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
     align.out <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args=all.args)
@@ -93,6 +53,9 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
+    metdata(align_start)$adaptor1 <- adaptor1
+    metdata(align_start)$adaptor2 <- adaptor2
+
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
     old.end <- align_end$end
@@ -101,7 +64,41 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
        
     rownames(align_start) <- rownames(align_end) <- names(reads) 
     names(is_reverse) <- names(reads)
-    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, reversed=is_reverse))
+    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, reversed=is_reverse,
+                parameters=list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, 
+                                match=match, mismatch=mismatch)))
+}
+
+#' @importFrom Biostrings DNAString 
+.preprocess_input <- function(adaptor1, adaptor2, reads, add.names=FALSE) 
+# Coerces all inputs to DNAString or DNAStringSet objects.
+{
+    if (is.character(adaptor1)) {
+        adaptor1 <- DNAString(adaptor1)
+    } 
+    if (is.character(adaptor2)) { 
+        adaptor2 <- DNAString(adaptor2)
+    }
+    if (is.character(reads)) {
+        reads <- DNAStringSet(reads)
+    }
+    if (add.names && is.null(names(reads))) { 
+        names(reads) <- paste0("READ", seq_along(reads))
+    }
+    return(list(adaptor1=adaptor1, adaptor2=adaptor2, reads=reads))
+}
+
+#' @importFrom Biostrings reverseComplement
+#' @importFrom XVector subseq
+.get_front_and_back <- function(reads, tolerance) 
+# Extracting the front part of the read (forward strand) 
+# and the end of the read (reverse strand).
+{
+    tolerance <- pmin(tolerance, width(reads))
+    reads.start <- subseq(reads, start = 1, width = tolerance)
+    reads.end <- subseq(reads, end = width(reads), width = tolerance)
+    reads.end <- reverseComplement(reads.end)
+    return(list(front=reads.start, back=reads.end))
 }
 
 #' @importFrom Biostrings nucleotideSubstitutionMatrix
