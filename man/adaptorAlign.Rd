@@ -46,17 +46,33 @@ The default alignment parameters are chosen to account for the Nanopore's relati
 
 The adaptor sequences should be provided 5'-to-3', corresponding to the sequence on the ssDNA molecule.
 Reverse-complementing is performed automatically within the function to search both strands of the read sequence.
-There may or may not be any distinction between adaptor 1 and 2, depending on whether the library preparation is strand-aware.
+There should usually be some experimental distinction between adaptor 1 and 2.
 For example, in RNA sequencing, adaptor 1 may be used for reverse transcription while adaptor 2 may be used for second-strand synthesis.
-
-This function ensures that the 5' end of the output read sequence is the one that aligns best to adaptor 1.
-To this end, reads are reverse-complemented, quality strings are reversed and alignment positions are adjusted accordingly.
-Thus, adaptor 1 will always be reported as aligning to the forward strand, while adaptor 2 will always be reported as aligning to the reverse strand.
-This simplifies downstream analyses when the protocol is strand-aware (and has no effect when the protocol is not).
 
 Names are automatically generated for all reads if they are not supplied in the input \code{reads}.
 These are stored in the names of the output \code{reads} as well as the row names of the output \code{adaptor1} and \code{adaptor2} DataFrames.
 }
+
+\section{Flipping reads by strand}{
+This function ensures that the 5' end of the output read sequence is the one that aligns best to adaptor 1.
+To this end, reads are reverse-complemented, quality strings are reversed and alignment positions are adjusted accordingly.
+Thus, adaptor 1 will always be reported as aligning to the forward strand, while adaptor 2 will always be reported as aligning to the reverse strand.
+This simplifies downstream analyses and comparions between read sequences, e.g., in \code{\link{consensusReadSeq}}.
+
+The choice of the best orientation is performed by considering the sum of bounded alignment scores for each orientation.
+To explain:
+\enumerate{
+\item Let us conceptually combine the two alignments of adaptor 1 and 2 to the (input) read sequence.
+This can be treated as a single combined alignment, by imagining a stretch of \code{N}s between the two adaptors that contribute nothing to the score.
+\item The score of the combined alignment is equal to the sum of scores for the individual alignments, due to the additive nature of the Smith-Waterman procedure.
+However, if either individual score is negative, we set it to zero rather than adding a negative value.
+This mimics the effect of local alignment, where an adaptor is ignored on either end if it does not improve the score.
+\item We do the same for the scores for the reverse-complemented read sequence.
+If this is higher than the original score, we decide that the read needs to be reverse-complemented.
+}
+The same approach is used to compute the scores that are returned by \code{\link{tuneAlignment}}.
+}
+
 
 \author{
 Florian Bieberich,

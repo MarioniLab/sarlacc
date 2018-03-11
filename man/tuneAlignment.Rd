@@ -27,12 +27,9 @@ It will then perform a grid search to identify the best parameters for alignment
 This is done by repeating the alignments for all possible combinations of integer gap opening or extension penalties.
 If \code{reads} is a DNAStringSet, all combinations of the match and mismatch scores will also be explored.
 
-To evaluate each parameter combination, we examine the distribution of the maximum alignment scores for all reads.
-The maximum score for each read is defined from the set of scores obtained after aligning any adaptor to any end of the read.
-This represents the best possible adaptor alignment and is equivalent to the approach used in \code{\link{adaptorAlign}} to determine the read orientation.
-(We use the maximum in case the molecule has not been fully sequenced, in which case the alignment score for the missing adaptor would be nonsensical.)
-
-The best parameter combiantion is defined as that which minimizes the overlap between the distribution of maximum alignment scores for \code{reads} and that of a scrambled control.
+To evaluate each parameter combination, we examine the distribution of combined alignment scores for all reads.
+This represents the best adaptor alignment and is equivalent to the approach used in \code{\link{adaptorAlign}} to determine the read orientation.
+The best parameter combiantion is which minimizes the overlap between the distribution of maximum alignment scores for \code{reads} and that of a scrambled control.
 Obviously, we only look for combinations where the former distribution is shifted towards higher scores compared to the scrambled control.
 }
 
