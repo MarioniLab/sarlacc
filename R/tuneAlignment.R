@@ -52,8 +52,8 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
                     all.scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
                     scrambled.scores <- .resolve_strand(all.scrambled.scores$start, all.scrambled.scores$end, 
                                                         all.scrambled.scores$rc.start, all.scrambled.scores$rc.end)$scores
-                    
-                    cur.score <- sum(findInterval(read.scores, sort(scrambled.scores)))
+
+                    cur.score <- .tied_overlap(read.scores, scrambled.scores)
                     if (max.score < cur.score) {
                         max.score <- cur.score
 
@@ -75,4 +75,13 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
     return(list(parameters=list(gapOpening=final.gapOp, gapExtension=final.gapExt, 
                                 match=final.match, mismatch=final.mismatch),
                 scores=list(reads=final.reads, scrambled=final.scrambled)))
+}
+
+.tied_overlap <- function(real, fake) 
+# Calculating overlap (need average of left.open=TRUE/FALSE to handle ties).
+{
+    fake <- sort(fake)
+    upper.bound <- findInterval(real, fake)
+    lower.bound <- findInterval(real, fake, left.open=TRUE)
+    sum((upper.bound + lower.bound)/2)/(length(real)*length(fake))
 }
