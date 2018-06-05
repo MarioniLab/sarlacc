@@ -5,7 +5,8 @@
 \description{Perform a multiple sequence alignment of reads in the same UMI group, i.e., originating from the same DNA molecule.}
 
 \usage{
-multiReadAlign(reads, groups, min.qual=10, keep.masked=FALSE, ...)
+multiReadAlign(reads, groups, min.qual=10, keep.masked=FALSE, ..., 
+    BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -14,6 +15,7 @@ multiReadAlign(reads, groups, min.qual=10, keep.masked=FALSE, ...)
     \item{min.qual}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
     \item{keep.masked}{A logical scalar indicating whether masked bases should remain masked in the output.}
     \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
+    \item{BPPARAM}{A BiocParallelParam object controlling how  paralellization should be performed.}
 }
 
 \details{
@@ -63,9 +65,6 @@ reads <- DNAStringSet(c("ACACTGGTTCAGGT",
     "CGGGCTGACACGGT"))
 
 multiReadAlign(reads, c(1,1,2,2))
-
-multiReadAlign(reads, c(1,1,2,2), 
-    flip=c(TRUE, TRUE, FALSE, FALSE))
 }
 
 

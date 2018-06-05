@@ -1,9 +1,8 @@
 #' @export
-#' @importFrom Biostrings unmasked
-#' @importFrom S4Vectors elementMetadata
-#' @importFrom methods is as
-#' @importFrom muscle muscle
-multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ...)
+#' @importFrom BiocParallel bplapply SerialParam
+#' @importFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom methods is
+multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., BPPARAM=SerialParam())
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
 #
@@ -24,41 +23,46 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ...)
     do.mask <- !is.na(min.qual)
 
     by.group <- split(seq_len(Nreads), groups)
-    msalign <- vector("list", length(by.group))
-    names(msalign) <- names(by.group)
+    msalign <- bplapply(by.group, FUN=.internal_msa, reads=reads, has.quals=has.quals, do.mask=do.mask, 
+        keep.masked=keep.masked, ..., BPPARAM=BPPARAM)
 
-    for (g in names(by.group)) { 
-        cur.reads <- reads[by.group[[g]]]
-        if (length(cur.reads)==1L) {
-            msalign[[g]] <- cur.reads
-            next
-        }
-
-        # Performing the MSA on potentially masked reads.
-        if (has.quals) {
-            if (do.mask) { 
-                to.use <- .mask_bad_bases(cur.reads, threshold=min.qual)
-            } else {
-                to.use <- as(cur.reads, "DNAStringSet")
-            }
-        } else {
-            to.use <- cur.reads
-        }
-        cur.align <- muscle(to.use, ..., quiet=TRUE)
-        cur.align <- unmasked(cur.align)
-
-        # Unmasking the bases in the alignments.
-        if (has.quals && do.mask && !keep.masked) {
-            cur.align <- .unmask_bases(cur.align, to.use) 
-        }
-
-        # Storing the quality strings in the elementwise-metadata.
-        if (has.quals) {
-            elementMetadata(cur.align)$quality <- quality(cur.reads)
-        }
-        msalign[[g]] <- cur.align
-    }
     return(msalign)
+}
+
+#' @importClassesFrom Biostrings DNAStringSet
+#' @importFrom Biostrings unmasked quality
+#' @importFrom S4Vectors elementMetadata<-
+#' @importFrom methods is as
+#' @importFrom muscle muscle
+.internal_msa <- function(reads, group, has.quals, do.mask, keep.masked, ...) {
+    cur.reads <- reads[group]
+    if (length(cur.reads)==1L) {
+        return(cur.reads)
+    }
+
+    # Performing the MSA on potentially masked reads.
+    if (has.quals) {
+        if (do.mask) { 
+            to.use <- .mask_bad_bases(cur.reads, threshold=min.qual)
+        } else {
+            to.use <- as(cur.reads, "DNAStringSet")
+        }
+    } else {
+        to.use <- cur.reads
+    }
+    cur.align <- muscle(to.use, ..., quiet=TRUE)
+    cur.align <- unmasked(cur.align)
+
+    # Unmasking the bases in the alignments.
+    if (has.quals && do.mask && !keep.masked) {
+        cur.align <- .unmask_bases(cur.align, cur.reads) 
+    }
+
+    # Storing the quality strings in the elementwise-metadata.
+    if (has.quals) {
+        elementMetadata(cur.align)$quality <- quality(cur.reads)
+    }
+    cur.align
 }
 
 #' @importFrom Biostrings encoding quality DNAStringSet
@@ -84,4 +88,7 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ...)
         return(as(incoming, "DNAStringSet"))
     }
 }
+
+
+
 

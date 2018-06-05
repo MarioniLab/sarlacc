@@ -5,7 +5,7 @@ Title: Pipeline for Oxford Nanopore Single-Cell RNA-Seq Data Analysis
 Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
         "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "aut"))
 Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
-Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors
+Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors, BiocParallel
 Imports: methods, utils, IRanges, XVector, muscle, BiocGenerics, 
         GenomicAlignments, igraph, Rcpp
 Suggests: Rsamtools, knitr, testthat
