@@ -6,7 +6,7 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
 #
 # written by Florian Bieberich
 # with modifications from Aaron Lun
-# created 27 November 2017    
+# created 27 November 2017
 {
     Nreads <- length(reads)
     if (missing(groups)) {
@@ -14,7 +14,7 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
     }
     if (length(groups)!=Nreads) {
         stop("length of 'reads' and 'groups' should be the same")
-    }   
+    }
 
     by.group <- split(seq_len(Nreads), groups)
     msalign <- bplapply(by.group, FUN=.internal_msa, reads=reads, min.qual=min.qual,
@@ -30,29 +30,37 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
 #' @importFrom muscle muscle
 .internal_msa <- function(reads, group, min.qual, keep.masked, ...) {
     cur.reads <- reads[group]
-    if (length(cur.reads)==1L) {
-        return(cur.reads)
-    }
-
-    has.quals <- is(cur.reads, "QualityScaledDNAStringSet") 
+    has.quals <- is(cur.reads, "QualityScaledDNAStringSet")
     do.mask <- !is.na(min.qual)
 
-    # Performing the MSA on potentially masked reads.
-    if (has.quals) {
-        if (do.mask) { 
-            to.use <- .mask_bad_bases(cur.reads, threshold=min.qual)
+    if (length(cur.reads)==1L) {
+        if (has.quals) {
+            if (do.mask && keep.masked) {
+                cur.align <- .mask_bad_bases(cur.reads, threshold=min.qual)
+            } else {
+                cur.align <- as(cur.reads, "DNAStringSet")
+            }
         } else {
-            to.use <- as(cur.reads, "DNAStringSet")
+            cur.align <- cur.reads
         }
     } else {
-        to.use <- cur.reads
-    }
-    cur.align <- muscle(to.use, ..., quiet=TRUE)
-    cur.align <- unmasked(cur.align)
+        # Performing the MSA on potentially masked reads.
+        if (has.quals) {
+            if (do.mask) {
+                to.use <- .mask_bad_bases(cur.reads, threshold=min.qual)
+            } else {
+                to.use <- as(cur.reads, "DNAStringSet")
+            }
+        } else {
+            to.use <- cur.reads
+        }
+        cur.align <- muscle(to.use, ..., quiet=TRUE)
+        cur.align <- unmasked(cur.align)
 
-    # Unmasking the bases in the alignments.
-    if (has.quals && do.mask && !keep.masked) {
-        cur.align <- .unmask_bases(cur.align, cur.reads) 
+        # Unmasking the bases in the alignments.
+        if (has.quals && do.mask && !keep.masked) {
+            cur.align <- .unmask_bases(cur.align, cur.reads)
+        }
     }
 
     # Storing the quality strings in the elementwise-metadata.
