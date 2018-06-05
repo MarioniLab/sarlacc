@@ -1,7 +1,5 @@
 #' @export
 #' @importFrom BiocParallel bplapply SerialParam
-#' @importFrom Biostrings QualityScaledDNAStringSet
-#' @importFrom methods is
 multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., BPPARAM=SerialParam())
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
@@ -18,27 +16,26 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
         stop("length of 'reads' and 'groups' should be the same")
     }   
 
-    # Setting up some other constants.
-    has.quals <- is(reads, "QualityScaledDNAStringSet") 
-    do.mask <- !is.na(min.qual)
-
     by.group <- split(seq_len(Nreads), groups)
-    msalign <- bplapply(by.group, FUN=.internal_msa, reads=reads, has.quals=has.quals, do.mask=do.mask, 
+    msalign <- bplapply(by.group, FUN=.internal_msa, reads=reads, min.qual=min.qual,
         keep.masked=keep.masked, ..., BPPARAM=BPPARAM)
 
     return(msalign)
 }
 
-#' @importClassesFrom Biostrings DNAStringSet
+#' @importClassesFrom Biostrings DNAStringSet QualityScaledDNAStringSet
 #' @importFrom Biostrings unmasked quality
 #' @importFrom S4Vectors elementMetadata<-
 #' @importFrom methods is as
 #' @importFrom muscle muscle
-.internal_msa <- function(reads, group, has.quals, do.mask, keep.masked, ...) {
+.internal_msa <- function(reads, group, min.qual, keep.masked, ...) {
     cur.reads <- reads[group]
     if (length(cur.reads)==1L) {
         return(cur.reads)
     }
+
+    has.quals <- is(cur.reads, "QualityScaledDNAStringSet") 
+    do.mask <- !is.na(min.qual)
 
     # Performing the MSA on potentially masked reads.
     if (has.quals) {
