@@ -41,4 +41,6 @@ SEXP get_kmer_matrix(SEXP, SEXP);
 
 SEXP find_homopolymers(SEXP);
 
+SEXP match_homopolymers(SEXP, SEXP);
+
 }
