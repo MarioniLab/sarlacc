@@ -1,5 +1,55 @@
 #include "sarlacc.h"
 
+struct rle_walker {
+    rle_walker(const char * p, const size_t l) : ptr(p), len(l), 
+            last_pos(0), cur_pos(0), nonbases(0), last_base(0), next_base(0),
+            true_last_pos(0) {
+        while (cur_pos < len) {
+            next_base=DNAdecode(ptr[cur_pos]);
+            if (next_base!='-') {
+                break;
+            }
+            ++nonbases;
+            ++cur_pos;
+        }
+        return;
+    }
+
+    // Advances to the next run length encoding, returning 'false' if we've reached the end.
+    void advance() {
+        last_pos=cur_pos;
+        true_last_pos=last_pos - nonbases; // before 'nonbases' is modified.
+        last_base=next_base;
+        ++cur_pos;
+
+        while (cur_pos < len) {
+            next_base=DNAdecode(ptr[cur_pos]);
+            if (next_base!='-' && next_base!=last_base) {
+                break;
+            }
+            ++cur_pos;
+            if (next_base=='-') {
+                ++nonbases;
+            } 
+        }
+        return;
+    }
+
+    bool is_finished () const { return (cur_pos==len); }
+
+    size_t get_start() const { return true_last_pos; }
+    size_t get_length()  const { return (cur_pos - nonbases) - true_last_pos; }
+    char get_base() const { return last_base; }
+
+    size_t get_start0() const { return last_pos; }
+    size_t get_end0() const { return cur_pos; }
+private:
+    const char * ptr;
+    const size_t len;
+    size_t last_pos, cur_pos, nonbases, true_last_pos;
+    char last_base, next_base;
+};
+
 /* This function identifies homopolymers in a given set of sequences,
  * returning the position, length and base of the homopolymer.
  */
@@ -21,40 +71,18 @@ SEXP find_homopolymers (SEXP sequences) {
         const char* sstr=curseq.ptr;
         const size_t slen=curseq.length;
 
-        if (slen) {
-            continue;
-        }
-
-        size_t last_pos=0, cur_pos=0, nonbases=0;
-        char last_base=DNAdecode(sstr[0]);
-
-        while ((++cur_pos) < slen) {
-            char outbase=DNAdecode(sstr[cur_pos]);
-
-            if (outbase=='-') {
-                ++nonbases;
+        rle_walker SQ(sstr, slen);
+        while (!SQ.is_finished()) {
+            SQ.advance();
+            const size_t homolen=SQ.get_length();
+            if (homolen==1) { 
                 continue;
             }
 
-            if (outbase==last_base) {
-               size_t true_last_pos=last_pos - nonbases; // before 'nonbases' is modified.
-
-               while ((++cur_pos) < slen) {
-                    outbase=DNAdecode(sstr[cur_pos]);
-                    if (outbase!=last_base) { 
-                        break;
-                    }
-                }
-
-                collected_index.push_back(i);
-                collected_pos.push_back(true_last_pos+1);
-                collected_size.push_back((cur_pos-nonbases)-true_last_pos);
-                collected_base.push_back(last_base);
-            }
-
-            // This is always the first element where out_base!=last_base.
-            last_pos=cur_pos;
-            last_base=outbase;
+            collected_index.push_back(i);
+            collected_pos.push_back(SQ.get_start()+1);
+            collected_size.push_back(homolen);
+            collected_base.push_back(SQ.get_base());
         }
     }
 
@@ -114,46 +142,27 @@ SEXP match_homopolymers (SEXP ref_align, SEXP read_align) {
         }
 
         // Iterating across the reference and counting the number of homopolymers in the read.
-        size_t last_pos=0, cur_pos=0, nonbases=0;
-        char last_base=DNAdecode(refstr[0]); // doesn't matter that it's a '-', as it will get overwritten in the loop.
-
-        while ((++cur_pos) < reflen) {
-            char outbase=DNAdecode(refstr[cur_pos]);
-
-            if (outbase=='-') {
-                ++nonbases;
+        rle_walker SQ(refstr, reflen);
+        while (!SQ.is_finished()) {
+            SQ.advance();
+            const size_t homolen=SQ.get_length();
+            if (homolen==1) { 
                 continue;
             }
 
-            if (outbase==last_base) {
-                size_t true_last_pos=last_pos - nonbases; // before 'nonbases' is modified.
-
-                while ((++cur_pos) < reflen) {
-                    outbase=DNAdecode(refstr[cur_pos]);
-                    if (outbase=='-') { 
-                        ++nonbases;
-                        continue;
-                    } 
-                    if (outbase!=last_base) { 
-                        break;
-                    }
+            // Running across everything in the read sequence.
+            collected_index.push_back(i);
+            collected_pos.push_back(SQ.get_start()+1);
+            const size_t left=SQ.get_start0(), right=SQ.get_end0();
+            const char curbase=SQ.get_base();
+            
+            int counter=0;
+            for (size_t rpos=left; rpos<right; ++rpos) {
+                if (DNAdecode(readstr[rpos])==curbase) {
+                    ++counter;
                 }
-
-                // Running across everything in the read sequence.
-                collected_index.push_back(i);
-                collected_pos.push_back(true_last_pos+1);
-                int counter=0;
-                for (size_t rpos=last_pos; rpos<cur_pos; ++rpos) {
-                    if (DNAdecode(readstr[rpos])==last_base) {
-                        ++counter;
-                    }
-                }
-                collected_rlen.push_back(counter);
             }
-
-            // This is always the first element where out_base!=last_base.
-            last_pos=cur_pos;
-            last_base=outbase;
+            collected_rlen.push_back(counter);
         }
     }
 
