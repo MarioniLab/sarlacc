@@ -1,5 +1,5 @@
 homopolymerMatcher <- function(aln, ref){
-    homo_ir <- homopolymerFinder(as.character(ref))
+    homo_ir <- homopolymerFinder(as.character(ref))[[1]]
     aln_range <- IRanges(start = start(pattern(aln)), end = end(pattern(aln)))
     overlap_range <- findOverlaps(aln_range, homo_ir)
     homo_range <- lapply(split(overlap_range@to, f = overlap_range@from),range)
