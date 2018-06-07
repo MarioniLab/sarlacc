@@ -39,4 +39,6 @@ SEXP compute_lev_masked(SEXP);
 
 SEXP get_kmer_matrix(SEXP, SEXP);
 
+SEXP find_homopolymers(SEXP);
+
 }
