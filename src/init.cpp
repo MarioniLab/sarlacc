@@ -20,6 +20,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(get_kmer_matrix, 2),
 
     REGISTER(find_homopolymers, 1),
+    REGISTER(match_homopolymers, 2),
     {NULL, NULL, 0}
 };
 
