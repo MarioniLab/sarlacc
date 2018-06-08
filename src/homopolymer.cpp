@@ -15,7 +15,7 @@ struct rle_walker {
         return;
     }
 
-    // Advances to the next run length encoding, returning 'false' if we've reached the end.
+    // Advances to the next run.
     void advance() {
         last_pos=cur_pos;
         true_last_pos=last_pos - nonbases; // before 'nonbases' is modified.
@@ -37,12 +37,37 @@ struct rle_walker {
 
     bool is_finished () const { return (cur_pos==len); }
 
+    // Direct statistics on the current run.
     size_t get_start() const { return true_last_pos; }
     size_t get_length()  const { return (cur_pos - nonbases) - true_last_pos; }
     char get_base() const { return last_base; }
 
-    size_t get_start0() const { return last_pos; }
-    size_t get_end0() const { return cur_pos; }
+    // Statistics on the current run with respect to alignment position (i.e., gap characters).
+    size_t get_run_start() const { return last_pos; }
+    size_t get_run_start_with_gaps() const {
+        size_t pos=last_pos;
+        while (pos > 0) {
+            --pos;
+            if (DNAdecode(ptr[pos])!='-') {
+                ++pos;
+                break;
+            }
+        }
+        return pos;
+    }
+
+    size_t get_run_end() const {
+        size_t pos=cur_pos;
+        while (pos > last_pos) {
+            --pos;
+            if (DNAdecode(ptr[pos])!='-') {
+                ++pos;
+                break;
+            }
+        }
+        return pos;
+    }
+    size_t get_run_end_with_gaps() const { return cur_pos; }
 private:
     const char * ptr;
     const size_t len;
@@ -108,7 +133,7 @@ SEXP find_homopolymers (SEXP sequences) {
 
 /* This function identifies the homopolymer in a reference alignment string,
  * and returns the number of observed homopolymers in the read alignment string.
- * Some effort is required to handle the deletion character '-'.
+ * Some effort is required to handle the gap character '-'.
  */
 
 SEXP match_homopolymers (SEXP ref_align, SEXP read_align) {
@@ -142,27 +167,38 @@ SEXP match_homopolymers (SEXP ref_align, SEXP read_align) {
         }
 
         // Iterating across the reference and counting the number of homopolymers in the read.
-        rle_walker SQ(refstr, reflen);
-        while (!SQ.is_finished()) {
-            SQ.advance();
-            const size_t homolen=SQ.get_length();
+        rle_walker ref_SQ(refstr, reflen);
+        while (!ref_SQ.is_finished()) {
+            ref_SQ.advance();
+            const size_t homolen=ref_SQ.get_length();
             if (homolen==1) { 
                 continue;
             }
 
-            // Running across everything in the read sequence.
             collected_index.push_back(i);
-            collected_pos.push_back(SQ.get_start()+1);
-            const size_t left=SQ.get_start0(), right=SQ.get_end0();
-            const char curbase=SQ.get_base();
+            collected_pos.push_back(ref_SQ.get_start()+1);
+            const char curbase=ref_SQ.get_base();
+            const size_t farleft=ref_SQ.get_run_start_with_gaps(), 
+                         farright=ref_SQ.get_run_end_with_gaps();
+            const size_t left=ref_SQ.get_run_start(),
+                         right=ref_SQ.get_run_end();
             
-            int counter=0;
-            for (size_t rpos=left; rpos<right; ++rpos) {
-                if (DNAdecode(readstr[rpos])==curbase) {
-                    ++counter;
+            // Picking the longest homopolymer stretch in the read that overlaps with the current homopolymer.
+            Rprintf("running on reads...\n");
+            rle_walker read_SQ(readstr + farleft, farright - farleft);
+            size_t maxlen=0;
+            while (!read_SQ.is_finished()) {
+                read_SQ.advance();
+                if (right > read_SQ.get_run_start() + farleft && 
+                        left < read_SQ.get_run_end() + farleft) {
+                    const size_t curlen=read_SQ.get_length();
+                    if (curlen > maxlen && read_SQ.get_base()==curbase) {
+                        maxlen=curlen;
+                    }
                 }
             }
-            collected_rlen.push_back(counter);
+            Rprintf("done...\n");
+            collected_rlen.push_back(maxlen);
         }
     }
 
