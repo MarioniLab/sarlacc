@@ -184,7 +184,6 @@ SEXP match_homopolymers (SEXP ref_align, SEXP read_align) {
                          right=ref_SQ.get_run_end();
             
             // Picking the longest homopolymer stretch in the read that overlaps with the current homopolymer.
-            Rprintf("running on reads...\n");
             rle_walker read_SQ(readstr + farleft, farright - farleft);
             size_t maxlen=0;
             while (!read_SQ.is_finished()) {
@@ -197,7 +196,6 @@ SEXP match_homopolymers (SEXP ref_align, SEXP read_align) {
                     }
                 }
             }
-            Rprintf("done...\n");
             collected_rlen.push_back(maxlen);
         }
     }
