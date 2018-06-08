@@ -1,11 +1,15 @@
 #' @export
 #' @importFrom Biostrings alignedPattern alignedSubject
 #' @importFrom BiocGenerics start
-#' @importFrom methods as
+#' @importFrom methods as is
+#' @importClassesFrom Biostrings DNAStringSet
 #' @importClassesFrom IRanges IntegerList
 homopolymerMatcher <- function(alignments) {
     ref <- alignedSubject(alignments)
     reads <- alignedPattern(alignments)
+    if (!is(ref, "DNAStringSet") || !is(reads, "DNAStringSet")) {
+        stop("alignments should involve DNAString(Set) objects");
+    }
 
     info <- .Call(cxx_match_homopolymers, ref, reads)
     positions <- info[[2]]

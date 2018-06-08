@@ -1,7 +1,8 @@
 #' @export
 #' @importFrom Biostrings alignedPattern alignedSubject
-#' @importFrom methods as
+#' @importFrom methods as is
 #' @importClassesFrom IRanges IntegerList
+#' @importClassesFrom Biostrings DNAStringSet
 #' @importFrom S4Vectors split DataFrame
 errorFinder <- function(alignments) {
     ref <- alignedSubject(alignments)
