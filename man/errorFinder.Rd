@@ -9,7 +9,8 @@ errorFinder(alignments)
 }
 
 \arguments{
-    \item{alignments}{A Global PairwiseAlignmentsSingleSubject object, usually produced by \code{\link{pairwiseAlignment}}.}
+    \item{alignments}{A Global PairwiseAlignmentsSingleSubject object, usually produced by \code{\link{pairwiseAlignment}}.
+    The subject should be a constant reference sequence.}
 }
 
 \details{
@@ -51,7 +52,7 @@ Aaron Lun, with contributions from Cheuk-Ting Law
 }
 
 \seealso{
-\code{\link{pairwiseAlignments}}
+\code{\link{pairwiseAlignment}}
 }
 
 \examples{

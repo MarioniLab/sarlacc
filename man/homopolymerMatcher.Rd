@@ -60,7 +60,8 @@ Aaron Lun, with contributions from Cheuk-Ting Law
 }
 
 \seealso{
-\code{\link{pairwiseAlignments}}
+\code{\link{pairwiseAlignment}},
+\code{\link{homopolymerFinder}}
 }
 
 \examples{
