@@ -14,12 +14,26 @@ SEXP find_errors (SEXP ref_align, SEXP read_align) {
 
     // Setting up output containers.
     size_t standard_len=0;
+    Rcpp::StringVector all_bases;
     if (nalign) {
         auto standard=get_elt_from_XStringSet_holder(&rf_aln, 0);
         const char* sstr=standard.ptr;
         const size_t slen=standard.length;
         for (size_t s=0; s<slen; ++s) {
             if (DNAdecode(sstr[s])!='-') { ++standard_len; }
+        }
+
+        all_bases=Rcpp::StringVector(standard_len);
+        auto abIt=all_bases.begin();
+        char buffer[2];
+        buffer[1]='\0';
+        for (size_t s=0; s<slen; ++s) {
+            const char cur_base=DNAdecode(sstr[s]);
+            if (cur_base!='-') { 
+                buffer[0]=cur_base;
+                (*abIt)=Rcpp::String(buffer);
+                ++abIt;
+            }
         }
     }
     Rcpp::IntegerVector all_deletions(standard_len), all_to_A(standard_len), all_to_C(standard_len), 
@@ -48,66 +62,59 @@ SEXP find_errors (SEXP ref_align, SEXP read_align) {
         while (cur_pos < reflen) {
             const char ref_base=DNAdecode(refstr[cur_pos]), read_base=DNAdecode(readstr[cur_pos]);
 
-            if (ref_base!=read_base) {
-                if (ref_base!='-') {
-                    // Adding to the statistics directly, if we're not currently in an insertion.
-                    const size_t true_pos=cur_pos - nonbases;
-                    if (true_pos >= standard_len) {
-                        throw std::runtime_error("reference sequence should be the same for all alignments");
-                    }
-
-                    switch (read_base) {
-                        case '-':
-                            ++(all_deletions[true_pos]);
-                            break;
-                        case 'A':
-                            ++(all_to_A[true_pos]);
-                            break;
-                        case 'C':
-                            ++(all_to_C[true_pos]);
-                            break;
-                        case 'G':
-                            ++(all_to_G[true_pos]);
-                            break;
-                        case 'T':
-                            ++(all_to_T[true_pos]);
-                            break;
-                        default:
-                            std::stringstream err;
-                            err << "unknown character '" << read_base << "' in alignment string";
-                            throw std::runtime_error(err.str().c_str());
-                    }
-                    ++cur_pos;
-                } else {
-                    // Determining the size of the insertion and adding it at the position of the next base.
-                    // This may be at the end of the sequence. 
-                    const size_t previous=cur_pos;
-                    ++cur_pos;
-                    ++nonbases;
-
-                    while (cur_pos < reflen) {
-                        const char cur_base=DNAdecode(refstr[cur_pos]);
-                        if (cur_base!='-') { 
-                            break;
-                        }
-                        ++cur_pos;
-                        ++nonbases;
-                    }
-
-                    const size_t true_pos=cur_pos - nonbases;
-                    insertion_pos.push_back(true_pos);
-                    insertion_len.push_back(cur_pos - previous);
+            if (ref_base!='-') {
+                // Adding to the statistics directly, if we're not currently in an insertion.
+                const size_t true_pos=cur_pos - nonbases;
+                if (true_pos >= standard_len) {
+                    throw std::runtime_error("reference sequence should be the same for all alignments");
                 }
-            } else {
+
+                switch (read_base) {
+                    case '-':
+                        ++(all_deletions[true_pos]);
+                        break;
+                    case 'A':
+                        ++(all_to_A[true_pos]);
+                        break;
+                    case 'C':
+                        ++(all_to_C[true_pos]);
+                        break;
+                    case 'G':
+                        ++(all_to_G[true_pos]);
+                        break;
+                    case 'T':
+                        ++(all_to_T[true_pos]);
+                        break;
+                    default:
+                        std::stringstream err;
+                        err << "unknown character '" << read_base << "' in alignment string";
+                        throw std::runtime_error(err.str().c_str());
+                }
                 ++cur_pos;
-                if (ref_base=='-') {
+            } else {
+                // Determining the size of the insertion and adding it at the position of the next base.
+                // This may be at the end of the sequence. 
+                const size_t previous=cur_pos;
+                ++cur_pos;
+                ++nonbases;
+
+                while (cur_pos < reflen) {
+                    const char cur_base=DNAdecode(refstr[cur_pos]);
+                    if (cur_base!='-') { 
+                        break;
+                    }
+                    ++cur_pos;
                     ++nonbases;
                 }
+
+                const size_t true_pos=cur_pos - nonbases;
+                insertion_pos.push_back(true_pos);
+                insertion_len.push_back(cur_pos - previous);
             }
         }
     }
 
-    return Rcpp::List::create(all_to_A, all_to_C, all_to_G, all_to_T, all_deletions, 
+    return Rcpp::List::create(all_bases, all_to_A, all_to_C, all_to_G, all_to_T, all_deletions, 
         Rcpp::IntegerVector(insertion_pos.begin(), insertion_pos.end()),
         Rcpp::IntegerVector(insertion_len.begin(), insertion_len.end()));
     END_RCPP
