@@ -21,6 +21,7 @@ static const R_CallMethodDef all_call_entries[] = {
 
     REGISTER(find_homopolymers, 1),
     REGISTER(match_homopolymers, 2),
+    REGISTER(find_errors, 2),
     {NULL, NULL, 0}
 };
 
