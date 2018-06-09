@@ -14,7 +14,7 @@ homopolymerFinder(seq)
 }
 
 \details{
-This function will identify homopolymers in a given set of sequences and the definition of homopolymer is a repeat of nucleotide.
+This function will identify homopolymers in a given set of sequences, where a homopolymer is defined as a consecutive run of the same nucleotide.
 It is useful for investigating the homopolymer frequency in unknown sequences such as UMIs.
 If the sequence is known, it is often more informative to use \code{\link{homopolymerMatcher}} instead.
 
@@ -24,7 +24,7 @@ However, ambiguous bases are not be given special treatment, and will be handled
 
 \value{
 An IRangesList object where each entry corresponds to a sequence in \code{seq}.
-Each IRanges specifies the coordinates and the length of a homopolymer run in the current sequence, along with the base for which it is a homopolymer.
+Each IRanges specifies the coordinates and length of a homopolymer run in the current sequence, along with the base being repeated.
 }
 
 \author{
