@@ -1,10 +1,15 @@
 #' @export
-#' @importFrom Biostrings alignedPattern alignedSubject
+#' @importFrom Biostrings alignedPattern alignedSubject type
 #' @importFrom methods as is
+#' @importClassesFrom Biostrings PairwiseAlignmentsSingleSubject
 #' @importClassesFrom IRanges RleList
 #' @importClassesFrom Biostrings DNAStringSet
 #' @importFrom S4Vectors split DataFrame Rle
 errorFinder <- function(alignments) {
+    if (!is(alignments, "PairwiseAlignmentsSingleSubject") || type(alignments)!="global") {
+        stop("alignments should be global and involve a single subject")
+    }
+
     ref <- alignedSubject(alignments)
     reads <- alignedPattern(alignments)
     if (!is(ref, "DNAStringSet") || !is(reads, "DNAStringSet")) {
