@@ -2,9 +2,14 @@
 #' @importFrom Biostrings alignedPattern alignedSubject
 #' @importFrom BiocGenerics start
 #' @importFrom methods as is
+#' @importFrom S4Vectors Rle
 #' @importClassesFrom Biostrings DNAStringSet
-#' @importClassesFrom IRanges IntegerList
+#' @importClassesFrom IRanges RleList
 homopolymerMatcher <- function(alignments) {
+    if (!is(alignments, "PairwiseAlignmentsSingleSubject") || type(alignments)!="global") {
+        stop("alignments should be global and involve a single subject")
+    }
+
     ref <- alignedSubject(alignments)
     reads <- alignedPattern(alignments)
     if (!is(ref, "DNAStringSet") || !is(reads, "DNAStringSet")) {
@@ -21,10 +26,10 @@ homopolymerMatcher <- function(alignments) {
     m <- match(positions, ref.pos)
     m <- factor(m, levels=seq_along(ref.pos))
     by.pos <- split(obs.len, m, drop=FALSE)
-    by.pos <- lapply(by.pos, table)
+    by.pos <- lapply(by.pos, function(hlen) { Rle(sort(hlen)) })
 
     names(by.pos) <- NULL
-    by.pos <- as(by.pos, "IntegerList")
+    by.pos <- as(by.pos, "RleList")
     mcols(output)$observed <- by.pos
     return(output)
 }

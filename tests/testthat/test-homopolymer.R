@@ -119,9 +119,9 @@ MATCHCHECK <- function(alignments)
     aggregated.stats <- do.call(rbind, total.collected)
     expect_identical(ncol(aggregated.stats), length(full.list))
     for (i in seq_len(ncol(aggregated.stats))) {
-        full.list[[i]] <- table(aggregated.stats[,i])
+        full.list[[i]] <- Rle(sort(aggregated.stats[,i]))
     }
-    mcols(output)$observed <- as(full.list, "IntegerList")
+    mcols(output)$observed <- as(full.list, "RleList")
     return(output)
 }
 
@@ -131,7 +131,7 @@ test_that("homopolymer regions are matched correctly", {
     refs  <- c("acgtAAAAAtgca", "acgtAAAAAAtgca", "acgtA-AAAtgca", "acgt-AAAAtgca", "acgtAAAA-tgca", "acgtAAAAAAtgca", "acgtAAAAAAtgca")
 
     for (x in seq_along(reads)) {
-        aln <- PairwiseAlignments(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
+        aln <- PairwiseAlignmentsSingleSubject(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
         expect_identical(MATCHCHECK(aln), homopolymerMatcher(aln))
     }
 
@@ -140,7 +140,7 @@ test_that("homopolymer regions are matched correctly", {
     refs  <- c("acgtAAAAAtgca", "acgtAAAAAAtgca", "acgtAAAAAtgca", "acgtAAAAAtgca")
 
     for (x in seq_along(reads)) {
-        aln <- PairwiseAlignments(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
+        aln <- PairwiseAlignmentsSingleSubject(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
         expect_identical(MATCHCHECK(aln), homopolymerMatcher(aln))
     }
 
@@ -149,7 +149,7 @@ test_that("homopolymer regions are matched correctly", {
     refs  <- c("CCCCCtgca", "CCCCCCtgca", "--CCCCtgca", "CCCCCCtgca", "tgcaCCCCC", "tgcaCCCCCC", "tgcaCCCC--", "tgcaCCCCCC")
 
     for (x in seq_along(reads)) {
-        aln <- PairwiseAlignments(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
+        aln <- PairwiseAlignmentsSingleSubject(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
         expect_identical(MATCHCHECK(aln), homopolymerMatcher(aln))
     }
 
@@ -158,7 +158,7 @@ test_that("homopolymer regions are matched correctly", {
     refs  <- c("CCCCaGGGaTT", "CCCCaCCCaTT", "CCCCaCCCaCC", "CCCCaGGGaTT", "CCCCaGGGaTT", "CCCCaGGGaTT", "CCCCaGGGa--TT-")
         
     for (x in seq_along(reads)) {
-        aln <- PairwiseAlignments(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
+        aln <- PairwiseAlignmentsSingleSubject(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
         expect_identical(MATCHCHECK(aln), homopolymerMatcher(aln))
     }
 
@@ -167,7 +167,7 @@ test_that("homopolymer regions are matched correctly", {
     refs  <- c("actgGGGGGtt", "actgGGGGGtt", "AAAAtgca", "AAAAtgca", "tgcaTTTT", "tgcaTTTT")
 
     for (x in seq_along(reads)) {
-        aln <- PairwiseAlignments(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
+        aln <- PairwiseAlignmentsSingleSubject(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
         expect_identical(MATCHCHECK(aln), homopolymerMatcher(aln))
     }
 
@@ -176,7 +176,7 @@ test_that("homopolymer regions are matched correctly", {
     refs  <- c("actgCCCCtttt", "actgCCCCtttt", "actgCCCCtttt", "actgCCCCtttt")
 
     for (x in seq_along(reads)) {
-        aln <- PairwiseAlignments(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
+        aln <- PairwiseAlignmentsSingleSubject(pattern=DNAString(reads[x]), subject=DNAString(refs[x]), type="global")
         expect_identical(MATCHCHECK(aln), homopolymerMatcher(aln))
     }
 
@@ -198,5 +198,19 @@ test_that("homopolymer regions are matched correctly", {
     aln0 <- pairwiseAlignment(pattern=DNAStringSet(reads), subject=DNAStringSet(refs), gapOpening=0, gapExtension=0, 
         substitutionMatrix=nucleotideSubstitutionMatrix(), type="global")
     expect_identical(MATCHCHECK(aln0), homopolymerMatcher(aln0))
+})
+
+test_that("homopolymerMatcher fails correctly", {
+    aln <- pairwiseAlignment(subject=DNAStringSet(c("GGAAACGATCAGCTACGAACACT", "GGAAACGATCAGCTACGAACACT")),
+                             pattern=DNAStringSet(c("GGAACGTCAGCGGTACGAAACACTAAAA", "GGAACGTCAGCGGTACGAAACACTAAAA")))
+    expect_error(homopolymerMatcher(aln), "single subject")
+
+    aln <- pairwiseAlignment(subject=DNAStringSet(c("GGAAACGATCAGCTACGAACACT")), type="local",
+                             pattern=DNAStringSet(c("GGAACGTCAGCGGTACGAAACACTAAAA", "GGAACGTCAGCGGTACGAAACACTAAAA")))
+    expect_error(homopolymerMatcher(aln), "global")
+
+    aln <- pairwiseAlignment(subject="GGAAACGATCAGCTACGAACACT", 
+                             pattern="GGAACGTCAGCGGTACGAAACACTAAAA")
+    expect_error(homopolymerMatcher(aln), "DNAString")
 })
 
