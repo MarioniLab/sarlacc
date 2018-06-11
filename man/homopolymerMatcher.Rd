@@ -49,10 +49,9 @@ For demonstration purposes, only the true homopolymer region and the correspondi
 
 \value{
 An IRanges object where each entry represents a homopolymer run in the reference sequence.
-The metadata will contain \code{base}, the base identity of the run;
-and \code{observed}, an IntegerList containing a named integer vector for each run.
-Each integer vector contains the observed homopolymer lengths in the read sequences as the names,
-and the frequency of those lengths as the integer values.
+The metadata contains \code{base}, the base identity of the homopolymer;
+and \code{observed}, a RleList containing an integer run length encoding for each homopolymer. 
+The integer Rle contains the distribution of the observed lengths of that homopolymer in the read sequence.
 }
 
 \author{

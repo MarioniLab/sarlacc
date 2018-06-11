@@ -119,9 +119,9 @@ MATCHCHECK <- function(alignments)
     aggregated.stats <- do.call(rbind, total.collected)
     expect_identical(ncol(aggregated.stats), length(full.list))
     for (i in seq_len(ncol(aggregated.stats))) {
-        full.list[[i]] <- table(aggregated.stats[,i])
+        full.list[[i]] <- Rle(sort(aggregated.stats[,i]))
     }
-    mcols(output)$observed <- as(full.list, "IntegerList")
+    mcols(output)$observed <- as(full.list, "RleList")
     return(output)
 }
 
