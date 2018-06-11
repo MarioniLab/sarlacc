@@ -23,6 +23,7 @@ homopolymerMatcher <- function(alignments) {
     by.pos <- split(obs.len, m, drop=FALSE)
     by.pos <- lapply(by.pos, table)
 
+    names(by.pos) <- NULL
     by.pos <- as(by.pos, "IntegerList")
     mcols(output)$observed <- by.pos
     return(output)

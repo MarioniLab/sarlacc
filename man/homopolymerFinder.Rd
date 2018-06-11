@@ -1,24 +1,43 @@
 \name{homopolymerFinder}
 \alias{homopolymerFinder}
-%- Also NEED an '\alias' for EACH other topic documented here.
+
+
 \title{Find homopolymers}
-\description{Identify homopolymers from the sequence. 
-The definition of homopolymer is repeat of a single nucleotide consencutively.}
+\description{Find homopolymer runs in a set of sequences.}
+
 \usage{
 homopolymerFinder(seq)
 }
-%- maybe also 'usage' for other objects documented here.
+
 \arguments{
-  \item{seq}{A \code{DNAStringSet} containing query sequence(s).}
+    \item{seq}{A DNAStringSet object.}
 }
-\details{This function identifies regions of homopolymer in an input sequence and ignores gaps in the sequences. }
-\value{An \code{IRangesList} object contianing regions, lengths and the base of homopolymers}
-\author{}
+
+\details{
+This function will identify homopolymers in a given set of sequences, where a homopolymer is defined as a consecutive run of the same nucleotide.
+It is useful for investigating the homopolymer frequency in unknown sequences such as UMIs.
+If the sequence is known, it is often more informative to use \code{\link{homopolymerMatcher}} instead.
+
+Gapped sequences are supported - gaps will be ignored when considering homopolymer runs and computing coordinates.
+However, ambiguous bases are not be given special treatment, and will be handled like any other IUPAC character.
+}
+
+\value{
+An IRangesList object where each entry corresponds to a sequence in \code{seq}.
+Each IRanges specifies the coordinates and length of a homopolymer run in the current sequence, along with the base being repeated.
+}
+
+\author{
+Aaron Lun, with contributions from Cheuk-Ting Law
+}
 
 \seealso{
 \code{\link{homopolymerMatcher}}
 }
+
+
 \examples{
-example_seq <- DNAStringSet("ATGGGGGTCGATATTTAAAAT")
-homopolymerFinder(example_seq)
+seq <- DNAStringSet(c("AAAAAGGGGGCCCCCCTTTTT", "AAAAGGGGGCCCCTTTTT"))
+homopolymerFinder(seq)
 }
+
