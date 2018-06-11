@@ -39,9 +39,8 @@ The DataFrame contains the fields:
     \item{\code{base}:}{Character, the base at the current position.}
     \item{\code{A},\code{C},\code{T},\code{G}:}{Integer, the frequency of observing A, C, T or G at the current position.}
     \item{\code{deletion}:}{Integer, the frequency of observing a deletion at the current position.}
-    \item{\code{insertion}:}{IntegerList, where the entry for each position is a named integer vector. 
-        This describes a distribution of insertions immediately preceding the current position.
-        The name of each element is the insertion length while the integer element itself is the frequency of that length.
+    \item{\code{insertion}:}{RleList, where the entry for each position is an integer run-length encoding object.
+        This contains a distribution of lengths of insertions immediately preceding the current position.
     }
 }
 The last row corresponds to a hypothetical one-past-the-end position, and is \code{NA} for all fields except for \code{insertion} (i.e., when an insertion occurs at the sequence end).
