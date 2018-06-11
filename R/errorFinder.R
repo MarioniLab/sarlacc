@@ -1,9 +1,9 @@
 #' @export
 #' @importFrom Biostrings alignedPattern alignedSubject
 #' @importFrom methods as is
-#' @importClassesFrom IRanges IntegerList
+#' @importClassesFrom IRanges RleList
 #' @importClassesFrom Biostrings DNAStringSet
-#' @importFrom S4Vectors split DataFrame
+#' @importFrom S4Vectors split DataFrame Rle
 errorFinder <- function(alignments) {
     ref <- alignedSubject(alignments)
     reads <- alignedPattern(alignments)
@@ -19,8 +19,15 @@ errorFinder <- function(alignments) {
     # Aggregating insertion information.
     positions <- factor(info[[7]] + 1L, levels=seq_len(nrow(output)))
     by.pos <- split(info[[8]], positions, drop=FALSE)
-    by.pos <- lapply(by.pos, table)
-    by.pos <- as(by.pos, "IntegerList")
+    by.pos <- lapply(by.pos, FUN=function(ilen) {
+        tab <- table(ilen)
+        Rle(
+            c(0L, as.integer(names(tab))), # insertion lengths (adding zeroes for completeness).
+            c(length(alignments) - length(ilen), tab) # frequencies of insertion lengths.
+        )
+    })
+    names(by.pos) <- NULL
+    by.pos <- as(by.pos, "RleList")
 
     # Compiling relevant statistics.
     full.stats <- DataFrame(output, insertion=by.pos)
