@@ -1,8 +1,8 @@
 \name{readsMerger}
 \alias{readsMerger}
 
-\title{Create consenus sequences}
-\description{Group reads by using the pariwise alignment from minimap2 and UMI sequences. The grouped reads are merged together to create a consenus sequnece.}
+\title{Create consensus sequences}
+\description{Group reads by using the pairwise alignment from minimap2 and UMI sequences. The grouped reads are merged together to create a consensus sequence.}
 
 \usage{
     readsMerger(reads, umi, minimap2_dir = "", minimap2_arg = "-t 6", min_match = 0.7)
@@ -37,7 +37,7 @@ The process of pairwise alignment, UMI grouping and consensus sequence calling a
 \value{
 A \code{QualityScaledDNAStringSet} object containing merged consenus sequence and the sequence quality.
 The detail of computed quality can be found in \code{\link{consensusReadSeq}}. 
-Furthermore, the history of each consenus sequence is stored in the \code{elementMetadata} and the merged sequences are named by combining all their original sequence IDs and separated by a space.
+Furthermore, the history of each consensus sequence is stored in the \code{elementMetadata} and the merged sequences are named by combining all their original sequence IDs and separated by a space.
 }
 
 \references{
