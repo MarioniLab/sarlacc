@@ -1,46 +1,47 @@
 #' @export
-#' @importFrom Biostrings PhredQuality QualityScaledDNAStringSet DNAStringSet
-#' @importFrom S4Vectors elementMetadata
-#' @importFrom methods as
-consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6)
+#' @importFrom Biostrings QualityScaledDNAStringSet DNAStringSet
+#' @importFrom BiocParallel SerialParam bplapply
+consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6, BPPARAM=SerialParam())
 # Create a consensus sequence for each MRA.
 # 
 # written by Florian Bieberich
 # with modifications by Aaron Lun
 # created 27 November 2017    
 {
-    Nalign <- length(alignments)
-    consensus <- character(Nalign)
-    phred <- vector("list", Nalign)
-    
-    for (i in seq_along(alignments)) {
-        current <- alignments[[i]]
-        quals <- elementMetadata(current)$quality
-        has.quals <- !is.null(quals)
+    collected <- bplapply(alignments, .internal_consensus, pseudo.count=pseudo.count, min.coverage=min.coverage, BPPARAM=BPPARAM)        
+    consensus <- unlist(lapply(collected, "[[", i=1))
+    phred <- unname(lapply(collected, "[[", i=2))
+    return(QualityScaledDNAStringSet(DNAStringSet(consensus), do.call(c, phred)))
+}
 
-        # Skipping if we've only got one read in the alignment.
-        if (length(current)==1L) { 
-            consensus[[i]] <- as.character(current)[1]
-            if (has.quals) { 
-                phred[[i]] <- quals
-            } else {
-                phred[[i]] <- PhredQuality(rep(1/(1+pseudo.count), nchar(consensus[i])))
-            }
-            next
+#' @importFrom Biostrings PhredQuality
+#' @importFrom S4Vectors elementMetadata
+#' @importFrom methods as
+.internal_consensus <- function(curalign, pseudo.count, min.coverage) { 
+    quals <- elementMetadata(curalign)$quality
+    has.quals <- !is.null(quals)
+
+    # Skipping if we've only got one read in the alignment.
+    if (length(curalign)==1L) { 
+        consensus <- as.character(curalign)[1]
+        if (has.quals) { 
+            phred <- quals
+        } else {
+            phred <- PhredQuality(rep(1/(1+pseudo.count), nchar(consensus[i])))
         }
-
+    } else {
         # Creating a consensus sequence that may or may not be Phred-aware.
         if (has.quals) {
             probs <- as.list(as(quals, "NumericList"))
-            out <- .Call(cxx_create_consensus_quality, current, probs, min.coverage)
+            out <- .Call(cxx_create_consensus_quality, curalign, probs, min.coverage)
         } else {
-            out <- .Call(cxx_create_consensus_basic, current, min.coverage, pseudo.count)
+            out <- .Call(cxx_create_consensus_basic, curalign, min.coverage, pseudo.count)
         }
 
-        consensus[i] <- out[[1]]
-        phred[[i]] <- PhredQuality(out[[2]])
+        consensus <- out[[1]]
+        phred <- PhredQuality(out[[2]])
     }
 
-    return(QualityScaledDNAStringSet(DNAStringSet(consensus), do.call(c, phred)))
+    list(consensus, phred)
 }
 

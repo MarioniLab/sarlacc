@@ -5,14 +5,15 @@
 \description{Generate a consensus sequence from all reads in the same UMI group, based on their multiple sequence alignment.}
 
 \usage{
-consensusReadSeq(alignments, pseudo.count=1, min.coverage=0.6)
+consensusReadSeq(alignments, pseudo.count=1, min.coverage=0.6, 
+    BPPARAM=SerialParam())
 }
 
 \arguments{
-    \item{alignments}{A list of DNAStringSet objects where each object contains the alignment string for one UMI group, as produced by \code{\link{umiGroup}}.}
+    \item{alignments}{A list of DNAStringSet objects where each object contains a multi-sequuence alignment for one UMI group, as produced by \code{\link{multiReadAlign}}.}
     \item{pseudo.count}{A numeric scalar specifying the pseudo-count that should be added when computing quality scores for each base.}
     \item{min.coverage}{A numeric scalar specifying the minimum proportion of reads with a base at a particular position in order to define a base position in the consensus.}
-    \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
+    \item{BPPARAM}{A BiocParallelParam object controlling how paralellization should be performed.}
 }
 
 \details{
@@ -30,13 +31,11 @@ This effectively shrinks the probabilities towards a prior value of 0.25.
 }
 
 \value{
-A list containing \code{sequence}, a DNAStringSet object containing the consensus sequence for each UMI group;
-and \code{quality}, a PhredQuality object containing the quality scores for each consensus sequence.
+A QualityScaledDNAStringSet containing the consensus sequence for each UMI group, along with the associated Phred quality scores.
 }
 
 \author{
-Florian Bieberich,
-Aaron Lun
+Florian Bieberich and Aaron Lun
 }
 
 \seealso{
