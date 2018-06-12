@@ -10,17 +10,18 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
 {
     Nreads <- length(reads)
     if (missing(groups)) {
-        groups <- rep(1L, Nreads)
-    }
-    if (length(groups)!=Nreads) {
-        stop("length of 'reads' and 'groups' should be the same")
+        by.groups <- list(seq_len(Nreads))
+    } else if (is.list(groups)) {
+        by.group <- groups
+    } else {
+        if (length(groups)!=Nreads) {
+            stop("length of 'reads' and 'groups' should be the same")
+        }
+        by.group <- split(seq_len(Nreads), groups)
     }
 
-    by.group <- split(seq_len(Nreads), groups)
-    msalign <- bplapply(by.group, FUN=.internal_msa, reads=reads, min.qual=min.qual,
-        keep.masked=keep.masked, ..., BPPARAM=BPPARAM)
-
-    return(msalign)
+    reads.by.group <- lapply(by.group, FUN=function(idx) reads[idx]) # reduce memory allocation within child processes. 
+    bplapply(reads.by.group, FUN=.internal_msa, min.qual=min.qual, keep.masked=keep.masked, ..., BPPARAM=BPPARAM)
 }
 
 #' @importClassesFrom Biostrings DNAStringSet QualityScaledDNAStringSet
@@ -28,8 +29,7 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
 #' @importFrom S4Vectors elementMetadata<-
 #' @importFrom methods is as
 #' @importFrom muscle muscle
-.internal_msa <- function(reads, group, min.qual, keep.masked, ...) {
-    cur.reads <- reads[group]
+.internal_msa <- function(cur.reads, min.qual, keep.masked, ...) {
     has.quals <- is(cur.reads, "QualityScaledDNAStringSet")
     do.mask <- !is.na(min.qual)
 

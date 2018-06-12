@@ -11,7 +11,8 @@ multiReadAlign(reads, groups, min.qual=10, keep.masked=FALSE, ...,
 
 \arguments{
     \item{reads}{A DNAStringSet object containing read sequences.}
-    \item{groups}{A factor specifying which reads belong to the same UMI group, e.g., from \code{\link{umiGroup}}.}
+    \item{groups}{A factor specifying which reads belong to the same UMI group, e.g., from \code{\link{umiGroup}}.
+    Alternatively, a list of indices specifying reads in the same group.}
     \item{min.qual}{An integer scalar specifying the minimum quality score, below which bases will be masked during MUSCLE.}
     \item{keep.masked}{A logical scalar indicating whether masked bases should remain masked in the output.}
     \item{...}{Additional arguments to pass to \code{\link{muscle}}.}
