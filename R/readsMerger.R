@@ -13,7 +13,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 # with modifications by Aaron Lun
 # created 12 June 2018
 {
-    if (!is.null(working.dir)) {
+    if (is.null(working.dir)) {
         working.dir <- tempfile()
         dir.create(working.dir)
         on.exit(unlink(working.dir, recursive=TRUE))
@@ -21,8 +21,9 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
    
     fpath <- file.path(working.dir, "reads.fastq")
     all.args <- c(mm.args, "-x ava-ont", "-c", fpath, fpath)
+    paf.cmd <- paste(c(mm.cmd, all.args), collapse=" ")
 
-    origins <- as.list(seq_aong(reads))
+    origins <- as.list(seq_along(reads))
     read.copy <- reads
     UMI1.copy <- UMI1
     UMI2.copy <- UMI2
@@ -31,8 +32,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
     while (iterations <= max.iter) {
         # Aligning with minimap2 to define read clusters.
         writeQualityScaledXStringSet(read.copy, fpath)
-        raw.paf <- system2(mm.cmd, args = all.args, stdout = TRUE)
-        cleaned.paf <- .process_paf(paf.raw, min.match=min.identity)
+        cleaned.paf <- .process_paf(paf.cmd, min.match=min.identity)
         cluster.list <- .cluster_paf(cleaned.paf, names(read.copy))
        
         # Defining UMI subclusters with umiGroup2 (using the name of the first read as the name for each group).
@@ -75,13 +75,14 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 #' @importFrom igraph make_graph components V
 .cluster_paf <- function(paf, all.names) {
     edges <- rbind(match(paf$qname, all.names), match(paf$tname, all.names))
-    G <- make_graph(edges)
+    if (length(edges)==0L) {
+        return(as.list(seq_along(all.names)))
+    }
 
+    G <- make_graph(edges)
     comp <- components(G)$membership
     vertices <- as.vector(V(G))
-
-    c(unname(split(vertices, comp)), 
-      as.list(seq_along(all.names)[-vertices]))
+    c(unname(split(vertices, comp)), as.list(seq_along(all.names)[-vertices]))
 }
 
 #' @importFrom data.table fread

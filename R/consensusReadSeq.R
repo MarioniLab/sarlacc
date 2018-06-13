@@ -27,7 +27,11 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6, BPPAR
         if (has.quals) { 
             phred <- quals
         } else {
-            phred <- PhredQuality(rep(1/(1+pseudo.count), nchar(consensus[i])))
+            if (nchar(consensus)) {
+                phred <- PhredQuality(rep(1/(1+pseudo.count), nchar(consensus)))
+            } else {
+                phred <- PhredQuality("")
+            }
         }
     } else {
         # Creating a consensus sequence that may or may not be Phred-aware.
