@@ -25,7 +25,7 @@ void string_input::choose(size_t i) {
 }
 
 size_t string_input::length() const {
-    return Rf_length(SEXP(active));
+    return Rf_length(active_string.get_sexp());
 }
 
 char string_input::decode(char incoming) const {
