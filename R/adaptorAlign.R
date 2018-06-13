@@ -141,10 +141,10 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 #' @importFrom S4Vectors DataFrame
 #' @importFrom XVector subseq
 .align_info_extractor <- function(alignments, quality=NULL) {
-    P <- pattern(alignments)
-    S <- subject(alignments)
-    output <- DataFrame(score=score(alignments), adaptor=as.character(P), 
-                        read=as.character(S), start=start(P), end=end(P))
+    P <- alignedPattern(alignments)
+    S <- alignedSubject(alignments)
+    output <- DataFrame(score=score(alignments), read=as.character(P), 
+                        adaptor=as.character(S), start=start(P), end=end(P))
     if (!is.null(quality)) {
         pattern.qual <- subseq(quality, start=output$start, end=output$end)
         output$quality <- pattern.qual
