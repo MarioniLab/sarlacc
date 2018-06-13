@@ -1,5 +1,6 @@
 #include "sarlacc.h"
-    
+#include "DNA_input.h"
+
 const std::vector<char> BASES={'A', 'C', 'G', 'T'};
 const int NBASES=BASES.size();
 
@@ -7,9 +8,9 @@ SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
     BEGIN_RCPP
     
     // Checking inputs.
-    auto aln=hold_XStringSet(alignments); 
-    const size_t naligns=get_length_from_XStringSet_holder(&aln);
-    const int alignwidth=check_alignment_width(&aln);
+    auto all_aln=process_DNA_input(alignments);
+    const size_t naligns=all_aln->size();
+    const size_t alignwidth=check_alignment_width(all_aln.get());
 
     const double mincov=check_numeric_scalar(min_cov, "minimum coverage");
     const double pseudo_denom=check_numeric_scalar(pseudo_count, "pseudo count");
@@ -19,12 +20,12 @@ SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
 
     // Counting the number of occurrences of each base at each position.
     for (size_t a=0; a<naligns; ++a) {
-        auto curalign=get_elt_from_XStringSet_holder(&aln, a);
-        const char* aln_str=curalign.ptr;
+        all_aln->choose(a);
+        const char* aln_str=all_aln->cstring();
         auto sIt=scores.begin();
 
         for (size_t i=0; i<alignwidth; ++i) {
-            const char curbase=DNAdecode(aln_str[i]);
+            const char curbase=all_aln->decode(aln_str[i]);
             switch (curbase) { 
                 case 'A': case 'a':
                     ++(*sIt);
@@ -87,9 +88,9 @@ SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
 
     // Checking inputs. We need the numeric qualities as they are decoded 
     // differently depending on whether they are Solexa or Phred.
-    auto aln=hold_XStringSet(alignments); 
-    const size_t naligns=get_length_from_XStringSet_holder(&aln);
-    const int alignwidth=check_alignment_width(&aln);
+    auto all_aln=process_DNA_input(alignments);
+    const size_t naligns=all_aln->size();
+    const size_t alignwidth=check_alignment_width(all_aln.get());
 
     Rcpp::List qual(qualities);
     const size_t nquals=qual.size();
@@ -103,15 +104,15 @@ SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
 
     // Running through each entry.
     for (size_t a=0; a<naligns; ++a) {
-        auto curalign=get_elt_from_XStringSet_holder(&aln, a);
-        const char* astr=curalign.ptr;
+        all_aln->choose(a);
+        const char* astr=all_aln->cstring();
 
         Rcpp::NumericVector curqual(qual[a]);
         auto sIt=scores.begin();
         int position=0;
 
         for (size_t i=0; i<alignwidth; ++i, sIt+=NBASES) { // leave sIt here to ensure it runs even when 'continue's.
-            const char curbase=DNAdecode(astr[i]);
+            const char curbase=all_aln->decode(astr[i]);
             if (curbase=='-') {
                 continue;
             }

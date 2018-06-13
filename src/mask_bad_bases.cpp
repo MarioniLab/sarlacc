@@ -1,14 +1,14 @@
 #include "sarlacc.h"
+#include "DNA_input.h"
 
 SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     BEGIN_RCPP
 
-    // Checking inputs.       
-    auto seq=hold_XStringSet(sequences); 
-    const size_t nseq=get_length_from_XStringSet_holder(&seq);
-    
-    auto qual=hold_XStringSet(qualities); 
-    if (nseq!=get_length_from_XStringSet_holder(&qual)) { 
+    // Checking inputs.
+    auto all_seq=process_DNA_input(sequences);
+    const size_t nseq=all_seq->size();
+    auto all_qual=process_DNA_input(qualities); // just using this for convenience.
+    if (nseq!=all_qual->size()) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
 
@@ -18,13 +18,14 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     }
     const char lowerbound=curstring[0]; 
     
-    // Getting the width of the buffer that should be set.
+    // Getting the length of the buffer that should be set.
     int buffersize=0;
     {
         for (size_t i=0; i<nseq; ++i) { 
-            auto curseq=get_elt_from_XStringSet_holder(&seq, i);
-            if (curseq.length > buffersize) {
-                buffersize=curseq.length;
+            all_seq->choose(i);
+            const size_t len=all_seq->length();
+            if (len > buffersize) {
+                buffersize=len;
             }
         }
         ++buffersize; // for the NULL.
@@ -35,20 +36,20 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     std::vector<char> buffer(buffersize);
     
     for (size_t i=0; i<nseq; ++i) {
-        auto curseq=get_elt_from_XStringSet_holder(&seq, i);
-        const char* sstr=curseq.ptr;
-        const size_t slen=curseq.length;
+        all_seq->choose(i);
+        const char* sstr=all_seq->cstring();
+        const size_t slen=all_seq->length();
 
-        auto curqual=get_elt_from_XStringSet_holder(&qual, i);
-        const char* qstr=curqual.ptr;
-        const size_t qlen=curqual.length;
+        all_qual->choose(i);
+        const char* qstr=all_qual->cstring();
+        const size_t qlen=all_qual->length();
         
         if (slen!=qlen) {
             throw std::runtime_error("sequence and quality strings are not the same length");
         }
 
         for (size_t counter=0; counter<slen; ++counter) {
-            buffer[counter]=(*qstr < lowerbound ? 'N' : DNAdecode(*sstr));
+            buffer[counter]=(*qstr < lowerbound ? 'N' : all_seq->decode(*sstr));
             ++qstr;
             ++sstr;
         }
@@ -68,40 +69,39 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
 SEXP unmask_bases (SEXP alignments, SEXP originals) {
     BEGIN_RCPP
 
-    auto aln=hold_XStringSet(alignments); 
-    const size_t nseq=get_length_from_XStringSet_holder(&aln);
-    
-    auto seq=hold_XStringSet(originals); 
-    if (nseq!=get_length_from_XStringSet_holder(&seq)) { 
+    auto all_aln=process_DNA_input(alignments);
+    const size_t nseq=all_aln->size();
+    auto all_seq=process_DNA_input(originals); 
+    if (nseq!=all_seq->size()) {
         throw std::runtime_error("alignment and original sequences should have the same number of entries");
     }
 
     // Getting the width of the buffer that should be set (+1 for the NULL).
-    const int buffersize=check_alignment_width(&aln)+1;
+    const size_t aln_width=check_alignment_width(all_aln.get());
+    const size_t buffersize=aln_width + 1;
   
     // Running through the output and restoring the masked bases. 
     Rcpp::StringVector output(nseq);
     std::vector<char> buffer(buffersize);
     
     for (size_t i=0; i<nseq; ++i) {
-        auto curaln=get_elt_from_XStringSet_holder(&aln, i);
-        const char* astr=curaln.ptr;
-        const size_t alen=curaln.length;
+        all_aln->choose(i);
+        const char* astr=all_aln->cstring();
 
-        auto curseq=get_elt_from_XStringSet_holder(&seq, i);
-        const char* sstr=curseq.ptr;
-        const size_t slen=curseq.length;
+        all_seq->choose(i);
+        const char* sstr=all_seq->cstring();
+        const size_t slen=all_seq->length();
 
         size_t a_nominal=0;
-        for (size_t a=0; a<alen; ++a) {
-            char& outbase=(buffer[a]=DNAdecode(astr[a]));
+        for (size_t a=0; a<aln_width; ++a) {
+            char& outbase=(buffer[a]=all_aln->decode(astr[a]));
     
             if (outbase!='-') { 
                 if (outbase=='N' || outbase=='n') {
                     if (a_nominal >= slen) {
                         throw std::runtime_error("sequence in alignment string is longer than the original");
                     }
-                    outbase=DNAdecode(sstr[a_nominal]);
+                    outbase=all_seq->decode(sstr[a_nominal]);
                 }
                 ++a_nominal;
             }
@@ -112,7 +112,7 @@ SEXP unmask_bases (SEXP alignments, SEXP originals) {
               
         }
 
-        buffer[alen]='\0';
+        buffer[aln_width]='\0';
         output[i]=Rcpp::String(buffer.data());
     }
     return output;
