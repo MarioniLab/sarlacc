@@ -1,6 +1,8 @@
 #' @export
 #' @importFrom Biostrings writeQualityScaledXStringSet
 #' @importFrom BiocParallel SerialParam
+#' @importClassesFrom IRanges IntegerList
+#' @importFrom S4Vectors DataFrame
 minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NULL, working.dir=NULL, min.identity=0.7, max.iter=3L,
         mra.read.args=list(), mra.umi1.args=mra.read.args, mra.umi2.args=mra.read.args, 
         cons.read.args=list(), cons.umi1.args=cons.read.args, cons.umi2.args=cons.read.args,
@@ -19,33 +21,39 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
    
     fpath <- file.path(working.dir, "reads.fastq")
     all.args <- c(mm.args, "-x ava-ont", "-c", fpath, fpath)
-    nreads <- rep(1L, length(reads))
+
+    origins <- as.list(seq_aong(reads))
+    read.copy <- reads
+    UMI1.copy <- UMI1
+    UMI2.copy <- UMI2
 
     iterations <- 0L
     while (iterations <= max.iter) {
         # Aligning with minimap2 to define read clusters.
-        writeQualityScaledXStringSet(reads, fpath)
+        writeQualityScaledXStringSet(read.copy, fpath)
         raw.paf <- system2(mm.cmd, args = all.args, stdout = TRUE)
         cleaned.paf <- .process_paf(paf.raw, min.match=min.identity)
-        cluster.list <- .cluster_paf(cleaned.paf, names(reads))
+        cluster.list <- .cluster_paf(cleaned.paf, names(read.copy))
        
-        # Defining UMI subclusters with umiGroup2.
-        umi.subgroups <- bplapply(cluster.list, FUN=.umi_group, UMI1=UMI1, UMI2=UMI2, umi.args=group.args, BPPARAM=BPPARAM)
+        # Defining UMI subclusters with umiGroup2 (using the name of the first read as the name for each group).
+        umi.subgroups <- bplapply(cluster.list, FUN=.umi_group, UMI1=UMI1.copy, UMI2=UMI2.copy, umi.args=group.args, BPPARAM=BPPARAM)
         subclustered <- unlist(mapply(FUN=split, x=cluster.list, f=umi.subgroups, SIMPLIFY=FALSE), recursive=FALSE)
-
-        # Using the name of the first read as the name for each group.
         names(subclustered) <- names(reads)[vapply(cluster.list, FUN="[", i=1, FUN.VALUE=0L)]
 
-        # Creating alignments and consensus sequences, and overwriting existing values.
-        aligned.reads <- do.call(multiReadAlign, c(list(reads, groups=subclustered, BPPARAM=BPPARAM), mra.read.args))
-        reads <- do.call(consensusReadSeq, c(list(aligned.reads, BPPARAM=BPPARAM), cons.read.args))
+        # Figuring out the reads from which each UMI group was derived.
+        origins <- unlist(lapply(subclustered, FUN=function(idx) { unlist(origins[idx]) }))
+
+        # Creating alignments and consensus sequences _from the originals_, to ensure accurate quality calculations.
+        # Overwriting the copies for the next round of iteration. 
+        aligned.reads <- do.call(multiReadAlign, c(list(reads, groups=origins, BPPARAM=BPPARAM), mra.read.args))
+        read.copy <- do.call(consensusReadSeq, c(list(aligned.reads, BPPARAM=BPPARAM), cons.read.args))
         
-        aligned.UMI1 <- do.call(multiReadAlign, c(list(UMI1, groups=subclustered, BPPARAM=BPPARAM), mra.umi1.args))
-        UMI1 <- do.call(consensusReadSeq, c(list(aligned.UMI1, BPPARAM=BPPARAM), cons.umi1.args))
+        aligned.UMI1 <- do.call(multiReadAlign, c(list(UMI1, groups=origins, BPPARAM=BPPARAM), mra.umi1.args))
+        UMI1.copy <- do.call(consensusReadSeq, c(list(aligned.UMI1, BPPARAM=BPPARAM), cons.umi1.args))
 
         if (!is.null(UMI2)) {
-            aligned.UMI2 <- do.call(multiReadAlign, c(list(UMI2, groups=subclustered, BPPARAM=BPPARAM), mra.umi2.args))
-            UMI2 <- do.call(consensusReadSeq, c(list(aligned.UMI2, BPPARAM=BPPARAM), cons.umi2.args))
+            aligned.UMI2 <- do.call(multiReadAlign, c(list(UMI2, groups=origins, BPPARAM=BPPARAM), mra.umi2.args))
+            UMI2.copy <- do.call(consensusReadSeq, c(list(aligned.UMI2, BPPARAM=BPPARAM), cons.umi2.args))
         }
 
         # Deciding whether to terminate or not.
@@ -53,15 +61,14 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         if (all(lengths(subclustered)==1L)) { 
             break
         }
-        nreads <- unlist(lapply(subclustered, FUN=function(idx) { sum(nreads[idx]) }))
     }
 
     # Returning a list of values as output.
-    output <- list(reads=aligned, UMI1=UMI1)
+    output <- DataFrame(reads=read.copy, UMI1=UMI1.copy)
     if (!is.null(UMI2)) { 
-        output$UMI2 <- UMI2
+        output$UMI2 <- UMI2.copy
     } 
-    output$nreads <- nreads
+    output$origins <- as(origins, "IntegerList")
     return(output)
 }
 
