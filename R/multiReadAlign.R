@@ -39,13 +39,28 @@ multiReadAlign <- function(reads, groups, max.error=0.1, keep.masked=FALSE, ...,
         }
     } 
 
+    # Pruning out singleton reads for efficiency.
+    all.results <- vector("list", length(by.group))
+    solo <- lengths(by.group)==1L
+    if (any(solo)) {
+        if (do.mask && keep.masked) {
+            all.results[solo] <- all.reads[unlist(by.group[solo])]
+        } else {
+            all.results[solo] <- all.masked[unlist(by.group[solo])]
+        }
+    }
+
     # Running the multiple sequence alignment across multiple cores.
-    multi.res <- bplapply(by.group, FUN=.internal_msa, reads=all.reads, qualities=all.qual, masked=all.masked, 
-        ..., keep.masked=keep.masked, BPPARAM=BPPARAM)
+    multi <- !solo
+    if (any(multi)) { 
+        all.results[multi] <- bplapply(by.group[multi], FUN=.internal_msa, 
+            reads=all.reads, qualities=all.qual, masked=all.masked, 
+            ..., keep.masked=keep.masked, BPPARAM=BPPARAM)
+    }
 
     # Collating the results into a single DF.
     out <- new("DataFrame", nrows=length(by.group))
-    out$alignments <- multi.res 
+    out$alignments <- all.results 
     if (has.quals) {
         out$qualities <- lapply(by.group, function(idx) all.qual[idx]) 
     }
@@ -57,14 +72,6 @@ multiReadAlign <- function(reads, groups, max.error=0.1, keep.masked=FALSE, ...,
 #' @importFrom muscle muscle
 .internal_msa <- function(indices, reads, qualities, masked, keep.masked, ...) {
     do.mask <- !is.null(masked)
-    if (length(indices)==1L) { 
-        if (keep.masked) {
-            return(masked[indices])
-        } else {
-            return(reads[indices])
-        }
-    }
-
     to.use <- if (do.mask) masked[indices] else reads[indices]
     cur.align <- muscle(DNAStringSet(to.use), ..., quiet=TRUE)
     cur.align <- unmasked(cur.align)

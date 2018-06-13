@@ -14,41 +14,44 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6, BPPAR
         qual <- vector("list", nrow(alignments))
     }
 
-    collected <- bpmapply(.internal_consensus, aln, qual, 
-        MoreArgs=list(pseudo.count=pseudo.count, min.coverage=min.coverage), 
-        SIMPLIFY=FALSE, BPPARAM=BPPARAM)
+    # Handling singletons separately.
+    solo <- lengths(aln)==1L
+    all.seq <- all.qual <- vector("list", length(aln))
+    if (any(solo)) {
+        solo.aln <- aln[solo]
+        all.seq[solo] <- solo.aln
+        if (has.quals) {
+            all.qual[solo] <- qual[solo]
+        } else {
+            constant <- rep(1/(1+pseudo.count))
+            all.seq[solo] <- lapply(solo.aln, function(seq) { rep(constant, nchar(seq)) })
+        }
+    }
 
-    consensus <- unlist(lapply(collected, "[[", i=1))
-    phred <- unname(lapply(collected, "[[", i=2))
-    return(QualityScaledDNAStringSet(DNAStringSet(consensus), do.call(c, phred)))
+    # Handling the multiples.
+    multi <- !solo
+    if (any(multi)) {
+        collected <- bpmapply(.internal_consensus, aln[multi], qual[multi], 
+            MoreArgs=list(pseudo.count=pseudo.count, min.coverage=min.coverage), 
+            SIMPLIFY=FALSE, BPPARAM=BPPARAM)
+        all.seq[multi] <- unlist(lapply(collected, "[[", i=1))
+        all.qual[multi] <- unname(lapply(collected, "[[", i=2))
+    }
+
+    all.seq <- unlist(all.seq)
+    all.qual <- do.call(c, lapply(all.qual, PhredQuality))
+    return(QualityScaledDNAStringSet(DNAStringSet(all.seq), all.qual))
 }
 
 #' @importFrom Biostrings PhredQuality
 .internal_consensus <- function(alignment, qualities, pseudo.count, min.coverage) {
     has.quals <- !is.null(qualities)
-
-    # Skipping if we've only got one read in the alignment.
-    if (length(alignment)==1L) {
-        if (has.quals) {
-            phred <- PhredQuality(qualities[[1]])
-        } else {
-            if (nchar(alignment)) {
-                phred <- PhredQuality(rep(1/(1+pseudo.count), nchar(alignment)))
-            } else {
-                phred <- PhredQuality("")
-            }
-        }
-        return(list(alignment, phred))
-    }
-
     # Creating a consensus sequence that may or may not be Phred-aware.
     if (has.quals) {
         out <- .Call(cxx_create_consensus_quality, alignment, min.coverage, qualities)
     } else {
         out <- .Call(cxx_create_consensus_basic, alignment, min.coverage, pseudo.count)
     }
-
-    out[[2]] <- PhredQuality(out[[2]])
     return(out)
 }
 
