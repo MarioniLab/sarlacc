@@ -30,10 +30,10 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6, BPPAR
     # Skipping if we've only got one read in the alignment.
     if (length(alignment)==1L) {
         if (has.quals) {
-            phred <- qualities
+            phred <- PhredQuality(qualities[[1]])
         } else {
-            if (nchar(consensus)) {
-                phred <- PhredQuality(rep(1/(1+pseudo.count), nchar(consensus)))
+            if (nchar(alignment)) {
+                phred <- PhredQuality(rep(1/(1+pseudo.count), nchar(alignment)))
             } else {
                 phred <- PhredQuality("")
             }
