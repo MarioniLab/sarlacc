@@ -83,7 +83,7 @@ SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
  * calculation will take that into account.
  */
 
-SEXP create_consensus_quality(SEXP alignments, SEXP qualities, SEXP min_cov) {
+SEXP create_consensus_quality(SEXP alignments, SEXP min_cov, SEXP qualities) {
     BEGIN_RCPP    
 
     // Checking inputs. We need the numeric qualities as they are decoded 

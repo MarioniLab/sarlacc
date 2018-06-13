@@ -10,7 +10,7 @@ consensusReadSeq(alignments, pseudo.count=1, min.coverage=0.6,
 }
 
 \arguments{
-    \item{alignments}{A list of DNAStringSet objects where each object contains a multi-sequuence alignment for one UMI group, as produced by \code{\link{multiReadAlign}}.}
+    \item{alignments}{A DataFrame with a list of alignment strings and (optionally) a list of lists of error probabilities, as produced by \code{\link{multiReadAlign}}.}
     \item{pseudo.count}{A numeric scalar specifying the pseudo-count that should be added when computing quality scores for each base.}
     \item{min.coverage}{A numeric scalar specifying the minimum proportion of reads with a base at a particular position in order to define a base position in the consensus.}
     \item{BPPARAM}{A BiocParallelParam object controlling how paralellization should be performed.}
@@ -48,9 +48,16 @@ reads <- DNAStringSet(c("ACACTGGTTCAGGT",
     "ACACGGTTCAGGT",
     "CGGACTGACACGGT",
     "CGGGCTGACACGGT"))
-
 aln <- multiReadAlign(reads, c(1,1,2,2))
 consensusReadSeq(aln)
+
+qreads <- QualityScaledDNAStringSet(reads,
+    PhredQuality(c("23849723948733", 
+    "*(&^&23498342",
+    ")(*!@!343928&^",
+    "2($*&$*A323128")))
+aln0 <- multiReadAlign(qreads, c(1,1,2,2))
+consensusReadSeq(aln0)
 }
 
 
