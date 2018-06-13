@@ -2,8 +2,10 @@
 #' @importFrom BiocParallel bplapply SerialParam
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom Biostrings quality encoding
-#' @importFrom methods is
-multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., BPPARAM=SerialParam())
+#' @importFrom methods is new
+#' @importFrom S4Vectors metadata
+#' @importClassesFrom S4Vectors DataFrame
+multiReadAlign <- function(reads, groups, max.error=0.1, keep.masked=FALSE, ..., BPPARAM=SerialParam())
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
 #
@@ -25,23 +27,15 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
 
     # Setting quality-related parameters.
     has.quals <- is(reads, "QualityScaledDNAStringSet")
-    do.mask <- !is.na(min.qual)
-    if (has.quals) {
-        if (is.na(min.qual)) { 
-            enc <- encoding(quality(reads))
-            lowerbound <- names(enc)[min(which(enc>=min.qual))] 
-        } else {
-            lowerbound <- NA_character_
-        }
-    }
+    do.mask <- !is.na(max.error)
 
     # Converting everything to a string, which is faster to work with.
     all.masked <- all.qual <- NULL
     all.reads <- as.character(reads)
     if (has.quals) {
-        all.qual <- as.character(quality(reads))
+        all.qual <- as.list(as(quality(reads), "NumericList"))
         if (do.mask) {
-            all.masked <- .Call(cxx_mask_bad_bases, all.reads, all.qual, min.enc)
+            all.masked <- .Call(cxx_mask_bad_bases, all.reads, all.qual, max.error)
         }
     } 
 
@@ -53,7 +47,7 @@ multiReadAlign <- function(reads, groups, min.qual=10, keep.masked=FALSE, ..., B
     out <- new("DataFrame", nrows=length(by.group))
     out$alignments <- multi.res 
     if (has.quals) {
-        out$qualities <- lapply(by.group, function(x) all.qual[idx]) 
+        out$qualities <- lapply(by.group, function(idx) all.qual[idx]) 
     }
     rownames(out) <- names(by.group)
     return(out)

@@ -7,16 +7,12 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     // Checking inputs.
     auto all_seq=process_DNA_input(sequences);
     const size_t nseq=all_seq->size();
-    auto all_qual=process_DNA_input(qualities); // just using this for convenience.
-    if (nseq!=all_qual->size()) {
+
+    Rcpp::List all_qual(qualities);
+    if (nseq!=all_qual.size()) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
-
-    std::string curstring=check_string(threshold, "quality threshold");
-    if (curstring.size()!=1) {
-        throw std::runtime_error("quality threshold should be a string of length 1");
-    }
-    const char lowerbound=curstring[0]; 
+    const double max_error=check_numeric_scalar(threshold, "quality threshold");
     
     // Getting the length of the buffer that should be set.
     int buffersize=0;
@@ -40,18 +36,14 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
         const char* sstr=all_seq->cstring();
         const size_t slen=all_seq->length();
 
-        all_qual->choose(i);
-        const char* qstr=all_qual->cstring();
-        const size_t qlen=all_qual->length();
-        
-        if (slen!=qlen) {
+        Rcpp::NumericVector curqual(all_qual[i]);
+        if (slen!=curqual.size()) {
+            Rprintf("%s %i %i\n", sstr, slen, curqual.size());
             throw std::runtime_error("sequence and quality strings are not the same length");
         }
 
-        for (size_t counter=0; counter<slen; ++counter) {
-            buffer[counter]=(*qstr < lowerbound ? 'N' : all_seq->decode(*sstr));
-            ++qstr;
-            ++sstr;
+        for (size_t counter=0; counter<slen; ++counter, ++sstr) {
+            buffer[counter]=(curqual[counter] > max_error ? 'N' : all_seq->decode(*sstr));
         }
 
         buffer[slen]='\0';
