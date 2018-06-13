@@ -3,6 +3,7 @@
 
 const std::vector<char> BASES={'A', 'C', 'G', 'T'};
 const int NBASES=BASES.size();
+const double max_error=0.99999999, min_error=0.00000001;
 
 SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) {
     BEGIN_RCPP
@@ -121,7 +122,13 @@ SEXP create_consensus_quality(SEXP alignments, SEXP min_cov, SEXP qualities) {
             if (position >= curqual.size()) {
                 throw std::runtime_error("quality vector is shorter than the alignment sequence");
             }
-            const double newqual=curqual[position];
+            double newqual=curqual[position];
+            if (newqual>max_error) {
+                newqual=max_error;
+            } else if (newqual<min_error) {
+                newqual=min_error;
+            }
+
             const double right=std::log1p(-newqual); // using base e to make life easier.
             const double wrong=std::log(newqual/(NBASES-1));
             ++position;
