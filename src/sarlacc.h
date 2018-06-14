@@ -19,30 +19,28 @@ bool check_logical_scalar(Rcpp::RObject, const char*);
 
 std::string check_string(Rcpp::RObject, const char*);
 
-int check_alignment_width(XStringSet_holder*);    
-
 extern "C" {
 
-SEXP count_deletions(SEXP, SEXP, SEXP);
+SEXP count_gaps_by_base(SEXP, SEXP, SEXP);
+SEXP count_gaps_by_align(SEXP, SEXP, SEXP);
 
 SEXP mask_bad_bases(SEXP, SEXP, SEXP);
-
 SEXP unmask_bases(SEXP, SEXP);
 
 SEXP create_consensus_basic(SEXP, SEXP, SEXP);
-
+SEXP create_consensus_basic_loop(SEXP, SEXP, SEXP);
 SEXP create_consensus_quality(SEXP, SEXP, SEXP);
+SEXP create_consensus_quality_loop(SEXP, SEXP, SEXP);
 
 SEXP umi_group(SEXP, SEXP, SEXP);
-
 SEXP compute_lev_masked(SEXP);
 
 SEXP get_kmer_matrix(SEXP, SEXP);
 
 SEXP find_homopolymers(SEXP);
-
 SEXP match_homopolymers(SEXP, SEXP);
-
 SEXP find_errors(SEXP, SEXP);
+
+SEXP get_aligned_sequence(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 }

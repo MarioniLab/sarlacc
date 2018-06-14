@@ -7,7 +7,7 @@ Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
 Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
 Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors, BiocParallel
 Imports: methods, utils, IRanges, XVector, muscle, BiocGenerics, 
-        GenomicAlignments, igraph, Rcpp
+        GenomicAlignments, igraph, data.table, Rcpp
 Suggests: Rsamtools, knitr, testthat
 Description: Implements a variety of low-level analyses of single-cell 
         RNA-seq data. Methods are provided for normalization of 
