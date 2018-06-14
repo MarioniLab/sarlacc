@@ -47,3 +47,6 @@ private:
 std::unique_ptr<DNA_input> process_DNA_input (Rcpp::RObject);
 
 size_t check_alignment_width(DNA_input * aln);
+
+size_t get_max_width(DNA_input * aln);
+
