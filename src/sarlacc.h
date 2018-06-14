@@ -21,36 +21,25 @@ std::string check_string(Rcpp::RObject, const char*);
 
 extern "C" {
 
-SEXP count_deletions(SEXP, SEXP, SEXP);
+SEXP adjust_basepos_for_gaps(SEXP, SEXP, SEXP);
+SEXP adjust_alignpos_for_gaps(SEXP, SEXP, SEXP);
 
 SEXP mask_bad_bases(SEXP, SEXP, SEXP);
-
 SEXP unmask_bases(SEXP, SEXP);
 
-
 SEXP create_consensus_basic(SEXP, SEXP, SEXP);
-
 SEXP create_consensus_basic_loop(SEXP, SEXP, SEXP);
-
 SEXP create_consensus_quality(SEXP, SEXP, SEXP);
-
 SEXP create_consensus_quality_loop(SEXP, SEXP, SEXP);
 
-
 SEXP umi_group(SEXP, SEXP, SEXP);
-
 SEXP compute_lev_masked(SEXP);
-
 
 SEXP get_kmer_matrix(SEXP, SEXP);
 
-
 SEXP find_homopolymers(SEXP);
-
 SEXP match_homopolymers(SEXP, SEXP);
-
 SEXP find_errors(SEXP, SEXP);
-
 
 SEXP get_aligned_sequence(SEXP, SEXP, SEXP, SEXP, SEXP);
 
