@@ -12,6 +12,8 @@ n.align <- c("NAAAAANNN",
              "NNAANA---",
              "NNNANNN--",
              "NNNN--NN-")
+    
+library(Biostrings)
 
 #####################################################
 
@@ -29,18 +31,17 @@ BASICFUN <- function(current, min.coverage, pseudo.count) {
     conseq <- nucleotides[majority.base]
     consensus <- paste(conseq, collapse="")
     
-    # Computing the Phred score.
+    # Computing the error probabilities.
     n.chosen <- numeric(length(conseq))
     for (j in nucleotides) { 
         chosen <- conseq==j
         n.chosen[chosen] <- x[chosen,j]
     }
-    phred <- 1 - (n.chosen + pseudo.count/4)/(rowSums(x)+pseudo.count)
-    return(list(consensus, phred))
+    error <- 1 - (n.chosen + pseudo.count/4)/(rowSums(x)+pseudo.count)
+    return(list(consensus, log(error)))
 }
 
 test_that("basic consensus formation works properly", {
-    library(Biostrings)
     current <- DNAStringSet(test.align)
     expect_identical(BASICFUN(current, min.coverage=0.6, pseudo.count=1),
                      .Call(sarlacc:::cxx_create_consensus_basic, current, 0.6, 1))
@@ -65,6 +66,25 @@ test_that("basic consensus formation works properly", {
 
     # Returns something with an empty input.
     expect_identical(.Call(sarlacc:::cxx_create_consensus_basic, current[0], 0.6, 1), list("", numeric(0)))
+})
+
+errorToPhred <- function(errors, encoding) {
+    score <- round(errors/log(10) * -10)
+    score <- pmax(min(encoding), pmin(score, max(encoding)))
+    m <- match(score, encoding)
+    paste(names(encoding)[m], collapse="")
+}
+
+test_that("basic looped consensus formation works properly", {
+    stuff <- list(DNAStringSet(n.align), DNAStringSet(test.align))
+    out <- .Call(sarlacc:::cxx_create_consensus_basic_loop, stuff, 0.6, 1)
+
+    ref1 <- .Call(sarlacc:::cxx_create_consensus_basic, stuff[[1]], 0.6, 1)
+    ref2 <- .Call(sarlacc:::cxx_create_consensus_basic, stuff[[2]], 0.6, 1)
+    expect_identical(out[[1]], c(ref1[[1]], ref2[[1]]))
+
+    enc <- encoding(PhredQuality(""))
+    expect_identical(out[[2]], c(errorToPhred(ref1[[2]], enc), errorToPhred(ref2[[2]], enc)))
 })
 
 #####################################################
@@ -107,26 +127,31 @@ QUALFUN <- function(alignments, qualities, min.coverage) {
 
         chosen <- which.max(all.probs)
         consensus[i] <- names(all.probs)[chosen]
-        out.err[i] <- sum(all.probs[-chosen]) # for numerical precision purposes.
+        out.err[i] <- log(sum(all.probs[-chosen]))  # not using 1-chosen for numerical precision purposes.
     }
     
     return(list(paste(consensus, collapse=""), out.err))
+}
+
+.generate_qualities <- function(strings, upper) {
+    qualities <- vector("list", length(strings))
+    for (i in seq_along(qualities)) { 
+        qualities[[i]] <- runif(nchar(gsub("-", "", strings[i])), 0, upper)
+    }
+    return(qualities)
 }
 
 set.seed(1000)
 test_that("quality-based formation of a consensus sequence works correctly", {
     current <- DNAStringSet(test.align)
     for (upper in c(0.01, 0.1, 0.5, 1)) {
-        qualities <- vector("list", length(current))
-        for (i in seq_along(qualities)) { 
-            qualities[[i]] <- runif(nchar(gsub("-", "", test.align[i])), 0, upper)
-        }
+        qualities <- .generate_qualities(test.align, upper)
         expect_equal(QUALFUN(current, qualities, min.coverage=0.6),
-                     .Call(sarlacc:::cxx_create_consensus_quality, current, qualities, 0.6))
+                     .Call(sarlacc:::cxx_create_consensus_quality, current, 0.6, qualities))
         expect_equal(QUALFUN(current, qualities, min.coverage=0.2),
-                     .Call(sarlacc:::cxx_create_consensus_quality, current, qualities, 0.2))
+                     .Call(sarlacc:::cxx_create_consensus_quality, current, 0.2, qualities))
         expect_equal(QUALFUN(current, qualities, min.coverage=0.9),
-                     .Call(sarlacc:::cxx_create_consensus_quality, current, qualities, 0.9))
+                     .Call(sarlacc:::cxx_create_consensus_quality, current, 0.9, qualities))
     }
 
     # Same sort of treatment with the N's.
@@ -137,20 +162,34 @@ test_that("quality-based formation of a consensus sequence works correctly", {
             qualities[[i]] <- runif(nchar(gsub("-", "", n.align[i])), 0, upper)
         }
         expect_equal(QUALFUN(current, qualities, min.coverage=0.6),
-                     .Call(sarlacc:::cxx_create_consensus_quality, current, qualities, 0.6))
+                     .Call(sarlacc:::cxx_create_consensus_quality, current, 0.6, qualities))
         expect_equal(QUALFUN(current, qualities, min.coverage=0.2),
-                     .Call(sarlacc:::cxx_create_consensus_quality, current, qualities, 0.2))
+                     .Call(sarlacc:::cxx_create_consensus_quality, current, 0.2, qualities))
         expect_equal(QUALFUN(current, qualities, min.coverage=0.9),
-                     .Call(sarlacc:::cxx_create_consensus_quality, current, qualities, 0.9))
+                     .Call(sarlacc:::cxx_create_consensus_quality, current, 0.9, qualities))
     }
 
     # Returns something with an empty input.
-    expect_identical(.Call(sarlacc:::cxx_create_consensus_quality, current[0], list(), 0.6), list("", numeric(0)))
+    expect_identical(.Call(sarlacc:::cxx_create_consensus_quality, current[0], 0.6, list()), list("", numeric(0)))
 
     # Throws the proper errors.
-    expect_error(.Call(sarlacc:::cxx_create_consensus_quality, current[1], list(), 0.6), "different numbers of entries") 
-    expect_error(.Call(sarlacc:::cxx_create_consensus_quality, current[1], list(numeric(0)), 0.6), 
+    expect_error(.Call(sarlacc:::cxx_create_consensus_quality, current[1], 0.6, list()), "different numbers of entries") 
+    expect_error(.Call(sarlacc:::cxx_create_consensus_quality, current[1], 0.6, list(numeric(0))), 
                        "quality vector is shorter than the alignment sequence")
-    expect_error(.Call(sarlacc:::cxx_create_consensus_quality, current[1], list(runif(1000)), 0.6), 
+    expect_error(.Call(sarlacc:::cxx_create_consensus_quality, current[1], 0.6, list(runif(1000))),
                        "quality vector is longer than the alignment sequence")
 })
+
+test_that("looped quality consensus formation works properly", {
+    stuff <- list(test.align, n.align)
+    all.quals <- lapply(stuff, .generate_qualities, upper=0.1)
+    out <- .Call(sarlacc:::cxx_create_consensus_quality_loop, stuff, 0.6, all.quals)
+
+    ref1 <- .Call(sarlacc:::cxx_create_consensus_quality, stuff[[1]], 0.6, all.quals[[1]])
+    ref2 <- .Call(sarlacc:::cxx_create_consensus_quality, stuff[[2]], 0.6, all.quals[[2]])
+    expect_identical(out[[1]], c(ref1[[1]], ref2[[1]]))
+
+    enc <- encoding(PhredQuality(""))
+    expect_identical(out[[2]], c(errorToPhred(ref1[[2]], enc), errorToPhred(ref2[[2]], enc)))
+})
+

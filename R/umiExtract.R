@@ -15,9 +15,9 @@ umiExtract <- function(align.stats, position=NULL)
     
     # Identifying the number of deletions in the adaptor before the start of the UMI.
     # This is the number of bases we have to shift to the 3' in the read alignment string. 
-    read.bump <- .compute_position_bump(align.stats$adaptor, position)
-    bumped.start <- read.bump$start + position[1]
-    bumped.end <- read.bump$end + position[2]
+    read.bump <- .Call(cxx_count_gaps_by_base, align.stats$adaptor, position[1], position[2])
+    bumped.start <- position[1] + read.bump[[1]]
+    bumped.end <- position[2] + read.bump[[2]]
 
     # Pulling out the UMI and cleaning it up.
     umi <- substr(align.stats$read, start=bumped.start, stop=bumped.end)
@@ -28,13 +28,11 @@ umiExtract <- function(align.stats, position=NULL)
     if (!is.null(align.stats$quality)) { 
         # Pulling out the Phred scores (this time, we need to know the deletions in the read,
         # as the Phred scores do not contain the deletions in the alignment string).
-        read.unbump <- .compute_position_bump(align.stats$read, c(bumped.start, bumped.end))
-        unbumped.start <- bumped.start - read.unbump$start
-        #unbumped.end <- bumped.end - read.unbump$end[1]
-        umi.length <- nchar(umi)
-        umi.length[umi==""] <- 0
-        umi.qual <- subseq(align.stats$quality, start=unbumped.start, width=umi.length)
-        out <- QualityScaledDNAStringSet(out, umi.qual)
+        read.unbump <- .Call(cxx_count_gaps_by_align, align.stats$read, bumped.start, bumped.end)
+        unbumped.start <- bumped.start - read.unbump[[1]]
+        unbumped.end <- bumped.end - read.unbump[[2]]
+        umi.qual <- substr(align.stats$quality, start=unbumped.start, stop=unbumped.end)
+        out <- QualityScaledDNAStringSet(out, PhredQuality(umi.qual))
     }
     return(out)
 }
@@ -51,10 +49,3 @@ umiExtract <- function(align.stats, position=NULL)
     }
     return(position)
 }
-
-.compute_position_bump <- function(align.str, position) {
-    out <- .Call(cxx_count_deletions, align.str, position[1], position[2])
-    names(out) <- c("start", "end")
-    return(out)
-}
-
