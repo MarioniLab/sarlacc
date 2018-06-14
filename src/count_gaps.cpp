@@ -1,4 +1,5 @@
 #include "sarlacc.h"
+#include "utils.h"
 #include "DNA_input.h"
 
 /* The count_gaps_by_base function ignores gaps in the position specification, i.e., posstart and posend refer to base positions (and are scalars).

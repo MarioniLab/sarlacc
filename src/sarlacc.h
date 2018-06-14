@@ -24,8 +24,7 @@ SEXP create_consensus_basic_loop(SEXP, SEXP, SEXP);
 SEXP create_consensus_quality(SEXP, SEXP, SEXP);
 SEXP create_consensus_quality_loop(SEXP, SEXP, SEXP);
 
-SEXP umi_group_raw(SEXP, SEXP);
-SEXP umi_group_graph(SEXP, SEXP);
+SEXP umi_group(SEXP, SEXP);
 SEXP compute_lev_masked(SEXP);
 
 SEXP find_homopolymers(SEXP);

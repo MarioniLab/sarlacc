@@ -1,5 +1,6 @@
 #include "sarlacc.h"
 #include "DNA_input.h"
+#include "utils.h"
 
 SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     BEGIN_RCPP
