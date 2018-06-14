@@ -6,12 +6,16 @@ const std::vector<char> BASES={'A', 'C', 'G', 'T'};
 const int NBASES=BASES.size();
 const double max_error=0.99999999, min_error=0.00000001;
 
-Rcpp::String errorsToString (size_t len, std::vector<double>& errorprobs, std::vector<char>& working) {
+Rcpp::String errorsToString (size_t len, const std::vector<double>& errorprobs, std::vector<char>& working) {
     if (working.size() <= len) {
         working.resize(len+1);
     }
     for (size_t i=0; i<len; ++i) {
-        working[i]=char(-10 * errorprobs[i] / std::log(10) + 33);
+        const int to_ascii=std::min(
+            std::round(-10 * errorprobs[i] / std::log(10)),
+            93.0 /* corresponding to a quality of '~' */ );
+
+        working[i]=char(to_ascii + 33);
     }
 
     working[len]='\0';
@@ -25,14 +29,17 @@ struct data_holder {
     std::vector<double> errorprobs;
 
     void expand(size_t alignwidth) {
-        if (incidences.size() > alignwidth) {
-            return;
+        if (incidences.size() <= alignwidth) {
+            incidences.resize(alignwidth);
+            scores.resize(alignwidth * NBASES);
+            buffer.resize(alignwidth + 1);
+            errorprobs.resize(alignwidth);
         }
 
-        incidences.resize(alignwidth);
-        scores.resize(alignwidth * NBASES);
-        buffer.resize(alignwidth + 1);
-        errorprobs.resize(alignwidth);
+        std::fill(incidences.begin(), incidences.begin() + alignwidth, 0);
+        std::fill(scores.begin(), scores.begin() + alignwidth*NBASES, 0);
+        std::fill(buffer.begin(), buffer.begin() + alignwidth + 1, '\0');
+        std::fill(errorprobs.begin(), errorprobs.begin() + alignwidth, 0);
         return;
     }
 };
@@ -104,7 +111,6 @@ size_t internal_create_consensus_basic(SEXP alignments, const double mincov, con
         ++eIt;
     }
 
-    *cIt='\0';
     return cIt - storage.buffer.begin();
 }
 
@@ -233,7 +239,6 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
         ++eIt;
     }
 
-    (*cIt)='\0';
     return cIt - storage.buffer.begin();
 }
 
@@ -262,7 +267,7 @@ SEXP create_consensus_quality_loop(SEXP alignments, SEXP min_cov, SEXP qualities
     std::vector<char> qual_buffer;
     
     for (size_t i=0; i<nalign; ++i) {
-        size_t conlen=internal_create_consensus_basic(aln_list[i], mincov, qual_list[i], storage);
+        size_t conlen=internal_create_consensus_quality(aln_list[i], mincov, qual_list[i], storage);
         all_cons[i]=Rcpp::String(storage.buffer.data());
         all_qual[i]=errorsToString(conlen, storage.errorprobs, qual_buffer);
     }
