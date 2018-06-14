@@ -1,6 +1,6 @@
 #include "sarlacc.h"
-
-const std::vector<char> BASES={'A', 'C', 'G', 'T', 'N'};
+#include "utils.h"
+#include "DNA_input.h"
 
 struct trie_node {
     std::deque<int>* indices;
@@ -29,7 +29,7 @@ struct trie_node {
         }
 
         if (!children) {
-            children = new std::vector<trie_node>(BASES.size());
+            children = new std::vector<trie_node>(NBASES);
         }
 
         switch (current[position]) {
@@ -74,7 +74,7 @@ struct trie_node {
         
         ++depth;
         if (children) {
-            for (size_t i=0; i<BASES.size(); ++i) { 
+            for (size_t i=0; i<NBASES; ++i) { 
                 (*children)[i]._dump(depth, BASES[i]);
             }
         }
@@ -167,7 +167,7 @@ struct trie_node {
                 }
             }
             if (recurse_child) {
-                for (size_t i=0; i<BASES.size(); ++i) {
+                for (size_t i=0; i<NBASES; ++i) {
                     auto& child=(*children)[i];
                     if (!child.dead_end()) { 
                         child._find_within(collected, current, offset, BASES[i], *scores, limit, iter);
@@ -187,7 +187,7 @@ struct trie_node {
         std::iota(scores->begin(), scores->end(), 0); // Initializing the first level of the levenshtein array here.
 
         if (children) {
-            for (size_t i=0; i<BASES.size(); ++i) { 
+            for (size_t i=0; i<NBASES; ++i) { 
                 auto& child=(*children)[i];
                 if (!child.dead_end()) { 
                     child._find_within(collected, current, offset, BASES[i], *scores, limit, iter);
@@ -200,40 +200,54 @@ struct trie_node {
 };
 
 struct sorted_trie {
-    sorted_trie(const XStringSet_holder * p, SEXP o) : ptr(p), ordering(o) {
-        const size_t nseq=get_length_from_XStringSet_holder(ptr);
+    sorted_trie(SEXP s) : seqs(process_DNA_input(s)) {
+        auto bcg_nspace=Rcpp::Environment::namespace_env("BiocGenerics");
+        Rcpp::Function ordfun=bcg_nspace["order"];
 
-        for (auto s : ordering) {
-            auto cur_data=get_elt_from_XStringSet_holder(ptr, s);
-            const char * cur_str=cur_data.ptr;
-            const size_t cur_len=cur_data.length;
+        Rcpp::IntegerVector Order=ordfun(s);
+        ordering.resize(Order.size());
+        auto oIt=ordering.begin();
+        for (auto o : Order) {
+            (*oIt)=o-1; // zero-based indexing.
+            ++oIt;
+        }
 
-            std::vector<char> current(cur_str, cur_str + cur_len);
-            for (auto& x : current) { x=DNAdecode(x); }
+        std::vector<char> current;
+        current.reserve(50); // probably enough.
+        
+        for (auto o : ordering) {
+            seqs->choose(o);
+            const char * cur_str=seqs->cstring();
+            const size_t cur_len=seqs->length();
 
-            toplevel.insert(s, current);
+            current.resize(cur_len);
+            for (size_t i=0; i<cur_len; ++i) { 
+                current[i]=seqs->decode(cur_str[i]);
+            }
+
+            toplevel.insert(o, current);
         }
         return;
     }
 
     Rcpp::List find_within(int limit) { 
-        const size_t nseq=get_length_from_XStringSet_holder(ptr);
+        const size_t nseq=seqs->size();
         std::vector<char> current;
         current.reserve(50); // should probably be enough.
 
         Rcpp::List output(nseq);
         std::deque<int> collected;
         size_t counter=0;
-        size_t last_s=0;
+        size_t last_o=0;
 
-        for (auto s : ordering) {
-            auto cur_data=get_elt_from_XStringSet_holder(ptr, s);
-            const char * cur_str=cur_data.ptr;
-            const size_t cur_len=cur_data.length;
+        for (auto o : ordering) {
+            seqs->choose(o);
+            const char * cur_str=seqs->cstring();
+            const size_t cur_len=seqs->length();
 
             // Figuring out the common prefix.
             size_t idx=0;
-            while (idx < current.size() && idx < cur_len && DNAdecode(cur_str[idx])==current[idx]) {
+            while (idx < current.size() && idx < cur_len && seqs->decode(cur_str[idx])==current[idx]) {
                 ++idx;
             }
             const size_t common=idx;
@@ -241,14 +255,14 @@ struct sorted_trie {
             // If it's fully common, this implies that this string is the same as the previous string, 
             // so we use the previous results and skip to avoid redundant work.
             if (common==cur_len && cur_len==current.size() && counter) { 
-                output[s]=output[last_s];
+                output[o]=output[last_o];
                 continue;
             }
 
             // Replacing the remaining elements in 'current'.
             current.resize(cur_len);
             while (idx < cur_len) {
-                current[idx]=DNAdecode(cur_str[idx]);
+                current[idx]=seqs->decode(cur_str[idx]);
                 ++idx;                
             }
 
@@ -260,12 +274,14 @@ struct sorted_trie {
 
             // Searching through the trie.
             toplevel.find_within(collected, current, common, limit, counter);
+
+            // Storing the results (getting back to 1-based indexing).
             for (auto& x : collected) { ++x; }
-            output[s]=Rcpp::IntegerVector(collected.begin(), collected.end());
+            output[o]=Rcpp::IntegerVector(collected.begin(), collected.end());
             collected.clear();
 
             ++counter;
-            last_s=s;
+            last_o=o;
         }
         
         return output;
@@ -274,22 +290,21 @@ struct sorted_trie {
     void dump() {
         toplevel.dump();
     }
-    
+
+private:
     trie_node toplevel;
-    Rcpp::IntegerVector ordering;
-    const XStringSet_holder * ptr;
+    std::vector<size_t> ordering;
+    std::unique_ptr<DNA_input> seqs;
 };
 
-SEXP umi_group (SEXP umi, SEXP order, SEXP threshold) {
-    BEGIN_RCPP
-        
-    // Checking inputs.       
-    auto seq=hold_XStringSet(umi); 
-    const size_t nseq=get_length_from_XStringSet_holder(&seq);
-    int limit=check_integer_scalar(threshold, "distance threshold");
+/***************************************
+ * R-level functions start here.
+ ***************************************/
 
-    // Compiling into an output list.
-    sorted_trie dic(&seq, order);
+SEXP umi_group (SEXP umi, SEXP threshold) {
+    BEGIN_RCPP
+    int limit=check_integer_scalar(threshold, "distance threshold");
+    sorted_trie dic(umi);
     return dic.find_within(limit);
     END_RCPP
 }
