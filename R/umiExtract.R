@@ -29,10 +29,11 @@ umiExtract <- function(align.stats, position=NULL)
         # Pulling out the Phred scores (this time, we need to know the deletions in the read,
         # as the Phred scores do not contain the deletions in the alignment string).
         read.unbump <- .compute_position_bump(align.stats$read, c(bumped.start, bumped.end))
-        unbumped.start <- bumped.start - read.unbump$start[1]
-        unbumped.end <- bumped.end - read.unbump$end[1]
-
-        umi.qual <- subseq(align.stats$quality, start=unbumped.start, end=unbumped.end)
+        unbumped.start <- bumped.start - read.unbump$start
+        #unbumped.end <- bumped.end - read.unbump$end[1]
+        umi.length <- nchar(umi)
+        umi.length[umi==""] <- 0
+        umi.qual <- subseq(align.stats$quality, start=unbumped.start, width=umi.length)
         out <- QualityScaledDNAStringSet(out, umi.qual)
     }
     return(out)
