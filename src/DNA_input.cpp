@@ -79,3 +79,16 @@ size_t check_alignment_width(DNA_input * aln) {
 
     return ref;
 }
+
+size_t get_max_width(DNA_input * seq) {
+    const size_t nseq=seq->size();
+    size_t ref=0;
+    for (size_t i=0; i<nseq; ++i) { 
+        seq->choose(i);
+        const size_t len=seq->length();
+        if (len > ref) {
+            ref=len;
+        }
+    }
+    return ref;
+}

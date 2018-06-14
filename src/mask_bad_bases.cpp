@@ -15,17 +15,8 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     const double max_error=check_numeric_scalar(threshold, "quality threshold");
     
     // Getting the length of the buffer that should be set.
-    int buffersize=0;
-    {
-        for (size_t i=0; i<nseq; ++i) { 
-            all_seq->choose(i);
-            const size_t len=all_seq->length();
-            if (len > buffersize) {
-                buffersize=len;
-            }
-        }
-        ++buffersize; // for the NULL.
-    }
+    int buffersize=get_max_width(all_seq.get());
+    ++buffersize; // for the NULL.
 
     // Iterating through the sequences and masking bad bases.
     Rcpp::StringVector output(nseq);
