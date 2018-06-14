@@ -94,8 +94,10 @@ struct trie_node {
             scores = new std::vector<int>(cur_len+1);
             *(scores->begin()) = *(previous.begin()) + 1;
             offset = 0;
-        } else if (scores->size() <= cur_len) {
-            scores->resize(cur_len + 1);
+        } else {
+            if (scores->size() <= cur_len) {
+                scores->resize(cur_len + 1);
+            }
             if (history+1!=iter) {
                 offset=0;
             }
