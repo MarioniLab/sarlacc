@@ -35,8 +35,6 @@ SEXP create_consensus_quality_loop(SEXP, SEXP, SEXP);
 SEXP umi_group(SEXP, SEXP, SEXP);
 SEXP compute_lev_masked(SEXP);
 
-SEXP get_kmer_matrix(SEXP, SEXP);
-
 SEXP find_homopolymers(SEXP);
 SEXP match_homopolymers(SEXP, SEXP);
 SEXP find_errors(SEXP, SEXP);
