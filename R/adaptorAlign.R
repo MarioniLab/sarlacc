@@ -136,18 +136,22 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     return(list(reversed=is.reverse, scores=final.score))
 }
 
-#' @importFrom Biostrings pattern subject
-#' @importFrom BiocGenerics score start end
+#' @importFrom Biostrings pattern subject aligned unaligned
+#' @importFrom BiocGenerics score 
+#' @importFrom stats start end
 #' @importFrom S4Vectors DataFrame
 #' @importFrom XVector subseq
 .align_info_extractor <- function(alignments, quality=NULL) {
-    P <- alignedPattern(alignments)
-    S <- alignedSubject(alignments)
-    output <- DataFrame(score=score(alignments), read=as.character(P), 
-                        adaptor=as.character(S), start=start(P), end=end(P))
+    read0 <- pattern(alignments)
+    adaptor0 <- subject(alignments)
+    extended <- .Call(cxx_get_aligned_sequence, aligned(adaptor0), as.character(unaligned(adaptor0)), start(adaptor0), end(adaptor0), aligned(read0))
+
+    output <- DataFrame(score=score(alignments), adaptor=extended[[1]], read=extended[[2]], start=start(read0), end=end(read0))
     if (!is.null(quality)) {
         pattern.qual <- subseq(quality, start=output$start, end=output$end)
         output$quality <- pattern.qual
     }    
     return(output)
 }
+
+

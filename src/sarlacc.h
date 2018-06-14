@@ -43,4 +43,6 @@ SEXP match_homopolymers(SEXP, SEXP);
 
 SEXP find_errors(SEXP, SEXP);
 
+SEXP get_aligned_sequence(SEXP, SEXP, SEXP, SEXP, SEXP);
+
 }
