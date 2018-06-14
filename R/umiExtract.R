@@ -15,7 +15,7 @@ umiExtract <- function(align.stats, position=NULL)
     
     # Identifying the number of deletions in the adaptor before the start of the UMI.
     # This is the number of bases we have to shift to the 3' in the read alignment string. 
-    read.bump <- .Call(cxx_adjust_basepos_for_gaps, align.stats$adaptor, position[1], position[2])
+    read.bump <- .Call(cxx_count_gaps_by_base, align.stats$adaptor, position[1], position[2])
     bumped.start <- position[1] + read.bump[[1]]
     bumped.end <- position[2] + read.bump[[2]]
 
@@ -28,7 +28,7 @@ umiExtract <- function(align.stats, position=NULL)
     if (!is.null(align.stats$quality)) { 
         # Pulling out the Phred scores (this time, we need to know the deletions in the read,
         # as the Phred scores do not contain the deletions in the alignment string).
-        read.unbump <- .Call(cxx_adjust_alignpos_for_gaps, align.stats$read, bumped.start, bumped.end)
+        read.unbump <- .Call(cxx_count_gaps_by_align, align.stats$read, bumped.start, bumped.end)
         unbumped.start <- bumped.start - read.unbump[[1]]
         unbumped.end <- bumped.end - read.unbump[[2]]
         umi.qual <- substr(align.stats$quality, start=unbumped.start, stop=unbumped.end)

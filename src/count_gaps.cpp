@@ -1,11 +1,11 @@
 #include "sarlacc.h"
 #include "DNA_input.h"
 
-/* The adjust_basepos_for_gaps function _ignores_ gaps, i.e., posstart and posend are defined on the bases, and are scalars.
- * The adjust_alignpos_for_gaps function includes gaps, i.e., posstart and posend are defined on the alignment string and are vectors.
+/* The count_gaps_by_base function ignores gaps in the position specification, i.e., posstart and posend refer to base positions (and are scalars).
+ * The count_gaps_by_align function includes gaps in the position specification, i.e., posstart and posend refer to alignment columns (and are vectors).
  */
 
-SEXP adjust_basepos_for_gaps(SEXP adapt_align, SEXP posstart, SEXP posend) {
+SEXP count_gaps_by_base(SEXP adapt_align, SEXP posstart, SEXP posend) {
     BEGIN_RCPP
     auto alignments=process_DNA_input(adapt_align);
     const size_t N=alignments->size();
@@ -51,7 +51,7 @@ SEXP adjust_basepos_for_gaps(SEXP adapt_align, SEXP posstart, SEXP posend) {
     END_RCPP
 }
 
-SEXP adjust_alignpos_for_gaps(SEXP read_align, SEXP posstart, SEXP posend) {
+SEXP count_gaps_by_align(SEXP read_align, SEXP posstart, SEXP posend) {
     BEGIN_RCPP
     auto alignments=process_DNA_input(read_align);
     const size_t N=alignments->size();

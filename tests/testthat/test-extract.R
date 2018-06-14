@@ -16,6 +16,9 @@ SHIFTFUN <- function(align.str, position) {
     return(list(start=bump.start, end=bump.end))
 }
 
+bybase <- function(...) { .Call(sarlacc:::cxx_count_gaps_by_base, ...) }
+byalign <- function(...) { .Call(sarlacc:::cxx_count_gaps_by_align, ...) }
+
 # Insert deletions throughout to mimic an alignment string for the adaptor.
 position <- c(11, 14) 
 adaptor_aln <- c("ACAGTGACGTNNNNACACT",
@@ -31,7 +34,7 @@ adaptor_aln <- c("ACAGTGACGTNNNNACACT",
                 "AC-AGTG-ACGT-NN-NN-ACACT")
 
 test_that("base position shift calculations are correct", {
-    test <- .Call(sarlacc:::cxx_adjust_basepos_for_gaps, adaptor_aln, position[1], position[2])
+    test <- bybase(adaptor_aln, position[1], position[2])
     ref <- SHIFTFUN(adaptor_aln, position)
     expect_identical(ref$start, test[[1]])
     expect_identical(ref$end, test[[2]])
@@ -42,9 +45,9 @@ test_that("base position shift calculations are correct", {
 })
 
 test_that("base position shift errors are thrown", {
-    expect_error(.Call(sarlacc:::cxx_adjust_basepos_for_gaps, adaptor_aln, -1L, 0L), "positive integers")
-    expect_error(.Call(sarlacc:::cxx_adjust_basepos_for_gaps, adaptor_aln, 5L, 0L), "must be less than or equal to")
-    expect_error(.Call(sarlacc:::cxx_adjust_basepos_for_gaps, adaptor_aln, 1L, 100L), "exceeds the number of bases")
+    expect_error(bybase(adaptor_aln, -1L, 0L), "positive integers")
+    expect_error(bybase(adaptor_aln, 5L, 0L), "must be less than or equal to")
+    expect_error(bybase(adaptor_aln, 1L, 100L), "exceeds the number of bases")
 })
 
 test_that("alignment position shift calculations are correct", {
@@ -53,7 +56,7 @@ test_that("alignment position shift calculations are correct", {
     align.start <- align.pos$start + position[1]
     align.end <- align.pos$end + position[2]
 
-    test <- .Call(sarlacc:::cxx_adjust_alignpos_for_gaps, read_aln, align.start, align.end)
+    test <- byalign(read_aln, align.start, align.end)
     bump.start <- bump.end <- integer(length(read_aln))
     for (i in seq_along(bump.start)) { 
         is.gap <- strsplit(read_aln[i], "")[[1]]=="-"
@@ -69,15 +72,24 @@ test_that("alignment position shift calculations are correct", {
 
     # Testing what happens when the start and end lie exactly on a gap
     # (this should not, in general, happen, as adjusted base positions should lie on bases).
-    test <- .Call(sarlacc:::cxx_adjust_alignpos_for_gaps, "-AA-", 1, 4)
+    test <- byalign("-AA-", 1, 4)
     expect_identical(test[[1]], 0L)
     expect_identical(test[[2]], 2L)
+
+    test <- byalign("A-AA-A", 2, 5)
+    expect_identical(test[[1]], 0L)
+    expect_identical(test[[2]], 2L)
+
+    test <- byalign("-A-AA-A", 3, 6)
+    expect_identical(test[[1]], 1L)
+    expect_identical(test[[2]], 3L)
 }) 
 
 test_that("alignment position shift errors are thrown", {
-    expect_error(.Call(sarlacc:::cxx_adjust_alignpos_for_gaps, adaptor_aln, -1L, 0L), "positive integers")
-    expect_error(.Call(sarlacc:::cxx_adjust_alignpos_for_gaps, adaptor_aln, 5L, 0L), "must be less than or equal to")
-    expect_error(.Call(sarlacc:::cxx_adjust_alignpos_for_gaps, adaptor_aln, 1L, 100L), "exceeds the number of bases")
+    expect_error(byalign(adaptor_aln, 1L, 2L), "not the same length")
+    expect_error(byalign(adaptor_aln[1], -1L, 0L), "positive integers")
+    expect_error(byalign(adaptor_aln[1], 5L, 0L), "must be less than or equal to")
+    expect_error(byalign(adaptor_aln[1], 1L, 100L), "exceeds the number of positions")
 })
 
 
