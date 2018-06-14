@@ -1,4 +1,4 @@
-#include "sarlacc.h"
+#include "utils.h"
 
 template<typename T, class V> 
 T check_scalar(Rcpp::RObject incoming, const char* arg, const char* val) {
