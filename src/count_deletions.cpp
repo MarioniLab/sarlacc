@@ -1,4 +1,5 @@
 #include "sarlacc.h"
+#include "DNA_input.h"
 
 /* The adjust_basepos_for_gaps function _ignores_ gaps, i.e., posstart and posend are defined on the bases, and are scalars.
  * The adjust_alignpos_for_gaps function includes gaps, i.e., posstart and posend are defined on the alignment string and are vectors.
@@ -6,22 +7,33 @@
 
 SEXP adjust_basepos_for_gaps(SEXP adapt_align, SEXP posstart, SEXP posend) {
     BEGIN_RCPP
-    Rcpp::StringVector alignments(adapt_align);
-    const size_t N=alignments.size();
-    const size_t Start=check_integer_scalar(posstart, "UMI start position") - 1, 
-                 End=check_integer_scalar(posend, "UMI end position"); // Zero indexed start, open end.
+    auto alignments=process_DNA_input(adapt_align);
+    const size_t N=alignments->size();
+
+    const int Start=check_integer_scalar(posstart, "UMI start position") - 1, 
+              End=check_integer_scalar(posend, "UMI end position"); // Zero indexed start, open end.
+    if (Start<0 || End<0) {
+        throw std::runtime_error("positions must be positive integers"); // message for R-level users, hence not 'non-negative'.
+    }
+    if (Start > End) {
+        throw std::runtime_error("start position must be less than or equal to end position");
+    }
 
     Rcpp::IntegerVector beforeS(N), beforeE(N);
     for (size_t i=0; i<N; ++i) {
-        Rcpp::String curstring(alignments[i]);
-        const char* current=curstring.get_cstring();
-
+        alignments->choose(i);
+        const size_t len=alignments->length();
+        const char* current=alignments->cstring();
+        
         int counter=0;
         int& bumpStart=beforeS[i];
         int& bumpEnd=beforeE[i];
         
-        while (*current!='\0' && counter < End) {
-            if (*current!='-') {
+        while (counter < End) {
+            if (counter > len) {
+                throw std::runtime_error("end position exceeds the number of bases in the alignment string");
+            }
+            if (alignments->decode(*current)!='-') {
                 ++counter;
             } else {
                 if (counter < End) {
@@ -41,8 +53,8 @@ SEXP adjust_basepos_for_gaps(SEXP adapt_align, SEXP posstart, SEXP posend) {
 
 SEXP adjust_alignpos_for_gaps(SEXP read_align, SEXP posstart, SEXP posend) {
     BEGIN_RCPP
-    Rcpp::StringVector alignments(read_align);
-    const size_t N=alignments.size();
+    auto alignments=process_DNA_input(read_align);
+    const size_t N=alignments->size();
 
     // Zero indexed start, open end.
     Rcpp::IntegerVector Starts(posstart), Ends(posend);
@@ -52,18 +64,28 @@ SEXP adjust_alignpos_for_gaps(SEXP read_align, SEXP posstart, SEXP posend) {
 
     Rcpp::IntegerVector beforeS(N), beforeE(N);
     for (size_t i=0; i<N; ++i) {
-        Rcpp::String curstring(alignments[i]);
-        const char* current=curstring.get_cstring();
+        alignments->choose(i);
+        const char* current=alignments->cstring();
+        const size_t len=alignments->length();
+
+        int Start=Starts[i]-1; // zero indexed start, open end.
+        int End=Ends[i];
+        if (Start<0 || End<0) {
+            throw std::runtime_error("positions must be positive integers"); // message for R-level users, hence not 'non-negative'.
+        }
+        if (Start > End) {
+            throw std::runtime_error("start position must be less than or equal to end position");
+        }
+        if (End > len) {
+            throw std::runtime_error("end position exceeds the number of positions in the alignment string");
+        }
 
         int counter=0;
         int& bumpStart=beforeS[i];
         int& bumpEnd=beforeE[i];
 
-        int Start=Starts[i]-1; // zero indexed start, open end.
-        int End=Ends[i];
-        
-        while (*current!='\0' && counter < End) {
-            if (*current=='-') {
+        while (counter < End) {
+            if (alignments->decode(*current)=='-') {
                 if (counter < End) {
                     ++bumpEnd;
                     if (counter < Start) { // NOT '<=', to avoid counting gaps at the 'Start' alignment position.
