@@ -1,16 +1,25 @@
 #' @export
 #' @importFrom BiocGenerics order
-umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1)
+umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.err=NA)
 # Groups UMIs based on their Levenshtein distances.
 # Note that the 'importFrom' is due to an implicit order() call in the C++ code.
 # 
 # written by Aaron Lun
 # created 25 February 2018
 {
+    if (length(UMI1)==1L) { 
+        return(1)
+    }
+
+    UMI1 <- .safe_masker(UMI1, max.err)
     out1 <- .Call(cxx_umi_group, UMI1, max.lev1)
 
     # Repeating for the second UMI, if it is available.
-    if (!is.null(UMI2)) { 
+    if (!is.null(UMI2)) {
+        if (length(UMI1)!=length(UMI2)) { 
+            stop("mismatch in lengths between 'UMI1' and 'UMI2'")
+        }
+        UMI2 <- .safe_masker(UMI2, max.err)
         out2 <- .Call(cxx_umi_group, UMI2, max.lev2)
         out1 <- mapply(intersect, out1, out2)
     }
@@ -18,5 +27,18 @@ umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1)
     .Call(cxx_descending_graph_cluster, out1) 
 }
 
-
+#' @importFrom Biostrings quality
+#' @importFrom methods is as
+#' @importClassesFrom Biostrings DNAStringSet QualityScaledDNAStringSet
+#' @importClassesFrom IRanges NumericList
+.safe_masker <- function(UMI, max.err) {
+    has.quals <- is(UMI, "QualityScaledDNAStringSet")
+    if (!is.na(max.err) && has.quals) { 
+        all.qual <- as.list(as(quality(UMI), "NumericList"))
+        UMI <- .Call(cxx_mask_bad_bases, UMI, all.qual, max.err)
+    } else if (has.quals) {
+        UMI <- as(UMI, "DNAStringSet")
+    } 
+    return(UMI)
+}
 
