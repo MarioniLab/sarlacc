@@ -5,7 +5,8 @@
 \description{Identify reads originating from the same DNA molecule, based on similar sequences for the unique molecular identifiers (UMIs).}
 
 \usage{
-umiGroup(UMI1, max.lev1=3, UMI2=NULL, max.lev2=max.lev1, max.err=NA)
+umiGroup(UMI1, max.lev1=3, UMI2=NULL, max.lev2=max.lev1, max.err=NA, 
+    use.densities=TRUE)
 }
 
 \arguments{
@@ -13,7 +14,8 @@ umiGroup(UMI1, max.lev1=3, UMI2=NULL, max.lev2=max.lev1, max.err=NA)
 \item{max.lev1}{A integer scalar specifying the maximum distance between the UMI sequences of two reads in order for them to be considered equivalent.}
 \item{UMI2}{An optional DNAStringSet or QualityScaledDNAStringSet object containing the second UMI sequence for each read.}
 \item{max.lev2}{A integer scalar specifying the maximum distance between the UMI sequences of two reads in order for them to be considered equivalent.}
-\item{max.err}{A numeric scalar specifying the maximum error probability, above which bases are to be masked.}
+\item{max.err}{A numeric scalar specifying the maximum error probability above which bases are to be masked.}
+\item{use.densities}{A logical scalar specifying whether density information should be used when identifying clusters.}
 }
 
 \details{
@@ -35,7 +37,11 @@ We then define UMI groups using a variation of the graph-based approach describe
     \item The above step is repeated until all nodes are assigned to a source node.
     The assignments define the groupings.
 }
+
 Grouping by non-increasing densities reflects the expected result from PCR decay products.
+However, this may not be reliable at very low coverage where the graph is sparse and the density is not well-estimated.
+In such cases, users can set \code{use.densities=FALSE} to define groups from a connected component of the graph.
+This will consistently collect UMIs into larger clusters, but is not appropriate at high coverage where subgraphs from different original UMIs may become connected.
 
 If \code{UMI2} is supplied, we assume that each read is represented by two UMI sequences (e.g., on both ends of the read).
 Sequences in \code{UMI1} are compared to other sequences in \code{UMI1}, and sequences in \code{UMI2} are compared to other sequences in \code{UMI2}.

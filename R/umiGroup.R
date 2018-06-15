@@ -1,6 +1,7 @@
 #' @export
 #' @importFrom BiocGenerics order
-umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.err=NA)
+#' @importFrom igraph make_graph components
+umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.err=NA, use.densities=TRUE)
 # Groups UMIs based on their Levenshtein distances.
 # Note that the 'importFrom' is due to an implicit order() call in the C++ code.
 # 
@@ -24,7 +25,14 @@ umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.e
         out1 <- mapply(intersect, out1, out2)
     }
 
-    .Call(cxx_descending_graph_cluster, out1) 
+    if (use.densities) { 
+        return(.Call(cxx_descending_graph_cluster, out1))
+    } else {
+        left <- unlist(out1) + 1L
+        right <- rep(seq_along(out1), lengths(out1))
+        G <- make_graph(rbind(left, right), directed=FALSE, n=length(UMI1))
+        return(components(G)$membership)
+    }
 }
 
 #' @importFrom Biostrings quality
