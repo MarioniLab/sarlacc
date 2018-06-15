@@ -44,9 +44,9 @@ multiReadAlign <- function(reads, groups, max.error=0.1, keep.masked=FALSE, ...,
     solo <- lengths(by.group)==1L
     if (any(solo)) {
         if (do.mask && keep.masked) {
-            all.results[solo] <- all.reads[unlist(by.group[solo])]
-        } else {
             all.results[solo] <- all.masked[unlist(by.group[solo])]
+        } else {
+            all.results[solo] <- all.reads[unlist(by.group[solo])]
         }
     }
 
