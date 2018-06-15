@@ -137,8 +137,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 }
 
 #' @importFrom Biostrings pattern subject aligned unaligned
-#' @importFrom BiocGenerics score 
-#' @importFrom stats start end
+#' @importFrom BiocGenerics score start end
 #' @importFrom S4Vectors DataFrame
 #' @importFrom XVector subseq
 .align_info_extractor <- function(alignments, quality=NULL) {
