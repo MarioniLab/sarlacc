@@ -87,8 +87,14 @@ Aaron Lun
 \examples{
 a1 <- "AACGGGTCG"
 a2 <- "CGTGCTGCATCG"
+
 reads <- DNAStringSet(c(
     "AACGGGTCGCTCGACGACTACGTCCGATGCAGCACG",
     "CGTGCTGCATCGGACGTAGTCGTCGAGCGACCCGTT"))
+(out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads))
+
+reads <- QualityScaledDNAStringSet(reads, PhredQuality(c(
+    "12391789123%#@*&^31237632894345%$2!^",
+    "9-0368560495--(*)1312-34983923401098")))
 (out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads))
 }
