@@ -277,8 +277,7 @@ struct sorted_trie {
             // Searching through the trie.
             toplevel.find_within(collected, current, common, limit, counter);
 
-            // Storing the results (getting back to 1-based indexing).
-            for (auto& x : collected) { ++x; }
+            // Storing the results.
             output[o]=Rcpp::IntegerVector(collected.begin(), collected.end());
             collected.clear();
 
@@ -308,5 +307,98 @@ SEXP umi_group (SEXP umi, SEXP threshold) {
     int limit=check_integer_scalar(threshold, "distance threshold");
     sorted_trie dic(umi);
     return dic.find_within(limit);
+    END_RCPP
+}
+
+SEXP descending_graph_cluster (SEXP groupings) {
+    BEGIN_RCPP
+    Rcpp::List Group(groupings);
+    const size_t nnodes=Group.size();
+    std::vector<Rcpp::IntegerVector> all_values(nnodes);
+    for (size_t g=0; g<Group.size(); ++g) {
+        all_values[g]=Group[g];
+    }
+
+    // Sorting by maximum size.
+    std::vector<size_t> by_size(nnodes);
+    std::iota(by_size.begin(), by_size.end(), 0);
+    std::sort(by_size.begin(), by_size.end(), [&] (size_t left, size_t right) {
+        return all_values[left].size() > all_values[right].size();            
+    });
+
+    // Defining things to determine if a node already exists.
+    std::vector<size_t> distance_to_source(nnodes);
+    std::vector<size_t> parent_density(nnodes);
+    Rcpp::IntegerVector cluster(nnodes);
+
+    auto already_there = [&] (size_t child, size_t parent, size_t ID, size_t step) -> bool {
+        // The proposed new parent must be no less dense than the child.
+        const size_t& current_parent_density=all_values[parent].size();
+        if (all_values[child].size() > current_parent_density) { 
+            return true;
+        }
+        
+        // Is the point already assigned to a parent (manifests as non-zero density)?
+        // And if so, is the existing parent closer? If they're the same, is the existing parent denser?
+        // Note that this implicitly gets rid of self-connections, as the stored step will always be lower.
+        size_t& prev_parent_density=parent_density[child];
+        size_t& prev_distance=distance_to_source[child];
+        if (prev_parent_density > 0) {
+            if (prev_distance < step) {
+                return true;
+            } else if (prev_distance==step && prev_parent_density >= current_parent_density) {
+                return true;
+            }
+        }
+
+        // Updating all values.
+        prev_parent_density=current_parent_density;
+        prev_distance=step;
+        cluster[child]=ID;
+        return false;            
+    };
+
+    std::deque<size_t> current_step, next_step;
+    size_t group_id=1;
+
+    // Descending along the most dense nodes.
+    for (auto curnode : by_size) {
+        if (parent_density[curnode] > 0) {
+            continue;
+        }
+        cluster[curnode]=group_id;
+        const auto& children=all_values[curnode];
+        parent_density[curnode]=children.size(); 
+        size_t step=1; // note that distance_to_source is implicitly zero, so no need to set it.
+
+        // Immediate children. 
+        current_step.clear();
+        for (auto child : children) {
+            if (!already_there(child, curnode, group_id, step)) { 
+                current_step.push_back(child);
+            }
+        }
+        ++step;
+
+        // Repeating recursively for all further descendants.     
+        while (!current_step.empty()) {
+            for (auto descendant : current_step) {
+                const auto& next_gen=all_values[descendant];
+                for (auto granddesc : next_gen) {
+                    if (!already_there(granddesc, descendant, group_id, step)) { 
+                        next_step.push_back(granddesc);
+                    }
+                }
+            }
+
+            current_step.swap(next_step);
+            next_step.clear();
+            ++step;
+        }
+
+        ++group_id;
+    }
+
+    return cluster;   
     END_RCPP
 }
