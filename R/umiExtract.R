@@ -31,7 +31,7 @@ umiExtract <- function(align.stats, position=NULL)
         read.unbump <- .Call(cxx_count_gaps_by_align, align.stats$read, bumped.start, bumped.end)
         unbumped.start <- bumped.start - read.unbump[[1]]
         unbumped.end <- bumped.end - read.unbump[[2]]
-        umi.qual <- subseq(align.stats$quality, start=unbumped.start, stop=unbumped.end)
+        umi.qual <- subseq(align.stats$quality, start=unbumped.start, end=unbumped.end)
         out <- QualityScaledDNAStringSet(out, umi.qual)
     }
     return(out)
