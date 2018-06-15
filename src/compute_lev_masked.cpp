@@ -10,11 +10,11 @@ SEXP compute_lev_masked(SEXP seqs) {
 
     auto seq=hold_XStringSet(seqs);
     const size_t nseq=get_length_from_XStringSet_holder(&seq);
-    Rcpp::IntegerVector output((nseq-1)*nseq/2);
+    Rcpp::NumericVector output((nseq-1)*nseq/2);
     auto oIt=output.begin();
 
     // Setting up the odds and ends required
-    std::vector<unsigned int> col, prev_col;
+    std::vector<double> col, prev_col;
     col.reserve(50);
     prev_col.reserve(50);
 
@@ -41,7 +41,7 @@ SEXP compute_lev_masked(SEXP seqs) {
 
                 for (size_t ix=0; ix<ilen; ++ix) {
                     const char ibase=DNAdecode(istr[ix]);
-                    const int match_score = (jbase=='N' || ibase=='N' ? 1 : (jbase==ibase ? 0 : 1));
+                    const double match_score = (jbase=='N' || ibase=='N' ? 0.5 : (jbase==ibase ? 0 : 1));
                     col[ix+1] = std::min({ prev_col[ix+1] + 1, col[ix] + 1, prev_col[ix] + match_score });
                 }
                 col.swap(prev_col);
