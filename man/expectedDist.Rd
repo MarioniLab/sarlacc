@@ -6,7 +6,7 @@
 
 \usage{
 expectedDist(align.stats, position=NULL, offset=NULL, 
-    number=100, get.seq=FALSE, min.qual=10)
+    number=100, get.seq=FALSE, max.err=NA)
 }
 
 \arguments{
@@ -15,7 +15,7 @@ expectedDist(align.stats, position=NULL, offset=NULL,
 \item{offset}{An integer scalar in \code{[0, UMI length]} specifying the offset with which subsequences are extracted from the adaptor.}
 \item{number}{An integer scalar specifying the number of reads to process.}
 \item{get.seq}{A logical scalar indicating whether the extracted sequences should be returned.}
-\item{min.qual}{A integer scalar specifying the minimum Phred-scaled quality, i.e., \code{-10*log10(error)}.}
+\item{max.err}{A numeric scalar specifying the maximum error probability above which bases will be masked.}
 }
 
 \details{
@@ -35,8 +35,8 @@ Conversely, if \code{offset=LEN}, only the flanking interval on the 5' end is us
 
 Pairwise Levenshtein distances are computed between all extracted sequences.
 This is quite computationally expensive, so we only process a random subset of these sequences by setting \code{number}.
-If \code{align.stats} contains quality scores, bases with Phred-scaled qualities below \code{min.qual} are replaced with \code{N}s.
-Any \code{N}s are treated as missing and always manifest as mismatches, even for matches to other \code{N}s - see \code{?\link{umiGroup}} for details.
+If \code{align.stats} contains quality scores, bases with error probabilities above \code{max.qual} are replaced with \code{N}s.
+Any \code{N}s are treated as missing and will contribute a mismatch score of 0.5, even for matches to other \code{N}s.
 }
 
 \value{

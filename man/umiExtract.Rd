@@ -37,11 +37,17 @@ Aaron Lun
 \examples{
 adaptor <- "ACTACGACNNNNCAACGACT"
 read <- "ACTACGACACTGCAACGACTCACAGCATCA"
+
+# Mocking up an adaptor alignment: use adaptorAlign() for real data.
 pw.aln <- pairwiseAlignment(pattern=read, subject=adaptor,
     type="local-global")
 stats <- DataFrame(read=as.character(pattern(pw.aln)),
     adaptor=as.character(subject(pw.aln))) 
 rownames(stats) <- "WHEE"
 
-umiExtract(stats)
+(out <- umiExtract(stats))
+
+# Adding some qualities.
+stats$quality <- PhredQuality("983475298471982348712367432093")
+(out <- umiExtract(stats))
 }

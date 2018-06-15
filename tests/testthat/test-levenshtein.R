@@ -18,16 +18,14 @@ test_that("custom levenshtein calculator works as expected for default data", {
     # Simulate many, many random sequences.
     randoms <- SEQSIM(100, min.length=1, max.length=20)
     ref <- stringDist(randoms, method="levenshtein")
-    ref <- as.integer(ref)
     out <- .Call(sarlacc:::cxx_compute_lev_masked, randoms)
-    expect_identical(ref, out) 
+    expect_identical(as.double(ref), out) 
 
     # Again, with a more restricted range.
     randoms <- SEQSIM(100, min.length=5, max.length=10)
     ref <- stringDist(randoms, method="levenshtein")
-    ref <- as.integer(ref)
     out <- .Call(sarlacc:::cxx_compute_lev_masked, randoms)
-    expect_identical(ref, out) 
+    expect_identical(as.double(ref), out) 
 })
 
 test_that("custom levenshtein calculator works as expected for masked data", {
@@ -36,14 +34,14 @@ test_that("custom levenshtein calculator works as expected for masked data", {
         masked <- ref
         substr(masked, i, i+1) <- "N"
         out <- .Call(sarlacc:::cxx_compute_lev_masked, DNAStringSet(c(ref, masked)))
-        expect_identical(out, 1L)
+        expect_identical(out, 0.5)
 
         out <- .Call(sarlacc:::cxx_compute_lev_masked, DNAStringSet(c(ref, ref)))
-        expect_identical(out, 0L)
+        expect_identical(out, 0)
         
-        # N's are missing, so a distance of 1 even when strings are the same
+        # N's are missing, so a distance of 0.5 even when strings are the same
         out <- .Call(sarlacc:::cxx_compute_lev_masked, DNAStringSet(c(masked, masked)))
-        expect_identical(out, 1L)
+        expect_identical(out, 0.5)
     }
 })
 
@@ -141,7 +139,7 @@ test_that("graph clusterer works as expected for a given list", {
                 pruned.links[[i]] <- current[keep]
             }
 
-            G <- igraph::make_graph(rbind(rep(seq_along(pruned.links), lengths(pruned.links)), unlist(pruned.links)), n=nuniverse)
+            G <- igraph::make_graph(rbind(rep(seq_along(pruned.links), lengths(pruned.links)), unlist(pruned.links)), n=nuniverse, directed=FALSE)
             for (chosen in split(seq_along(clusters), clusters)) {
                 subG <- igraph::induced_subgraph(G, chosen)
                 expect_identical(igraph::count_components(subG), 1)

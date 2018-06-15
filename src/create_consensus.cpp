@@ -4,6 +4,8 @@
 
 // Constants.
 const double max_error=0.99999999, min_error=0.00000001;
+const std::vector<char> BASES={'A', 'C', 'G', 'T'};
+const int NBASES=BASES.size();
 
 Rcpp::String errorsToString (size_t len, const std::vector<double>& errorprobs, std::vector<char>& working) {
     if (working.size() <= len) {
@@ -62,29 +64,40 @@ size_t internal_create_consensus_basic(SEXP alignments, const double mincov, con
         const char* aln_str=all_aln->cstring();
         auto sIt=storage.scores.begin();
 
-        for (size_t i=0; i<alignwidth; ++i) {
+        for (size_t i=0; i<alignwidth; ++i, sIt+=NBASES) {
             const char curbase=all_aln->decode(aln_str[i]);
-            switch (curbase) { 
-                case 'A': case 'a':
-                    ++(*sIt);
-                    break;
-                case 'C': case 'c':
-                    ++(*(sIt+1));
-                    break;
-                case 'G': case 'g':
-                    ++(*(sIt+2));
-                    break;
-                case 'T': case 't':
-                    ++(*(sIt+3));
-                    break;
-            }
-            
+
             // We use a separate vector for holding incidences, just in case
             // there are "N"'s (such that the sum of ACTG counts != incidences).
-            if (curbase!='-') {
-                ++(storage.incidences[i]);
+            if (curbase=='-') {
+                continue;
             }
-            sIt+=NBASES;
+            ++(storage.incidences[i]);
+            if (curbase=='N') {
+                continue;
+            }
+
+            switch (curbase) { 
+                case 'A':
+                    ++(*sIt);
+                    break;
+                case 'C': 
+                    ++(*(sIt+1));
+                    break;
+                case 'G':
+                    ++(*(sIt+2));
+                    break;
+                case 'T':
+                    ++(*(sIt+3));
+                    break;
+                default:
+                    {
+                        std::stringstream err;
+                        err << "unknown character '" << curbase << "' in alignment string";
+                        throw std::runtime_error(err.str().c_str());
+                    }
+            }
+            
         }
     }
 
@@ -177,14 +190,22 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
 
         for (size_t i=0; i<alignwidth; ++i, sIt+=NBASES) { // leave sIt here to ensure it runs even when 'continue's.
             const char curbase=all_aln->decode(astr[i]);
+
             if (curbase=='-') {
                 continue;
             }
             ++(storage.incidences[i]);
 
+            // Again, N's only contribute to the existence of a base, but not decisions regarding its identity.
+            // We keep it after the error check to ensure that mismatches still throw.
             if (position >= curqual.size()) {
                 throw std::runtime_error("quality vector is shorter than the alignment sequence");
             }
+            if (curbase=='N') {
+                ++position;
+                continue;
+            }
+
             double newqual=curqual[position];
             if (newqual>max_error) {
                 newqual=max_error;
@@ -196,7 +217,7 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
             const double wrong=std::log(newqual/(NBASES-1));
             ++position;
 
-            // Adding the log-probabilities for each base. This is safe with 'N's, as all bases get +=wrong.
+            // Adding the log-probabilities for each base. 
             for (size_t b=0; b<NBASES; ++b) {
                 *(sIt+b) += (curbase==BASES[b] ? right : wrong);
             }
