@@ -2,6 +2,9 @@
 #include "utils.h"
 #include "DNA_input.h"
 
+const std::vector<char> BASES={'A', 'C', 'G', 'T', 'N'};
+const int NBASES=BASES.size();
+
 struct trie_node {
     std::deque<int>* indices;
     std::vector<trie_node>* children;

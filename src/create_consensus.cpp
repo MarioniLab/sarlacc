@@ -4,6 +4,8 @@
 
 // Constants.
 const double max_error=0.99999999, min_error=0.00000001;
+const std::vector<char> BASES={'A', 'C', 'G', 'T'};
+const int NBASES=BASES.size();
 
 Rcpp::String errorsToString (size_t len, const std::vector<double>& errorprobs, std::vector<char>& working) {
     if (working.size() <= len) {
