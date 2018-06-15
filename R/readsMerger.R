@@ -38,19 +38,20 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         # Defining UMI subclusters with umiGroup.
         umi.subgroups <- bplapply(cluster.list, FUN=.umi_group, UMI1=UMI1.copy, UMI2=UMI2.copy, umi.args=group.args, BPPARAM=BPPARAM)
         subclustered <- unlist(mapply(FUN=split, x=cluster.list, f=umi.subgroups, SIMPLIFY=FALSE), recursive=FALSE)
-        names(subclustered) <- names(reads)[vapply(cluster.list, FUN="[", i=1, FUN.VALUE=0L)] # using the name of the first read as the name for each group
+        names(subclustered) <- names(reads)[vapply(subclustered, FUN="[", i=1, FUN.VALUE=0L)] # using the name of the first read as the name for each group
 
         # Figuring out the original reads in each UMI group.
-        origins <- unlist(lapply(subclustered, FUN=function(idx) { unlist(origins[idx], use.names=FALSE) }))
+        origins <- lapply(subclustered, FUN=function(idx) { unlist(origins[idx], use.names=FALSE) })
 
         # Creating alignments and consensus sequences _from the originals_, to ensure accurate quality calculations.
         # Overwriting the copies for the next round of iteration.
         aligned.reads <- do.call(multiReadAlign, c(list(reads, groups=origins, BPPARAM=BPPARAM), mra.read.args))
         read.copy <- do.call(consensusReadSeq, c(list(aligned.reads, BPPARAM=BPPARAM), cons.read.args))
-
+        
         aligned.UMI1 <- do.call(multiReadAlign, c(list(UMI1, groups=origins, BPPARAM=BPPARAM), mra.umi1.args))
         UMI1.copy <- do.call(consensusReadSeq, c(list(aligned.UMI1, BPPARAM=BPPARAM), cons.umi1.args))
-
+        names(UMI1.copy) <- names(read.copy) <- names(origins)
+        
         if (!is.null(UMI2)) {
             aligned.UMI2 <- do.call(multiReadAlign, c(list(UMI2, groups=origins, BPPARAM=BPPARAM), mra.umi2.args))
             UMI2.copy <- do.call(consensusReadSeq, c(list(aligned.UMI2, BPPARAM=BPPARAM), cons.umi2.args))
@@ -88,7 +89,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 #' @importFrom data.table fread
 .process_paf <- function(paf, min.match=0.7) {
     paf <- fread(paf, select = c(1, 2, 6, 7, 10), sep="\t", header= FALSE,fill=TRUE)
-    colnames(paf) <- c("qname", "qlength", "tname", "tlength", "alength")
+    colnames(paf) <- c("qname", "qlength", "tname", "tlength", "matches")
 
     mean.length <- (paf$qlength+paf$tlength)/2
     prop.identical <- paf$matches/mean.length
