@@ -21,7 +21,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 
     fpath <- file.path(working.dir, "reads.fastq")
     all.args <- c(mm.args, "-x ava-ont", "-c", fpath, fpath)
-    paf.cmd <- paste(c(mm.cmd, all.args), collapse=" ")
+    paf.cmd <- paste(c(mm.cmd, all.args,"|cut -f 1-12"), collapse=" ")
 
     origins <- as.list(seq_along(reads))
     read.copy <- reads
@@ -35,7 +35,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         cleaned.paf <- .process_paf(paf.cmd, min.match=min.identity) # supply the minimap2 shell command directly to fread().
         cluster.list <- .cluster_paf(cleaned.paf, names(read.copy))
 
-        # Defining UMI subclusters with umiGroup2.
+        # Defining UMI subclusters with umiGroup.
         umi.subgroups <- bplapply(cluster.list, FUN=.umi_group, UMI1=UMI1.copy, UMI2=UMI2.copy, umi.args=group.args, BPPARAM=BPPARAM)
         subclustered <- unlist(mapply(FUN=split, x=cluster.list, f=umi.subgroups, SIMPLIFY=FALSE), recursive=FALSE)
         names(subclustered) <- names(reads)[vapply(cluster.list, FUN="[", i=1, FUN.VALUE=0L)] # using the name of the first read as the name for each group
@@ -87,7 +87,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 
 #' @importFrom data.table fread
 .process_paf <- function(paf, min.match=0.7) {
-    paf <- fread(paf, select = c(1, 2, 6, 7, 10), sep="\t", header= FALSE)
+    paf <- fread(paf, select = c(1, 2, 6, 7, 10), sep="\t", header= FALSE,fill=TRUE)
     colnames(paf) <- c("qname", "qlength", "tname", "tlength", "alength")
 
     mean.length <- (paf$qlength+paf$tlength)/2
@@ -98,5 +98,5 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 }
 
 .umi_group <- function(idx, UMI1, UMI2, umi.args) {
-    do.call(umiGroup2, c(UMI1=UMI1[idx], UMI2=UMI2[idx], umi.args))
+    do.call(umiGroup, c(UMI1=UMI1[idx], UMI2=UMI2[idx], umi.args))
 }
