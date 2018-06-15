@@ -5,6 +5,16 @@
 const std::vector<char> BASES={'A', 'C', 'G', 'T', 'N'};
 const int NBASES=BASES.size();
 
+const int MULT=2;
+const int EDIT=MULT;
+int get_edit_score (char left, char right) {
+    // If the current base is 'N', this _always_ adds half a mismatch.
+    // This reduces the penalty of a full mismatch without awarding ambiguity.
+    if (left=='N' || right=='N') { return 1; }
+    if (left==right) { return 0; }
+    return EDIT;
+}
+
 struct trie_node {
     std::deque<int>* indices;
     std::vector<trie_node>* children;
@@ -95,7 +105,7 @@ struct trie_node {
         const size_t cur_len=current.size();
         if (!scores) {
             scores = new std::vector<int>(cur_len+1);
-            *(scores->begin()) = *(previous.begin()) + 1;
+            *(scores->begin()) = *(previous.begin()) + EDIT;
             offset = 0;
         } else {
             if (scores->size() <= cur_len) {
@@ -118,19 +128,10 @@ struct trie_node {
 //      Rprintf("This base is %c\n", this_base);
 
         // Filling out the latest row of the levenshtein distance matrix, picking up from the last memory (offset).
-        // If the current base is 'N', this _always_ triggers a mismatch.
-        if (this_base!='N') { 
-            for (size_t i=offset+1; i<=cur_len; ++i) {
-                *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
-                                               *(cur_space_it + i - 1) + 1, 
-                                               *(last_space_it + i - 1) + (current[i-1] == this_base ? 0 : 1) });
-            }
-        } else {
-            for (size_t i=offset+1; i<=cur_len; ++i) {
-                *(cur_space_it+i) = std::min({ *(last_space_it + i) + 1, 
-                                               *(cur_space_it + i - 1) + 1, 
-                                               *(last_space_it + i - 1) + 1 });
-            }
+        for (size_t i=offset+1; i<=cur_len; ++i) {
+            *(cur_space_it+i) = std::min({ *(last_space_it + i) + EDIT, 
+                                           *(cur_space_it + i - 1) + EDIT, 
+                                           *(last_space_it + i - 1) + get_edit_score(current[i-1], this_base) });
         }
 
 //        Rprintf("Current: ");
@@ -154,14 +155,13 @@ struct trie_node {
         }
 
         /* Checking if we should recurse through the children. 
-         * This is not done if none of the scores across the final row of the
-         * programming matrix are below or equal to limit, meaning that even 
-         * a perfect match from here on in would always exceed limit. The 
-         * current score doesn't count unless it's less than the limit,
-         * as any extra extension would result in a +1 from that entry.
+         * This is not done if all of the scores across the final row of the programming matrix are above 'limit', 
+         * meaning that even a perfect match from here on in would always exceed 'limit'. 
+         * The current position (bottom-right on the array) only counts if it's lless than 'limit - EDIT',
+         * as any extra extension would result in a '+EDIT' to the score from that entry.
          */
         if (children) { 
-            bool recurse_child = (limit > cur_score);
+            bool recurse_child = (limit >= cur_score + EDIT);
             if (!recurse_child && cur_len) { 
                 for (auto rit = scores -> rbegin() + 1; rit!= (scores -> rend()); ++rit) {  
                     // Backwards, as scores at the end are probably lower and will trigger a break sooner.
@@ -189,7 +189,16 @@ struct trie_node {
         } else {
             scores->resize(current.size() + 1);
         }
-        std::iota(scores->begin(), scores->end(), 0); // Initializing the first level of the levenshtein array here.
+        
+        // Initializing the first level of the levenshtein array here. We multiply the limit by MULT to handle fractions.
+        {
+            int score=0;
+            for (auto& s : *scores) {
+                s=score;
+                score+=EDIT;
+            }
+            limit*=MULT;
+        }
 
         if (children) {
             for (size_t i=0; i<NBASES; ++i) { 
