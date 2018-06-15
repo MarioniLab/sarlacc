@@ -22,7 +22,7 @@ umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.e
         }
         UMI2 <- .safe_masker(UMI2, max.err)
         out2 <- .Call(cxx_umi_group, UMI2, max.lev2)
-        out1 <- mapply(intersect, out1, out2)
+        out1 <- mapply(intersect, out1, out2, SIMPLIFY=FALSE)
     }
 
     if (use.densities) { 
