@@ -4,7 +4,8 @@
 #' @importFrom S4Vectors metadata
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
-adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0)
+#' @importFrom BiocParallel SerialParam
+adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
@@ -25,7 +26,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     # Performing the alignment of each adaptor to the start/end of the read.
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
-    align.out <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args=all.args)
+    align.out <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args=all.args, BPPARAM=BPPARAM)
     align_start <- align.out$start
     align_end <- align.out$end
     align_revcomp_start <- align.out$rc.start
@@ -112,16 +113,17 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 }
 
 #' @importFrom Biostrings pairwiseAlignment
-.get_all_alignments <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list(), ...) 
+#' @importFrom BiocParallel bpmapply SerialParam
+.get_all_alignments <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list(), ..., BPPARAM=SerialParam()) 
 # This performs the alignment of adaptor 1 to the start (start) and adaptor 2 to the end (end),
 # or adaptor 1 to the end (rc.start, as it's the start of the reverse complemented read) and 
 # adaptor 2 to the start (rc.end, as it's the end of the reverse complemented read).
 {
-    align_start <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor1, ...), all.args))
-    align_end <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor2, ...), all.args))
-    align_revcomp_start <- do.call(pairwiseAlignment, c(list(pattern=reads.end, subject=adaptor1, ...), all.args))
-    align_revcomp_end <- do.call(pairwiseAlignment, c(list(pattern=reads.start, subject=adaptor2, ...), all.args))
-    list(start=align_start, end=align_end, rc.start=align_revcomp_start, rc.end=align_revcomp_end)
+    all.patterns <- list(reads.start, reads.end, reads.end, reads.start)
+    all.subjects <- list(adaptor1, adaptor2, adaptor1, adaptor2)
+    out <- bpmapply(FUN=pairwiseAlignment, pattern=all.patterns, subject=all.subjects, MoreArgs=c(list(...), all.args), BPPARAM=BPPARAM)
+    names(out) <- c("start", "end", "rc.start", "rc.end")
+    out
 }
 
 .resolve_strand <- function(start.score, end.score, rc.start.score, rc.end.score) 

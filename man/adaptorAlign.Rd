@@ -5,8 +5,8 @@
 \description{Perform pairwise alignments of adaptor sequences to the ends of the read sequences.}
 
 \usage{
-adaptorAlign(adaptor1, adaptor2, reads, tolerance=100, 
-    gapOpening=1, gapExtension=5, match=1, mismatch=0) 
+adaptorAlign(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, 
+    gapExtension=5, match=1, mismatch=0, BPPARAM=SerialParam()) 
 }
 
 \arguments{
@@ -17,6 +17,8 @@ A QualityScaledDNAStringSet can also be supplied containing quality scores.}
 \item{gapOpening, gapExtension}{Arguments to pass to \code{\link{pairwiseAlignment}}.}
 \item{match, mismatch}{Arguments to pass to \code{\link{nucleotideSubstitutionMatrix}} for use in \code{\link{pairwiseAlignment}}.
 These are ignored if \code{reads} contains quality scores.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
+Currently only effective up to a maximum of 4 workers.}
 } 
 
 \value{
