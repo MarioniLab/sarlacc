@@ -121,7 +121,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 {
     all.patterns <- list(reads.start, reads.end, reads.end, reads.start)
     all.subjects <- list(adaptor1, adaptor2, adaptor1, adaptor2)
-    out <- bpmapply(FUN=pairwiseAlignment, pattern=all.patterns, subject=all.subjects, MoreArgs=c(list(...), all.args), BPPARAM=BPPARAM)
+    out <- bpmapply(FUN=pairwiseAlignment, pattern=all.patterns, subject=all.subjects, MoreArgs=c(list(...), all.args), BPPARAM=BPPARAM, SIMPLIFY=FALSE)
     names(out) <- c("start", "end", "rc.start", "rc.end")
     out
 }
