@@ -1,5 +1,8 @@
 #' @export
-getScoreThresholds <- function(aligned, error=0.01)
+#' @importFrom S4Vectors metadata
+#' @importClassesFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom BiocParallel SerialParam
+getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 # Scrambles the input sequence and performs the same thing as adaptorAlign but with a scrambled input. 
 # Identifies the score threshold for the adaptors that achieves the specified error rate.
 #
@@ -23,7 +26,7 @@ getScoreThresholds <- function(aligned, error=0.01)
 
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
-    scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
+    scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE, BPPARAM=BPPARAM)
 
     is.reverse <- .resolve_strand(scrambled.scores$start, scrambled.scores$end, 
                                   scrambled.scores$rc.start, scrambled.scores$rc.end)$reversed

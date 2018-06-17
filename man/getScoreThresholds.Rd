@@ -5,12 +5,14 @@
 \description{Compute score thresholds to be used to determine if adaptors are present at the read ends.}
 
 \usage{
-getScoreThresholds(aligned, error=0.01)
+getScoreThresholds(aligned, error=0.01, BPPARAM=SerialParam())
 }
 
 \arguments{
 \item{aligned}{A list of adaptor alignment information and read sequences, identical to the output of \code{\link{adaptorAlign}}.}
 \item{error}{A numeric scalar specifying the acceptable false discovery rate.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
+Currently only effective up to a maximum of 4 workers.}
 } 
 
 \value{

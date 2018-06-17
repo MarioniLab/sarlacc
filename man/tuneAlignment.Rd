@@ -7,7 +7,8 @@
 \usage{
 tuneAlignment(adaptor1, adaptor2, reads, tolerance=100, 
     gapOp.range=c(4, 10), gapExt.range=c(1, 5), 
-    match.range=c(1, 2), mismatch.range=c(-1, 0)) 
+    match.range=c(1, 2), mismatch.range=c(-1, 0),
+    BPPARAM=SerialParam()) 
 }
 
 \arguments{
@@ -19,6 +20,8 @@ A QualityScaledDNAStringSet can also be supplied containing quality scores.}
 \item{gapExt.range}{An integer vector of length 2 specifying the boundaries of the grid search for the gap extension penalties.}
 \item{match.range}{An integer vector of length 2 specifying the boundaries of the grid search for the match score.}
 \item{mismatch.range}{An integer vector of length 2 specifying the boundaries of the grid search for the mismatch score.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
+Currently only effective up to a maximum of 4 workers.}
 }
 
 \details{
