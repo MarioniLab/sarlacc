@@ -21,10 +21,11 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
     reads.out <- .get_front_and_back(reads, tolerance)
     reads.start <- reads.out$front
     reads.end <- reads.out$back
-    scrambled.start <- .scramble_input(reads.start)
-    scrambled.end <- .scramble_input(reads.end)
-
+    
     has.quality <- is(reads, "QualityScaledDNAStringSet")
+    scrambled.start <- .scramble_input(reads.start, has.quality)
+    scrambled.end <- .scramble_input(reads.end, has.quality)
+
     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
     scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE, BPPARAM=BPPARAM)
 
@@ -52,13 +53,29 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
                 scores2=list(reads=score2, scrambled=scram.score2)))
 }
 
-.scramble_input <- function(seqs) 
+#' @importFrom Biostrings DNAStringSet QualityScaledDNAStringSet
+.scramble_input <- function(seqs, has.qual) 
 # Scrambles the input sequences. Uses R loops,
 # but it should be fast enough for our purposes.   
 {
-    for (i in seq_along(seqs)) {
-        current <- seqs[[i]]
-        seqs[[i]] <- current[sample(length(current))]
+    collected.seqs <- strsplit(as.character(seqs), "")
+    if (has.qual) { 
+        collected.quals <- strsplit(as.character(quality(seqs)), "")
     }
-    return(seqs)
+
+    for (i in seq_along(seqs)) {
+        current <- collected.seqs[[i]]
+        o <- sample(length(current))
+        collected.seqs[[i]] <- paste(current[o], collapse="")
+
+        if (has.qual) { 
+            collected.quals[[i]] <- paste(collected.quals[[i]][o], collapse="")
+        }
+    }
+
+    output <- DNAStringSet(unlist(collected.seqs))
+    if (has.qual) {
+        output <- QualityScaledDNAStringSet(output, as(unlist(collected.quals), class(quality(seqs))))
+    }
+    return(output)
 }
