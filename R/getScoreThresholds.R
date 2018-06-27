@@ -11,11 +11,11 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 {
     adaptor1 <- metadata(aligned$adaptor1)$sequence
     adaptor2 <- metadata(aligned$adaptor2)$sequence
-    tolerance <- aligned$parameters$tolerance
-    go <- aligned$parameters$gapOpening 
-    ge <- aligned$parameters$gapExtension
-    ma <- aligned$parameters$match
-    mm <- aligned$parameters$mismatch
+    tolerance <- metadata(aligned)$tolerance
+    go <- metadata(aligned)$gapOpening 
+    ge <- metadata(aligned)$gapExtension
+    ma <- metadata(aligned)$match
+    mm <- metadata(aligned)$mismatch
 
     # Scrambling the start and end of the read sequences.
     reads.out <- .get_front_and_back(reads, tolerance)

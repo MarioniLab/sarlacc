@@ -22,10 +22,7 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
     }
 
     keep <- id1 & id2
-    aligned$reads <- aligned$reads[keep]
-    aligned$reversed <- aligned$reversed[keep]
-    aligned$adaptor1 <- aligned$adaptor1[keep,]
-    aligned$adaptor2 <- aligned$adaptor2[keep,]
+    aligned <- aligned[keep,]
 
     # Finding the cut points of each adaptor on the read sequence.
     # Score is filtered again to also mark adaptors that are not essential for chopping.
@@ -39,10 +36,8 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
     end_point[has2] <- aligned$adaptor2$end[has2] - 1L
 
     keep <- start_point < end_point
-    aligned$reads <- subseq(aligned$reads[keep], start=start_point[keep], end=end_point[keep])
-    aligned$reversed <- aligned$reversed[keep]
-    aligned$adaptor1 <- aligned$adaptor1[keep,]
-    aligned$adaptor2 <- aligned$adaptor2[keep,]
+    aligned <- aligned[keep,]
+    aligned$reads <- subseq(aligned$reads, start=start_point[keep], end=end_point[keep])
 
     # Destroying pattern positional information, as this is no longer valid after chopping.
     if (essential1) {

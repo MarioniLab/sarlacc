@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom Biostrings reverseComplement 
 #' @importFrom BiocGenerics score
-#' @importFrom S4Vectors metadata
+#' @importFrom S4Vectors DataFrame metadata<-
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
@@ -65,10 +65,9 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
     align_end$end <- width(reads) - old.end + 1L
        
     rownames(align_start) <- rownames(align_end) <- names(reads) 
-    names(is_reverse) <- names(reads)
-    return(list(adaptor1=align_start, adaptor2=align_end, reads=reads, reversed=is_reverse,
-                parameters=list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, 
-                                match=match, mismatch=mismatch)))
+    output <- DataFrame(reads=reads, adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=names(reads))
+    metadata(output) <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
+    return(output)
 }
 
 #' @importFrom Biostrings DNAString DNAStringSet
