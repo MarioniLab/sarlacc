@@ -5,7 +5,7 @@
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
-adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0, BPPARAM=SerialParam())
+adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5, gapExtension=1, match=1, mismatch=0, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
