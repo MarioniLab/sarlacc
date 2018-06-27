@@ -27,7 +27,7 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
         }
         N <- N + 1L
     }
-    collected <- gsub("SN:|LN:","",collected)
+    collected <- sub("^SN:|^LN:","",collected)
     collected <- paste(collected, collapse = "\n")
     collected <- fread(collected,header = FALSE)
     collected <- split(collected$V3,f=collected$V2)
