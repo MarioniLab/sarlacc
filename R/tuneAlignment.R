@@ -17,24 +17,24 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
     adaptor1 <- pre.out$adaptor1
     adaptor2 <- pre.out$adaptor2
     reads <- pre.out$reads
-
+    
+    has.quality <- is(reads, "QualityScaledDNAStringSet")
+    if (has.quality) {
+        match.range <- mismatch.range <- c(0L, 0L)
+    }
+    
     # Taking subsequences of the reads for pairwise alignment.
     reads.out <- .get_front_and_back(reads, tolerance)
     reads.start <- reads.out$front
     reads.end <- reads.out$back
-    scrambled.start <- .scramble_input(reads.start)
-    scrambled.end <- .scramble_input(reads.end)
+    scrambled.start <- .scramble_input(reads.start, has.quality)
+    scrambled.end <- .scramble_input(reads.end, has.quality)
 
     # Setting up the ranges to be optimized.
     gapOp.range <- as.integer(cummax(gapOp.range))
     gapExt.range <- as.integer(cummax(gapExt.range))
     match.range <- as.integer(cummax(match.range))
     mismatch.range <- as.integer(cummax(mismatch.range))
-
-    has.quality <- is(reads, "QualityScaledDNAStringSet")
-    if (has.quality) {
-        match.range <- mismatch.range <- c(0L, 0L)
-    }
 
     # Performing a grid search to maximize the separation in scores.
     max.score <- 0L

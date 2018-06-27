@@ -9,6 +9,7 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 # written by Aaron Lun
 # created 10 March 2018
 {
+    reads <- aligned$reads
     adaptor1 <- metadata(aligned$adaptor1)$sequence
     adaptor2 <- metadata(aligned$adaptor2)$sequence
     tolerance <- metadata(aligned)$tolerance
