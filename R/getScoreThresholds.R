@@ -40,11 +40,11 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
     # Computing the expected FDR at each score threshold (a bit conservative, 
     # as we can't remove true positives prior to scrambling).
     score1 <- sort(aligned$adaptor1$score)
-    fdr1 <- 1 - findInterval(score1, scram.score1)/seq_along(score1)
+    fdr1 <- (length(scram.score1) - findInterval(score1, scram.score1))/(length(score1) - seq_along(score1))
     ix1 <- min(which(fdr1 <= error))
 
     score2 <- sort(aligned$adaptor2$score)
-    fdr2 <- 1 - findInterval(score2, scram.score2)/seq_along(score2)
+    fdr2 <- (length(scram.score2) - findInterval(score2, scram.score2))/(length(score2) - seq_along(score2))
     ix2 <- min(which(fdr2 <= error))
 
     return(list(threshold1=score1[ix1],
