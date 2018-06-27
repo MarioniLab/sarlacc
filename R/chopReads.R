@@ -3,10 +3,10 @@
 chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = TRUE)
 # This filters out reads that don't have essential adaptors aligning on either or both ends.
 # We also chop out the adaptor sequences for future use.
-# 
+#
 # written by Florian Bieberich
 # with modifications by Aaron Lun
-# created 24 November 2017    
+# created 24 November 2017
 {
     # Dropping reads if adaptor is essential but doesn't get detected.
     if(essential1){
@@ -20,15 +20,16 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
     }else{
         id2 <- rep(TRUE, nrow(aligned$adaptor1))
     }
-    
+
     keep <- id1 & id2
     aligned$reads <- aligned$reads[keep]
     aligned$reversed <- aligned$reversed[keep]
-    aligned$adaptor1 <- aligned$adaptor1[keep,]   
+    aligned$adaptor1 <- aligned$adaptor1[keep,]
     aligned$adaptor2 <- aligned$adaptor2[keep,]
 
-    # Finding the cut points of each adaptor.
+    # Finding the cut points of each adaptor on the read sequence.
     # Score is filtered again to also mark adaptors that are not essential for chopping.
+    # We also discard reads where adaptor 1 ends before adaptor 2 begins.
     start_point <- rep(1L, nrow(aligned$adaptor1))
     has1 <- aligned$adaptor1$score >= score1
     start_point[has1] <- aligned$adaptor1$end[has1] + 1L
@@ -37,18 +38,23 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
     has2 <- aligned$adaptor2$score >= score2
     end_point[has2] <- aligned$adaptor2$end[has2] - 1L
 
-    aligned$reads <- subseq(aligned$reads, start=start_point, end=end_point)
-    
+    keep <- start_point < end_point
+    aligned$reads <- subseq(aligned$reads[keep], start=start_point[keep], end=end_point[keep])
+    aligned$reversed <- aligned$reversed[keep]
+    aligned$adaptor1 <- aligned$adaptor1[keep,]
+    aligned$adaptor2 <- aligned$adaptor2[keep,]
+
     # Destroying pattern positional information, as this is no longer valid after chopping.
-    if (essential1) { 
-        aligned$adaptor1$start <- NULL    
-        aligned$adaptor1$end <- NULL    
+    if (essential1) {
+        aligned$adaptor1$start <- NULL
+        aligned$adaptor1$end <- NULL
     } else {
         aligned$adaptor1 <- NULL
     }
+
     if (essential2) {
-        aligned$adaptor2$start <- NULL    
-        aligned$adaptor2$end <- NULL 
+        aligned$adaptor2$start <- NULL
+        aligned$adaptor2$end <- NULL
     } else {
         aligned$adaptor2 <- NULL
     }
