@@ -17,8 +17,13 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     N <- 1L
     curfile <- file(sam, open="r")
     collected <- c()
+    is.empty <- FALSE
     repeat {
         curline <- readLines(curfile, n=1)
+        if (length(curline)==0L) {
+            is.empty <- TRUE
+            break
+        }
         if (!grepl("^@", curline)) {
             break
         }
@@ -27,12 +32,19 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
         }
         N <- N + 1L
     }
+    close(curfile)
+
     collected <- paste(collected, collapse = "\n")
     collected <- fread(collected,header = FALSE)
-    collected$V2 <- sub("^SN:","", collected$V2)
-    collected$V3 <- as.integer(sub("^LN:","", collected$V3))
-    collected <- split(collected$V3,f=collected$V2)
-    close(curfile)
+    ref.len <- as.integer(sub("^LN:","", collected$V3))
+    names(ref.len) <- sub("^SN:","", collected$V2)
+
+    # Avoid silly behaviour if the file is actually empty.
+    if (is.empty) { 
+        out <- GRangesList()
+        seqinfo(out) <- Seqinfo(names(ref.len), seqlengths=ref.len)
+        return(out)
+    }
 
     # Setting "100" to ignore everything afterwards.
     nfields <- max(count.fields(sam, skip=N, sep="\t", comment.char="", quote=""), na.rm=TRUE)
@@ -52,7 +64,7 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     align.len <- cigarWidthAlongReferenceSpace(mapping$CIGAR)
     pos <- as.integer(as.character(mapping$POS))
     granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"),
-                       seqinfo=Seqinfo(names(collected), seqlengths=unlist(collected)))
+                       seqinfo=Seqinfo(names(ref.len), seqlengths=ref.len))
 
     # Annotating with left/right soft/hard clips.
     granges$left.clip <- .get_clip_length(mapping$CIGAR)
