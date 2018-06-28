@@ -5,7 +5,7 @@
 #' @importFrom methods is new
 #' @importFrom S4Vectors metadata
 #' @importClassesFrom S4Vectors DataFrame
-multiReadAlign <- function(reads, groups, max.error=0.1, keep.masked=FALSE, ..., BPPARAM=SerialParam())
+multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., BPPARAM=SerialParam())
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
 #

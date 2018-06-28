@@ -4,6 +4,7 @@
 #' @importFrom S4Vectors split
 #' @importFrom IRanges IRanges
 #' @importFrom GenomicRanges GRanges
+#' @importFrom data.table fread
 sam2ranges <- function(sam, minq = 10, restricted = NULL)
 # Returns an GRanges object containing read name, position, length, strand and chr location.
 # This is a bit more complicated due to the need to parse a SAM file, not a BAM file 
@@ -13,22 +14,23 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
 # with modifications by Aaron Lun
 {
     # Figuring out how many headers to skip.
-    N <- 0L
+    N <- 1L
     curfile <- file(sam, open="r")
-    collected <- list()
+    collected <- c()
     repeat {
         curline <- readLines(curfile, n=1)
         if (!grepl("^@", curline)) {
             break
         }
         if (grepl("^@SQ", curline)) {
-            sections <- strsplit(curline, "\t")[[1]]
-            curname <- sub("^SN:", "", sections[[2]])
-            curlen <- sub("^LN:", "", sections[[3]])
-            collected[[curname]] <- as.integer(curlen)
+            collected[N] <- curline
         }
         N <- N + 1L
     }
+    collected <- sub("^SN:|^LN:","",collected)
+    collected <- paste(collected, collapse = "\n")
+    collected <- fread(collected,header = FALSE)
+    collected <- split(collected$V3,f=collected$V2)
     close(curfile)
 
     # Setting "100" to ignore everything afterwards.

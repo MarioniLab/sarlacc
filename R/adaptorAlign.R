@@ -5,7 +5,7 @@
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
-adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, gapExtension=5, match=1, mismatch=0, BPPARAM=SerialParam())
+adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5, gapExtension=1, match=1, mismatch=0, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
@@ -74,12 +74,27 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1,
 .preprocess_input <- function(adaptor1, adaptor2, reads, add.names=FALSE) 
 # Coerces all inputs to DNAString or DNAStringSet objects.
 {
+    has.qual1 <- is(adaptor1, "QualityScaledDNAStringSet")
+    has.qual2 <- is(adaptor2, "QualityScaledDNAStringSet")
     if (is.character(adaptor1)) {
         adaptor1 <- DNAString(adaptor1)
     } 
     if (is.character(adaptor2)) { 
         adaptor2 <- DNAString(adaptor2)
     }
+    
+    if(!has.qual1){
+        not_N1 <- strsplit(as.character(adaptor1), "")[[1]]!="N"
+        qual1 <- PhredQuality(not_N1*21L)
+        adaptor1 <- QualityScaledDNAStringSet(adaptor1, qual1)
+    }
+    
+    if(!has.qual2){
+        not_N2 <- strsplit(as.character(adaptor2), "")[[1]]!="N"
+        qual2 <- PhredQuality(not_N2*21L)
+        adaptor2 <- QualityScaledDNAStringSet(adaptor2, qual2)
+    }
+    
     if (is.character(reads)) {
         reads <- DNAStringSet(reads)
     }
