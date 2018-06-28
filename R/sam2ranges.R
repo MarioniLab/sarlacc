@@ -27,9 +27,10 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
         }
         N <- N + 1L
     }
-    collected <- sub("^SN:|^LN:","",collected)
     collected <- paste(collected, collapse = "\n")
     collected <- fread(collected,header = FALSE)
+    collected$V2 <- sub("^SN:","", collected$V2)
+    collected$V3 <- as.integer(sub("^LN:","", collected$V3))
     collected <- split(collected$V3,f=collected$V2)
     close(curfile)
 
