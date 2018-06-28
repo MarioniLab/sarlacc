@@ -45,7 +45,7 @@ expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, ge
     if (is(front.seq, "QualityScaledDNAStringSet")) {
         combined.qual <- paste0(quality(front.seq), quality(back.seq))
         combined.qual <- as(combined.qual, class(quality(front.seq))[1])
-        combined <- QualityScaledDNAStringSet(combined, PhredQuality(combined.qual))
+        combined <- QualityScaledDNAStringSet(combined, combined.qual)
     }
 
     if (get.seq) {
