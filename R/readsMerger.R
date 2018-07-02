@@ -7,11 +7,11 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
                          mra.read.args=list(), mra.umi1.args=mra.read.args, mra.umi2.args=mra.read.args,
                          cons.read.args=list(), cons.umi1.args=cons.read.args, cons.umi2.args=cons.read.args,
                          group.args=list(), BPPARAM=SerialParam())
-  # Merges reads into final consensus sequences using pairwise alignments reported by minimap2.
-  #
-  # written by Cheuk-Ting Law
-  # with modifications by Aaron Lun
-  # created 12 June 2018
+# Merges reads into final consensus sequences using pairwise alignments reported by minimap2.
+#
+# written by Cheuk-Ting Law
+# with modifications by Aaron Lun
+# created 12 June 2018
 {
     if (is.null(working.dir)) {
         working.dir <- tempfile()
@@ -25,10 +25,10 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
     read.copy <- reads
     UMI1.copy <- UMI1
     UMI2.copy <- UMI2
-    names(origins) <- names(read.copy) <- names(UMI1.copy) <- seq_along(reads)
+    names(origins) <- names(read.copy) <- names(UMI1.copy) <- names(reads)
     
     if(!is.null(UMI2)){
-    names(UMI2.copy) <- seq_along(reads)
+        names(UMI2.copy) <- seq_along(reads)
     }
   
     iterations <- 0L
@@ -42,19 +42,20 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         subclustered <- unlist(mapply(FUN = split, x = cluster.list, 
                                       f = umi.subgroups, SIMPLIFY = FALSE), recursive = FALSE)
         
-        previous.origins <- origins #Storing information from the previous round.
+        # Storing information from the previous round.
+        previous.origins <- origins 
         previous.read.copy <- read.copy
         previous.UMI1.copy <- UMI1.copy
         origins <- lapply(subclustered, FUN = function(idx) {
-          unlist(origins[idx], use.names = FALSE)
+            unlist(origins[idx], use.names = FALSE)
         })
     
-        # Identifying the groups with changes and only performing MSA on those groups.
-        names(origins) <- sapply(origins, FUN=function(x)paste(x, collapse = "_")) #Combining all origins as group ID
-        names(previous.origins)<- sapply(previous.origins, FUN=function(x)paste(x, collapse = "_"))
-        changed <- !names(origins)%in%names(previous.origins)
-        changed.groups <- origins[changed]
+        names(origins) <- names(reads)[vapply(origins, FUN = "[", i = 1, FUN.VALUE = 0L)] 
         
+        # Identifying the groups with changes and only performing MSA on those groups.
+        changed <- lengths(subclustered)!=1
+        changed.groups <- origins[changed]
+
         aligned.reads <- do.call(multiReadAlign, c(list(reads, groups = changed.groups, BPPARAM = BPPARAM), mra.read.args))
         read.copy <- do.call(consensusReadSeq, c(list(aligned.reads,BPPARAM = BPPARAM), cons.read.args))
         aligned.UMI1 <- do.call(multiReadAlign, c(list(UMI1, groups = changed.groups, BPPARAM = BPPARAM), mra.umi1.args))
@@ -70,31 +71,31 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         origins <- origins[order(names(origins))]
         
         if (!is.null(UMI2)) {
-          previous.UMI2.copy <- UMI2.copy
-          aligned.UMI2 <- do.call(multiReadAlign, c(list(UMI2, groups = changed.groups, BPPARAM = BPPARAM), mra.umi2.args))
-          UMI2.copy <- do.call(consensusReadSeq, c(list(aligned.UMI2, BPPARAM = BPPARAM), cons.umi2.args))
-          names(UMI2.copy) <- names(changed.groups)
-          UMI2.copy <- c(previous.UMI2.copy[names(origins)[!changed]], UMI2.copy)
-          UMI2.copy <- UMI2.copy[order(names(UMI2.copy))]
+            previous.UMI2.copy <- UMI2.copy
+            aligned.UMI2 <- do.call(multiReadAlign, c(list(UMI2, groups = changed.groups, BPPARAM = BPPARAM), mra.umi2.args))
+            UMI2.copy <- do.call(consensusReadSeq, c(list(aligned.UMI2, BPPARAM = BPPARAM), cons.umi2.args))
+            names(UMI2.copy) <- names(changed.groups)
+            UMI2.copy <- c(previous.UMI2.copy[names(origins)[!changed]], UMI2.copy)
+            UMI2.copy <- UMI2.copy[order(names(UMI2.copy))]
         }
         
         iterations <- iterations + 1L
         if (all(lengths(subclustered) == 1L)) {
-          break
+            break
         }
     }
   
-      # Reassigning the read ID of the first read in each group as read ID of final consensus sequence
-      names(UMI1.copy) <- names(read.copy) <- names(origins) <- names(reads)[vapply(origins, FUN = "[", i = 1, FUN.VALUE = 0L)] 
+    # Reassigning the read ID of the first read in each group as read ID of final consensus sequence
+    names(UMI1.copy) <- names(read.copy) <- names(origins) <- names(reads)[vapply(origins, FUN = "[", i = 1, FUN.VALUE = 0L)] 
       
-      output <- DataFrame(reads = read.copy, UMI1 = UMI1.copy)
-      if (!is.null(UMI2)) {
+    output <- DataFrame(reads = read.copy, UMI1 = UMI1.copy)
+    if (!is.null(UMI2)) {
         UMI2.copy <- names(UMI1.copy)
         output$UMI2 <-  UMI2.copy
-      }
+    }
     
-      output$origins <- as(origins, "IntegerList")
-      return(output)
+    output$origins <- as(origins, "IntegerList")
+    return(output)
 }
 
 #' @importFrom igraph make_graph components V
@@ -103,7 +104,6 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
     if (length(edges)==0L) {
     return(as.list(seq_along(all.names)))
     }
-    
     G <- make_graph(edges)
     comp <- components(G)$membership
     vertices <- as.vector(V(G))
@@ -114,11 +114,9 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
 .process_paf <- function(paf, min.match=0.7) {
     paf <- fread(paf, select = c(1, 2, 6, 7, 10), sep="\t", header= FALSE,fill=TRUE)
     colnames(paf) <- c("qname", "qlength", "tname", "tlength", "matches")
-    
     mean.length <- (paf$qlength+paf$tlength)/2
     prop.identical <- paf$matches/mean.length
     paf$identity <- prop.identical
-    
     paf[prop.identical >= min.match,]
 }
 
