@@ -3,7 +3,7 @@
 #' @importFrom BiocParallel SerialParam
 #' @importClassesFrom IRanges IntegerList
 #' @importFrom S4Vectors DataFrame
-minimapMerge_2 <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NULL, working.dir=NULL, min.identity=0.7, max.iter=3L,
+minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NULL, working.dir=NULL, min.identity=0.7, max.iter=3L,
                          mra.read.args=list(), mra.umi1.args=mra.read.args, mra.umi2.args=mra.read.args,
                          cons.read.args=list(), cons.umi1.args=cons.read.args, cons.umi2.args=cons.read.args,
                          group.args=list(), BPPARAM=SerialParam())
