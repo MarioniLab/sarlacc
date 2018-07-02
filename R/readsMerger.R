@@ -34,7 +34,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
     iterations <- 0L
     while (iterations <= max.iter) {
         writeQualityScaledXStringSet(read.copy, fpath)
-        cleaned.paf <- .process_paf(paf.cmd, min.match = min.identity)
+        cleaned.paf <- .process_paf(paf.cmd, min.match = min.identity) # supply the minimap2 shell command directly to fread().
         cluster.list <- .cluster_paf(cleaned.paf, names(read.copy))
         umi.subgroups <- bplapply(cluster.list, FUN = .umi_group, 
                                   UMI1 = UMI1.copy, UMI2 = UMI2.copy, umi.args = group.args, 
@@ -49,7 +49,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
           unlist(origins[idx], use.names = FALSE)
         })
     
-        #Identifying the groups with changes and only performing MSA on those groups.
+        # Identifying the groups with changes and only performing MSA on those groups.
         names(origins) <- sapply(origins, FUN=function(x)paste(x, collapse = "_")) #Combining all origins as group ID
         names(previous.origins)<- sapply(previous.origins, FUN=function(x)paste(x, collapse = "_"))
         changed <- !names(origins)%in%names(previous.origins)
@@ -61,7 +61,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         UMI1.copy <- do.call(consensusReadSeq, c(list(aligned.UMI1, BPPARAM = BPPARAM), cons.umi1.args))
         names(UMI1.copy) <- names(read.copy) <- names(changed.groups)
     
-        #Combining the changed and unchanged groups.
+        # Combining the changed and unchanged groups.
         read.copy <- c(previous.read.copy[names(origins)[!changed]], read.copy)
         read.copy <- read.copy[order(names(read.copy))]
         UMI1.copy <- c(previous.UMI1.copy[names(origins)[!changed]], UMI1.copy)
@@ -84,7 +84,7 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         }
     }
   
-      #Reassigning the read ID of the first read in each group as read ID
+      # Reassigning the read ID of the first read in each group as read ID of final consensus sequence
       names(UMI1.copy) <- names(read.copy) <- names(origins) <- names(reads)[vapply(origins, FUN = "[", i = 1, FUN.VALUE = 0L)] 
       
       output <- DataFrame(reads = read.copy, UMI1 = UMI1.copy)
