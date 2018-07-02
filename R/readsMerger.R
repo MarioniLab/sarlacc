@@ -38,11 +38,14 @@ minimapMerge <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         # Defining UMI subclusters with umiGroup.
         umi.subgroups <- bplapply(cluster.list, FUN=.umi_group, UMI1=UMI1.copy, UMI2=UMI2.copy, umi.args=group.args, BPPARAM=BPPARAM)
         subclustered <- unlist(mapply(FUN=split, x=cluster.list, f=umi.subgroups, SIMPLIFY=FALSE), recursive=FALSE)
-        names(subclustered) <- names(reads)[vapply(subclustered, FUN="[", i=1, FUN.VALUE=0L)] # using the name of the first read as the name for each group
 
         # Figuring out the original reads in each UMI group.
-        origins <- lapply(subclustered, FUN=function(idx) { unlist(origins[idx], use.names=FALSE) })
-
+        origins <- lapply(subclustered, FUN=function(idx) { 
+          unlist(origins[idx], use.names=FALSE) 
+        })
+        
+        names(origins) <- names(reads)[vapply(origins, FUN="[", i=1, FUN.VALUE=0L)] # using the name of the first read as the name for each group
+        
         # Creating alignments and consensus sequences _from the originals_, to ensure accurate quality calculations.
         # Overwriting the copies for the next round of iteration.
         aligned.reads <- do.call(multiReadAlign, c(list(reads, groups=origins, BPPARAM=BPPARAM), mra.read.args))
