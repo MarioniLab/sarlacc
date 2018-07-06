@@ -48,6 +48,11 @@ SEXP quick_msa(SEXP sequences, SEXP groupings, SEXP threshold, SEXP qualities, S
     const size_t maxseqwidth=get_max_width(all_seq.get());
     masker seqM(max_error, use_quals ? maxseqwidth : 0);
     unmasker seqU(use_quals ? maxseqwidth : 0);
+    
+    // Temporary objects.
+    seqan::Align<seqan::String<seqan::Dna5> > align;
+    std::deque<const char*> tmp_ptr;
+    std::deque<size_t> tmp_len;
 
     // Iterating through all groups of reads to perform the MSA.
     Rcpp::List output(ngroups);
@@ -65,13 +70,17 @@ SEXP quick_msa(SEXP sequences, SEXP groupings, SEXP threshold, SEXP qualities, S
         }
 
         // Filling up the alignment object, possibly with masked sequences.
-        seqan::Align<seqan::String<seqan::Dna5> > align;
         seqan::resize(seqan::rows(align), cursize);
+        tmp_ptr.resize(cursize);
+        tmp_len.resize(cursize);
             
         all_seq->clear();
         if (use_quals) {
             for (size_t i=0; i<cursize; ++i) {
                 auto curpair=all_seq->get(curgroup[i]-1);
+                tmp_ptr[i]=curpair.first;
+                tmp_len[i]=curpair.second;
+
                 Rcpp::NumericVector curqual(Quals[curgroup[i]-1]);
                 Rcpp::String out=seqM.mask(curpair.first, curpair.second, curqual.begin());
                 seqan::assignSource(seqan::row(align, i), out.get_cstring());
@@ -79,6 +88,8 @@ SEXP quick_msa(SEXP sequences, SEXP groupings, SEXP threshold, SEXP qualities, S
         } else {
             for (size_t i=0; i<cursize; ++i) {
                 auto curpair=all_seq->get(curgroup[i]-1);
+                tmp_ptr[i]=curpair.first;
+                tmp_len[i]=curpair.second;
                 seqan::assignSource(seqan::row(align, i), curpair.first);
             }
         }
@@ -94,8 +105,7 @@ SEXP quick_msa(SEXP sequences, SEXP groupings, SEXP threshold, SEXP qualities, S
 
             if (use_quals) {
                 auto tmp=out.str();
-                auto original=all_seq->get(curgroup[i]-1);
-                curout[i]=seqU.unmask(tmp.c_str(), tmp.size(), original.first, original.second);
+                curout[i]=seqU.unmask(tmp.c_str(), tmp.size(), tmp_ptr[i], tmp_len[i]);
             } else {
                 curout[i]=out.str();
             }
