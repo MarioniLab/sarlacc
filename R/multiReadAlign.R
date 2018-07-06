@@ -15,7 +15,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
 {
     Nreads <- length(reads)
     if (missing(groups)) {
-        by.groups <- list(seq_len(Nreads))
+        by.group <- list(seq_len(Nreads))
     } else if (is.list(groups)) {
         by.group <- groups
     } else {
@@ -27,36 +27,18 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
 
     # Setting quality-related parameters.
     has.quals <- is(reads, "QualityScaledDNAStringSet")
-    do.mask <- !is.na(max.error)
-
-    # Converting everything to a string, which is faster to work with.
-    all.masked <- all.qual <- NULL
-    all.reads <- as.character(reads)
     if (has.quals) {
         all.qual <- as.list(as(quality(reads), "NumericList"))
-        if (do.mask) {
-            all.masked <- .Call(cxx_mask_bad_bases, all.reads, all.qual, max.error)
-        }
-    } 
-
-    # Pruning out singleton reads for efficiency.
-    all.results <- vector("list", length(by.group))
-    solo <- lengths(by.group)==1L
-    if (any(solo)) {
-        if (do.mask && keep.masked) {
-            all.results[solo] <- all.masked[unlist(by.group[solo])]
-        } else {
-            all.results[solo] <- all.reads[unlist(by.group[solo])]
-        }
+    } else {
+        all.qual <- NULL
     }
 
-    # Running the multiple sequence alignment across multiple cores.
-    multi <- !solo
-    if (any(multi)) { 
-        all.results[multi] <- bplapply(by.group[multi], FUN=.internal_msa, 
-            reads=all.reads, qualities=all.qual, masked=all.masked, 
-            ..., keep.masked=keep.masked, BPPARAM=BPPARAM)
-    }
+    # Setting up and running the MSA.
+    dna5 <- c("A", "C", "G", "T", "N")
+    submat <- nucleotideSubstitutionMatrix()[dna5, dna5, drop=FALSE]
+    gapOpening <- 5
+    gapExtension <- 1
+    all.results <- .internal_msa(reads, by.group, max.error, all.qual, submat, -gapOpening, -gapExtension)
 
     # Collating the results into a single DF.
     out <- new("DataFrame", nrows=length(by.group))
@@ -68,18 +50,6 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
     return(out)
 }
 
-#' @importFrom Biostrings unmasked
-#' @importFrom muscle muscle
-.internal_msa <- function(indices, reads, qualities, masked, keep.masked, ...) {
-    do.mask <- !is.null(masked)
-    to.use <- if (do.mask) masked[indices] else reads[indices]
-    cur.align <- muscle(DNAStringSet(to.use), ..., quiet=TRUE)
-    cur.align <- unmasked(cur.align)
-    
-    if (do.mask && !keep.masked) {
-        cur.align <- .Call(cxx_unmask_bases, cur.align, reads[indices])
-    } else {
-        cur.align <- as.character(cur.align)
-    }
-    cur.align
+.internal_msa <- function(sequences, read.groups, max.err, qualities, submat, opening, extension) {
+    .Call(cxx_quick_msa, sequences, read.groups, max.err, qualities, submat, opening, extension) 
 }
