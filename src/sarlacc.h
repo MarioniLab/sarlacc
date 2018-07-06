@@ -16,6 +16,7 @@ extern "C" {
 SEXP count_gaps_by_base(SEXP, SEXP, SEXP);
 SEXP count_gaps_by_align(SEXP, SEXP, SEXP);
 
+SEXP quick_msa(SEXP, SEXP);
 SEXP mask_bad_bases(SEXP, SEXP, SEXP);
 SEXP unmask_bases(SEXP, SEXP);
 

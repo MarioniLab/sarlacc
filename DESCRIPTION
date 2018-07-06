@@ -16,7 +16,7 @@ Description: Implements a variety of low-level analyses of single-cell
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
-LinkingTo: Rcpp, Biostrings, IRanges, XVector, S4Vectors
-SystemRequirements: C++11
+LinkingTo: Rcpp, Biostrings, IRanges, XVector, S4Vectors, RSeqAn
+SystemRequirements: C++14
 Author: Florian Bieberich [aut, cre], Aaron Lun [aut]
 RoxygenNote: 6.0.1
