@@ -10,7 +10,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(count_gaps_by_base, 3),
     REGISTER(count_gaps_by_align, 3),
 
-    REGISTER(quick_msa, 2),
+    REGISTER(quick_msa, 7),
     REGISTER(mask_bad_bases, 3),    
     REGISTER(unmask_bases, 2),
 
