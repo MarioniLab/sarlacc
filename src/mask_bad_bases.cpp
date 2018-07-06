@@ -24,9 +24,9 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
     std::vector<char> buffer(buffersize);
     
     for (size_t i=0; i<nseq; ++i) {
-        all_seq->choose(i);
-        const char* sstr=all_seq->cstring();
-        const size_t slen=all_seq->length();
+        auto curpair=all_seq->get(i);
+        const char* sstr=curpair.first;
+        const size_t slen=curpair.second;
 
         Rcpp::NumericVector curqual(all_qual[i]);
         if (slen!=curqual.size()) {
@@ -35,7 +35,7 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP threshold) {
         }
 
         for (size_t counter=0; counter<slen; ++counter, ++sstr) {
-            buffer[counter]=(curqual[counter] > max_error ? 'N' : all_seq->decode(*sstr));
+            buffer[counter]=(curqual[counter] > max_error ? 'N' : *sstr);
         }
 
         buffer[slen]='\0';
@@ -69,23 +69,23 @@ SEXP unmask_bases (SEXP alignments, SEXP originals) {
     std::vector<char> buffer(buffersize);
     
     for (size_t i=0; i<nseq; ++i) {
-        all_aln->choose(i);
-        const char* astr=all_aln->cstring();
+        auto apair=all_aln->get(i);
+        const char* astr=apair.first;
 
-        all_seq->choose(i);
-        const char* sstr=all_seq->cstring();
-        const size_t slen=all_seq->length();
+        auto spair=all_seq->get(i);
+        const char* sstr=spair.first;
+        const size_t slen=spair.second;
 
         size_t a_nominal=0;
         for (size_t a=0; a<aln_width; ++a) {
-            char& outbase=(buffer[a]=all_aln->decode(astr[a]));
+            char& outbase=(buffer[a]=astr[a]);
     
             if (outbase!='-') { 
                 if (outbase=='N' || outbase=='n') {
                     if (a_nominal >= slen) {
                         throw std::runtime_error("sequence in alignment string is longer than the original");
                     }
-                    outbase=all_seq->decode(sstr[a_nominal]);
+                    outbase=sstr[a_nominal];
                 }
                 ++a_nominal;
             }

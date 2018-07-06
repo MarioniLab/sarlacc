@@ -20,9 +20,9 @@ SEXP get_aligned_sequence(SEXP aligned_adaptor, SEXP unaligned_adaptor, SEXP sta
     if (adapt_unaln->size()!=1) {
         throw std::runtime_error("only one unaligned adaptor sequence should be present");
     }
-    adapt_unaln->choose(0);
-    const char * uptr=adapt_unaln->cstring();
-    const size_t ulen=adapt_unaln->length();
+    auto upair=adapt_unaln->get(0);
+    const char * uptr=upair.first;
+    const size_t ulen=upair.second;
 
     // Creating output objects (guessing the max alignment width, but expanding otherwise).
     Rcpp::StringVector out_adaptors(naln);
@@ -50,14 +50,13 @@ SEXP get_aligned_sequence(SEXP aligned_adaptor, SEXP unaligned_adaptor, SEXP sta
 
     // Running through each adaptor string.
     for (size_t a=0; a<naln; ++a) {
-        adapt_aln->choose(a);
-        read_aln->choose(a);
-
-        const char * aptr=adapt_aln->cstring();
-        const size_t alen=adapt_aln->length();
-
-        const char * rptr=read_aln->cstring();
-        const size_t rlen=read_aln->length();
+        auto apair=adapt_aln->get(a);
+        const char * aptr=apair.first;
+        const size_t alen=apair.second;
+        
+        auto rpair=read_aln->get(a);
+        const char * rptr=rpair.first;
+        const size_t rlen=rpair.second;
         if (rlen!=alen) {
             throw std::runtime_error("read and adaptor alignment strings are not the same length");
         }
@@ -66,18 +65,18 @@ SEXP get_aligned_sequence(SEXP aligned_adaptor, SEXP unaligned_adaptor, SEXP sta
         size_t counter=0;
         const size_t left=adapt_starts[a] - 1;
         while (counter < left) {
-            set_adaptor(counter, adapt_unaln->decode(uptr[counter]));
+            set_adaptor(counter, uptr[counter]);
             set_read(counter, '-');
             ++counter;
         }
 
         for (size_t i=0; i<alen; ++i, ++counter) {
-            set_adaptor(counter, adapt_aln->decode(aptr[i]));
-            set_read(counter, read_aln->decode(rptr[i]));
+            set_adaptor(counter, aptr[i]);
+            set_read(counter, rptr[i]);
         }
 
         for (size_t i=adapt_ends[a]; i<ulen; ++i, ++counter) {
-            set_adaptor(counter, adapt_unaln->decode(uptr[i]));
+            set_adaptor(counter, uptr[i]);
             set_read(counter, '-');
         }
 

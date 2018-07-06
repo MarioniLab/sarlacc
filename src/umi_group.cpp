@@ -230,15 +230,12 @@ struct sorted_trie {
         current.reserve(50); // probably enough.
 
         for (auto o : ordering) {
-            seqs->choose(o);
-            const char * cur_str=seqs->cstring();
-            const size_t cur_len=seqs->length();
+            auto curpair=seqs->get(o);
+            const char * cur_str=curpair.first;
+            const size_t cur_len=curpair.second;
 
             current.resize(cur_len);
-            for (size_t i=0; i<cur_len; ++i) {
-                current[i]=seqs->decode(cur_str[i]);
-            }
-
+            std::copy(cur_str, cur_str+cur_len, current.begin());
             toplevel.insert(o, current);
         }
         return;
@@ -255,13 +252,13 @@ struct sorted_trie {
         size_t last_o=0;
 
         for (auto o : ordering) {
-            seqs->choose(o);
-            const char * cur_str=seqs->cstring();
-            const size_t cur_len=seqs->length();
+            auto curpair=seqs->get(o);
+            const char * cur_str=curpair.first;
+            const size_t cur_len=curpair.second;
 
             // Figuring out the common prefix.
             size_t idx=0;
-            while (idx < current.size() && idx < cur_len && seqs->decode(cur_str[idx])==current[idx]) {
+            while (idx < current.size() && idx < cur_len && cur_str[idx]==current[idx]) {
                 ++idx;
             }
             const size_t common=idx;
@@ -276,7 +273,7 @@ struct sorted_trie {
             // Replacing the remaining elements in 'current'.
             current.resize(cur_len);
             while (idx < cur_len) {
-                current[idx]=seqs->decode(cur_str[idx]);
+                current[idx]=cur_str[idx];
                 ++idx;
             }
 

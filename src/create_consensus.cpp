@@ -60,12 +60,13 @@ size_t internal_create_consensus_basic(SEXP alignments, const double mincov, con
 
     // Counting the number of occurrences of each base at each position.
     for (size_t a=0; a<naligns; ++a) {
-        all_aln->choose(a);
-        const char* aln_str=all_aln->cstring();
+        all_aln->clear();
+        auto curaln=all_aln->get(a);
+        const char* aln_str=curaln.first;
         auto sIt=storage.scores.begin();
 
         for (size_t i=0; i<alignwidth; ++i, sIt+=NBASES) {
-            const char curbase=all_aln->decode(aln_str[i]);
+            const char curbase=aln_str[i];
 
             // We use a separate vector for holding incidences, just in case
             // there are "N"'s (such that the sum of ACTG counts != incidences).
@@ -181,16 +182,16 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
 
     // Running through each entry.
     for (size_t a=0; a<naligns; ++a) {
-        all_aln->choose(a);
-        const char* astr=all_aln->cstring();
+        all_aln->clear();
+        auto curaln=all_aln->get(a);
+        const char* astr=curaln.first;
 
         Rcpp::NumericVector curqual(qual[a]);
         auto sIt=storage.scores.begin();
         int position=0;
 
         for (size_t i=0; i<alignwidth; ++i, sIt+=NBASES) { // leave sIt here to ensure it runs even when 'continue's.
-            const char curbase=all_aln->decode(astr[i]);
-
+            const char curbase=astr[i];
             if (curbase=='-') {
                 continue;
             }
