@@ -54,7 +54,17 @@ SEXP quick_msa(SEXP sequences, SEXP groupings, SEXP threshold, SEXP qualities, S
     for (size_t g=0; g<ngroups; ++g) {
         Rcpp::IntegerVector curgroup(Groups[g]);
         const size_t cursize=curgroup.size();
+       
+        // Skipping or breaking if there aren't enough reads in the group. 
+        if (cursize==0L) {
+            throw std::runtime_error("empty group of reads for multiple sequence alignment");
+        } else if (cursize==1L) {
+            auto curpair=all_seq->get(curgroup[0]-1);
+            output[g]=Rcpp::StringVector::create(Rcpp::String(curpair.first));
+            continue;
+        }
 
+        // Filling up the alignment object, possibly with masked sequences.
         seqan::Align<seqan::String<seqan::Dna5> > align;
         seqan::resize(seqan::rows(align), cursize);
             
@@ -72,9 +82,11 @@ SEXP quick_msa(SEXP sequences, SEXP groupings, SEXP threshold, SEXP qualities, S
                 seqan::assignSource(seqan::row(align, i), curpair.first);
             }
         }
-        
+
+        // Running the MSA (T-coffee).
         seqan::globalMsaAlignment(align, score_scheme);
 
+        // Storing the results (possibly with unmasking).
         Rcpp::StringVector curout(curgroup.size());
         for (size_t i=0; i<cursize; ++i) {
             std::stringstream out;
