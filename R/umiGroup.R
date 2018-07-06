@@ -25,14 +25,15 @@ umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.e
         out1 <- mapply(intersect, out1, out2, SIMPLIFY=FALSE)
     }
 
-    if (use.densities) { 
-        return(.Call(cxx_descending_graph_cluster, out1))
-    } else {
-        left <- unlist(out1) + 1L
-        right <- rep(seq_along(out1), lengths(out1))
-        G <- make_graph(rbind(left, right), directed=FALSE, n=length(UMI1))
-        return(components(G)$membership)
-    }
+    # if (use.densities) {
+    #     return(.Call(cxx_descending_graph_cluster, out1))
+    # } else {
+    #     left <- unlist(out1) + 1L
+    #     right <- rep(seq_along(out1), lengths(out1))
+    #     G <- make_graph(rbind(left, right), directed=FALSE, n=length(UMI1))
+    #     return(components(G)$membership)
+    # }
+    .central_max(out1)
 }
 
 #' @importFrom Biostrings quality
@@ -50,3 +51,27 @@ umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.e
     return(UMI)
 }
 
+.central_max <- function(out){
+    out.groups <- rep(seq_along(out), lengths(out))
+    flat.out <- unlist(out)
+    collected.group <- c()
+    collected.member <- c()
+    
+    for(i in seq_along(out)){
+        member.count <- rle(sort(out.groups))
+        member.num <- member.count$lengths
+        member <- member.count$values
+        max.group <- member[which.max(member.num)]
+        target <- out.groups==max.group
+        if(length(target)==0){
+            break
+        }
+        collected.member <- c(collected.member, flat.out[target])
+        collected.group <- c(collected.group, out.groups[target])
+        remove <- flat.out%in%flat.out[target]
+        flat.out <- flat.out[!remove]
+        out.groups <- out.groups[!remove]
+    }
+    group.order <- order(collected.member)
+    collected.group[group.order]
+}
