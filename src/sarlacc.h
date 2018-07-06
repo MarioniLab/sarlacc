@@ -1,3 +1,6 @@
+#ifndef SARLACC_H
+#define SARLACC_H
+
 #include "Rcpp.h"
 
 #include <stdexcept>
@@ -36,3 +39,5 @@ SEXP find_errors(SEXP, SEXP);
 SEXP get_aligned_sequence(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 }
+
+#endif

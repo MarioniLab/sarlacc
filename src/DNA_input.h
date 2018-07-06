@@ -1,3 +1,6 @@
+#ifndef DNA_INPUT_H
+#define DNA_INPUT_H
+
 #include "sarlacc.h"
 #include <memory>
 
@@ -50,3 +53,4 @@ size_t check_alignment_width(DNA_input * aln);
 
 size_t get_max_width(DNA_input * aln);
 
+#endif
