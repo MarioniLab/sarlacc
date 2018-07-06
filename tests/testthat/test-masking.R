@@ -3,7 +3,10 @@
 
 test_that("masking of bad bases works correctly", {
     CHECKFUN <- function(incoming, qualities, threshold) {          
-        masked <- sarlacc:::.mask_bad_bases(QualityScaledDNAStringSet(incoming, qualities), log10(threshold)*-10)
+        masked <- .Call(sarlacc:::cxx_mask_bad_bases, incoming, 
+            as.list(as(qualities, "NumericList")),
+            threshold)
+
         for (i in seq_along(incoming)) {
             to.mask <- as.numeric(qualities[i]) > threshold
             bases <- strsplit(incoming[i], "")[[1]]
@@ -49,6 +52,9 @@ test_that("unmasking of previously masked bases works correctly", {
     ORIGINAL <- function(x) {
         DNAStringSet(gsub("-", "", x))
     }
+    unmask_bases <- function(masked, original) {
+        .Call(sarlacc:::cxx_unmask_bases, masked, original)
+    }
 
     # Simple case, no deletions.
     seq.in <- c("acacgtagtgtcagtctaacatcagctacgttacat", # no mask
@@ -56,8 +62,8 @@ test_that("unmasking of previously masked bases works correctly", {
                 "acacgtcgtgtcagtctaaCatcagctacgttacat", # mask in the middle
                 "Acacgttgtgtcagtctaacatcagctacgttacat", # mask at the start 
                 "acacgtggtgtcagtctaacatcagctacgttacaT") # mask at the end
-    expect_equal(sarlacc:::.unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
-                 DNAStringSet(seq.in))
+    expect_equal(unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
+                 toupper(seq.in))
 
     # Deletions in the middle.
     seq.in <- c("acacgtagtgtcagtc-taacatcagctacgttacat",
@@ -65,8 +71,8 @@ test_that("unmasking of previously masked bases works correctly", {
                 "acacgtcgtgtcagtc-taaCatcagctacgttacat", 
                 "Acacgttgtgtcagtc-taacatcagctacgttacat", 
                 "acacgtggtgtcagtc-taacatcagctacgttacaT") 
-    expect_equal(sarlacc:::.unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
-                 DNAStringSet(seq.in))
+    expect_equal(unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
+                 toupper(seq.in))
 
     # Deletions at the start.
     seq.in <- c("-acacgtcgtgtcagtctaacatcagctacgttacat",
@@ -74,8 +80,8 @@ test_that("unmasking of previously masked bases works correctly", {
                 "-acacgtcgtgtcagtctaaCatcagctacgttacat", 
                 "-Acacgtcgtgtcagtctaacatcagctacgttacat", 
                 "-acacgtcgtgtcagtctaacatcagctacgttacaT") 
-    expect_equal(sarlacc:::.unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
-                 DNAStringSet(seq.in))
+    expect_equal(unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
+                 toupper(seq.in))
 
     # Deletions at the end.
     seq.in <- c("acacgtcgtgtcagtctaacatcagctacgttacat-",
@@ -83,18 +89,18 @@ test_that("unmasking of previously masked bases works correctly", {
                 "acacgtcgtgtcagtctaaCatcagctacgttacat-", 
                 "Acacgtcgtgtcagtctaacatcagctacgttacat-", 
                 "acacgtcgtgtcagtctaacatcagctacgttacaT-") 
-    expect_equal(sarlacc:::.unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
-                 DNAStringSet(seq.in))
+    expect_equal(unmask_bases(MASKFUN(seq.in), ORIGINAL(seq.in)),
+                 toupper(seq.in))
 
     # This should trigger an error:
-    expect_error(sarlacc:::.unmask_bases(DNAStringSet("AA-AA"), DNAStringSet("AAA")),
+    expect_error(unmask_bases(DNAStringSet("AA-AA"), DNAStringSet("AAA")),
                 "different lengths")
-    expect_error(sarlacc:::.unmask_bases(DNAStringSet("NNNNN"), DNAStringSet("AAA")),
+    expect_error(unmask_bases(DNAStringSet("NNNNN"), DNAStringSet("AAA")),
                 "sequence in alignment string is longer than the original")
-    expect_error(sarlacc:::.unmask_bases(DNAStringSet(c("AAAA", "GGGG")), DNAStringSet("AAA")),
+    expect_error(unmask_bases(DNAStringSet(c("AAAA", "GGGG")), DNAStringSet("AAA")),
                 "alignment and original sequences should have the same number of entries")
 
     # This should be fine:
-    expect_identical(length(sarlacc:::.unmask_bases(DNAStringSet(), DNAStringSet())), 0L)
+    expect_identical(length(unmask_bases(DNAStringSet(), DNAStringSet())), 0L)
 
 })
