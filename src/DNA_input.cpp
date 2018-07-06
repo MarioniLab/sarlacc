@@ -40,8 +40,9 @@ std::pair<const char*, size_t> DNAStringSet_input::get(size_t i) {
     holder.push_back(get_elt_from_XStringSet_holder(&all_values, i));
     const auto& active_string=holder.back();
     size_t len=active_string.length;
-    if (buffer.size() < used + len) {
-        buffer.resize(used + len);
+
+    if (buffer.size() < used + len + 1) {
+        buffer.resize(used + len + 1);
     }
 
     char* dest=buffer.data() + used;
@@ -50,7 +51,8 @@ std::pair<const char*, size_t> DNAStringSet_input::get(size_t i) {
         dest[i]=DNAdecode(ptr[i]);
     }    
 
-    used += len;
+    dest[len]='\0'; // guarantee null termination.
+    used += len + 1;
     return std::make_pair(dest, len);
 }
 
