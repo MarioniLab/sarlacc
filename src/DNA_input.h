@@ -43,7 +43,7 @@ public:
 private:
     XStringSet_holder all_values;
     std::deque<Chars_holder> holder;
-    std::vector<char> buffer;
+    std::deque<std::vector<char> > buffer;
     size_t used;
 };
 
