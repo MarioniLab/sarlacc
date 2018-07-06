@@ -4,8 +4,6 @@ DNA_input::DNA_input() : active(NULL) {}
 
 DNA_input::~DNA_input() {}
 
-const char * DNA_input::cstring() const { return active; }
-
 string_input::string_input ( Rcpp::RObject incoming ) : all_values(incoming) {};
 
 string_input::~string_input() {}
@@ -14,25 +12,23 @@ size_t string_input::size() const {
     return all_values.size();
 }
 
-/* You need to "choose" the entry before you can access the C-string pointer.
- * This makes a copy of the intermediate object, which means that the pointer 
- * must be valid as long as the intermediate object is still alive.
- */ 
-void string_input::choose(size_t i) {
-    active_string=all_values[i];
-    active=active_string.get_cstring();
+std::pair<const char*, size_t> string_input::get(size_t i) {
+    holder.push_back(Rcpp::String(all_values[i]));
+    const auto& active_string=holder.back();
+    return std::make_pair(active_string.get_cstring(), 
+        Rf_length(active_string.get_sexp()));
+}
+
+size_t string_input::get_len(size_t i) const {
+    return Rf_length(Rcpp::String(all_values[i]).get_sexp());
+}
+
+void string_input::clear() {
+    holder.clear();
     return;
 }
 
-size_t string_input::length() const {
-    return Rf_length(active_string.get_sexp());
-}
-
-char string_input::decode(char incoming) const {
-    return incoming;
-}
-
-DNAStringSet_input::DNAStringSet_input ( Rcpp::RObject incoming ) : all_values(hold_XStringSet(SEXP(incoming))) {}
+DNAStringSet_input::DNAStringSet_input ( Rcpp::RObject incoming ) : all_values(hold_XStringSet(SEXP(incoming))), used(0) {}
 
 DNAStringSet_input::~DNAStringSet_input() {}
 
@@ -40,18 +36,33 @@ size_t DNAStringSet_input::size() const {
     return get_length_from_XStringSet_holder(&all_values);
 }
 
-void DNAStringSet_input::choose(size_t i) {
-    active_string=get_elt_from_XStringSet_holder(&all_values, i);
-    active=active_string.ptr;
+std::pair<const char*, size_t> DNAStringSet_input::get(size_t i) {
+    holder.push_back(get_elt_from_XStringSet_holder(&all_values, i));
+    const auto& active_string=holder.back();
+    size_t len=active_string.length;
+    if (buffer.size() < used + len) {
+        buffer.resize(used + len);
+    }
+
+    char* dest=buffer.data() + used;
+    const char* ptr=active_string.ptr;
+    for (size_t i=0; i<len; ++i) {
+        dest[i]=DNAdecode(ptr[i]);
+    }    
+
+    used += len;
+    return std::make_pair(dest, len);
+}
+
+size_t DNAStringSet_input::get_len(size_t i) const {
+    auto tmp=get_elt_from_XStringSet_holder(&all_values, i);
+    return tmp.length;
+}
+
+void DNAStringSet_input::clear() {
+    holder.clear();
+    used=0;
     return;
-}
-
-size_t DNAStringSet_input::length() const {
-    return active_string.length;
-}
-
-char DNAStringSet_input::decode(char incoming) const {
-    return DNAdecode(incoming);
 }
 
 std::unique_ptr<DNA_input> process_DNA_input (Rcpp::RObject incoming) {
@@ -67,9 +78,7 @@ size_t check_alignment_width(DNA_input * aln) {
     size_t ref=0;
 
     for (size_t i=0; i<naligns; ++i) { 
-		aln->choose(i);
-		const size_t curlen=aln->length();
-
+		const size_t curlen=aln->get_len(i);
         if (i==0) { 
             ref=curlen;
         } else if (curlen!=ref) {
@@ -84,8 +93,7 @@ size_t get_max_width(DNA_input * seq) {
     const size_t nseq=seq->size();
     size_t ref=0;
     for (size_t i=0; i<nseq; ++i) { 
-        seq->choose(i);
-        const size_t len=seq->length();
+        const size_t len=seq->get_len(i);
         if (len > ref) {
             ref=len;
         }
