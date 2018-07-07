@@ -20,7 +20,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(create_consensus_quality_loop, 3), 
 
     REGISTER(umi_group, 2),
-    REGISTER(descending_graph_cluster, 1),
+    REGISTER(cluster_umis, 1),
     REGISTER(compute_lev_masked, 1),
 
     REGISTER(find_homopolymers, 1),
