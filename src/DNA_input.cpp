@@ -47,11 +47,11 @@ std::pair<const char*, size_t> DNAStringSet_input::get(size_t i) {
     const size_t len=active_string.length;
 
     // Using a deque of char arrays to avoid invalidation.
-    if (used > buffer.size()) {
-        buffer.resize(buffer.size() + 1);
+    if (used >= buffer.size()) {
+        buffer.resize(used + 1);
     }
     auto& curbuffer=buffer[used];
-    if (curbuffer.size() < len + 1) {
+    if (len >= curbuffer.size()) {
         curbuffer.resize(len + 1);
     }
 
