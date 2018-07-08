@@ -33,7 +33,7 @@ umiGroup <- function(UMI1, max.lev1 = 3, UMI2 = NULL, max.lev2 = max.lev1, max.e
     #     G <- make_graph(rbind(left, right), directed=FALSE, n=length(UMI1))
     #     return(components(G)$membership)
     # }
-    .central_max(out1)
+    .Call(cxx_cluster_umis, out1)
 }
 
 #' @importFrom Biostrings quality
