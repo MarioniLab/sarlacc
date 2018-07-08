@@ -286,7 +286,8 @@ struct sorted_trie {
             // Searching through the trie.
             toplevel.find_within(collected, current, common, limit, counter);
 
-            // Storing the results.
+            // Storing the results (getting back to 1-indexing).
+            for (auto& c : collected) { ++c; }
             output[o]=Rcpp::IntegerVector(collected.begin(), collected.end());
             collected.clear();
 
