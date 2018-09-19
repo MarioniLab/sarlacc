@@ -1,5 +1,5 @@
-#' @importFrom Biostrings writeQualityScaledXStringSet
-groupReads <- function(reads, working.dir=NULL, mm.cmd="minimap2", mm.args=NULL, min.identity=0.7)
+#' @importFrom Biostrings writeQualityScaledXStringSet subseq
+groupReads <- function(reads, truncate=Inf, working.dir=NULL, mm.cmd="minimap2", mm.args=NULL, min.identity=0.7)
 # Uses minimap2 to perform pairwise alignment of reads.
 {
     if (is.null(working.dir)) {
@@ -12,9 +12,12 @@ groupReads <- function(reads, working.dir=NULL, mm.cmd="minimap2", mm.args=NULL,
     all.args <- c(mm.args, "-x ava-ont", "-c", fpath, fpath)
     paf.cmd <- paste(c(mm.cmd, all.args, "|cut -f 1-12"), collapse = " ")
 
+    if (is.finite(truncate)) {
+        reads <- subseq(reads, 1L, width=pmin(width(reads), truncate))
+    }
     writeQualityScaledXStringSet(reads, fpath)
     cleaned.paf <- .process_paf(paf.cmd, min.match = min.identity) # supply the minimap2 shell command directly to fread().
-    .cluster_paf(cleaned.paf, names(read.copy))
+    .cluster_paf(cleaned.paf, sub(" .*", "", names(reads)))
 }
 
 #' @importFrom igraph make_graph components V
