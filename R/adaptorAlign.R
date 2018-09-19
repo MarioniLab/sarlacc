@@ -55,8 +55,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=5,
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
     details <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
-    metadata(align_start) <- list(sequence=adaptor1, details)
-    metadata(align_end) <- list(sequence=adaptor2, details)
+    metadata(align_start) <- c(sequence=adaptor1, details)
+    metadata(align_end) <- c(sequence=adaptor2, details)
 
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
