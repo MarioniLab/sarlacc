@@ -84,14 +84,12 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
     }
     
     if(!has.qual1){
-        not_N1 <- strsplit(as.character(adaptor1), "")[[1]]!="N"
-        qual1 <- PhredQuality(not_N1*21L)
+        qual1 <- PhredQuality(rep(100L, length(adaptor1)))
         adaptor1 <- QualityScaledDNAStringSet(adaptor1, qual1)
     }
     
     if(!has.qual2){
-        not_N2 <- strsplit(as.character(adaptor2), "")[[1]]!="N"
-        qual2 <- PhredQuality(not_N2*21L)
+        qual2 <- PhredQuality(rep(100L, length(adaptor2)))
         adaptor2 <- QualityScaledDNAStringSet(adaptor2, qual2)
     }
     
@@ -122,6 +120,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
     all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension)
     if (!has.quality) { 
         all.args$substitutionMatrix <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
+    } else {
+        all.args$fuzzyMatrix <- nucleotideSubstitutionMatrix() # support IUPAC. 
     }
     return(all.args)
 }
