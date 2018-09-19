@@ -12,11 +12,11 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
     reads <- aligned$reads
     adaptor1 <- metadata(aligned$adaptor1)$sequence
     adaptor2 <- metadata(aligned$adaptor2)$sequence
-    tolerance <- metadata(aligned)$tolerance
-    go <- metadata(aligned)$gapOpening 
-    ge <- metadata(aligned)$gapExtension
-    ma <- metadata(aligned)$match
-    mm <- metadata(aligned)$mismatch
+    tolerance <- metadata(aligned$adaptor1)$tolerance
+    go <- metadata(aligned$adaptor1)$gapOpening 
+    ge <- metadata(aligned$adaptor1)$gapExtension
+    ma <- metadata(aligned$adaptor1)$match
+    mm <- metadata(aligned$adaptor1)$mismatch
 
     # Scrambling the start and end of the read sequences.
     reads.out <- .get_front_and_back(reads, tolerance)
@@ -29,9 +29,7 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 
     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
     scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE, BPPARAM=BPPARAM)
-
-    is.reverse <- .resolve_strand(scrambled.scores$start, scrambled.scores$end, 
-                                  scrambled.scores$rc.start, scrambled.scores$rc.end)$reversed
+    is.reverse <- .resolve_strand(scrambled.scores$start, scrambled.scores$end, scrambled.scores$rc.start, scrambled.scores$rc.end)$reversed
 
     scram.score1 <- ifelse(is.reverse, scrambled.scores$rc.start, scrambled.scores$start)
     scram.score2 <- ifelse(is.reverse, scrambled.scores$rc.end, scrambled.scores$end)
@@ -48,10 +46,9 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
     fdr2 <- (length(scram.score2) - findInterval(score2, scram.score2))/(length(score2) - seq_along(score2))
     ix2 <- min(which(fdr2 <= error))
 
-    return(list(threshold1=score1[ix1],
-                threshold2=score2[ix2],
-                scores1=list(reads=score1, scrambled=scram.score1),
-                scores2=list(reads=score2, scrambled=scram.score2)))
+    return(list(threshold1=score1[ix1], threshold2=score2[ix2],
+        scores1=list(reads=score1, scrambled=scram.score1),
+        scores2=list(reads=score2, scrambled=scram.score2)))
 }
 
 #' @importFrom Biostrings DNAStringSet QualityScaledDNAStringSet

@@ -5,7 +5,7 @@
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
-adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5, gapExtension=1, match=1, mismatch=0, BPPARAM=SerialParam())
+adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=100, gapOpening=5, gapExtension=1, match=1, mismatch=0, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
@@ -13,10 +13,10 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
 # with modifications by Aaron Lun
 # created 7 November 2017    
 {
-    pre.out <- .preprocess_input(adaptor1, adaptor2, reads, add.names=TRUE)
-    adaptor1 <- pre.out$adaptor1
-    adaptor2 <- pre.out$adaptor2
-    reads <- pre.out$reads
+    has.quality <- is(reads, "QualityScaledDNAStringSet")
+    adaptor1 <- .assign_qualities(adaptor1, has.quality)
+    adaptor2 <- .assign_qualities(adaptor2, has.quality)
+    reads <- .assign_qualities(reads, has.quality)
 
     # Getting the start and (rc'd) end of the read.
     reads.out <- .get_front_and_back(reads, tolerance)
@@ -24,7 +24,6 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
     reads.end <- reads.out$back
 
     # Performing the alignment of each adaptor to the start/end of the read.
-    has.quality <- is(reads, "QualityScaledDNAStringSet")
     all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
     align.out <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args=all.args, BPPARAM=BPPARAM)
     align_start <- align.out$start
@@ -55,8 +54,9 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
     align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
-    metadata(align_start)$sequence <- adaptor1
-    metadata(align_end)$sequence <- adaptor2
+    details <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
+    metadata(align_start) <- list(sequence=adaptor1, details)
+    metadata(align_end) <- list(sequence=adaptor2, details)
 
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
@@ -66,40 +66,28 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
        
     rownames(align_start) <- rownames(align_end) <- names(reads) 
     output <- DataFrame(reads=reads, adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=names(reads))
-    metadata(output) <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
     return(output)
 }
 
-#' @importFrom Biostrings DNAString DNAStringSet
-.preprocess_input <- function(adaptor1, adaptor2, reads, add.names=FALSE) 
-# Coerces all inputs to DNAString or DNAStringSet objects.
+
+#' @importFrom Biostrings DNAString PhredQuality
+#' @importClassesFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom methods is
+.assign_qualities <- function(truth, add.quality=TRUE)
+# pairwiseAlignment() needs both strings to have qualities for quality-based pairwise alignment. 
+# Obviously, the true reference has no qualities so we assign it the highest score possible.
 {
-    has.qual1 <- is(adaptor1, "QualityScaledDNAStringSet")
-    has.qual2 <- is(adaptor2, "QualityScaledDNAStringSet")
-    if (is.character(adaptor1)) {
-        adaptor1 <- DNAString(adaptor1)
+    has.qual <- is(truth, "QualityScaledDNAStringSet")
+    if (is.character(truth)) {
+        truth <- DNAString(truth)
     } 
-    if (is.character(adaptor2)) { 
-        adaptor2 <- DNAString(adaptor2)
-    }
     
-    if(!has.qual1){
-        qual1 <- PhredQuality(rep(100L, length(adaptor1)))
-        adaptor1 <- QualityScaledDNAStringSet(adaptor1, qual1)
+    if (add.quality && !has.qual){
+        qual <- PhredQuality(rep(100L, length(truth)))
+        truth <- QualityScaledDNAStringSet(truth, qual)
     }
-    
-    if(!has.qual2){
-        qual2 <- PhredQuality(rep(100L, length(adaptor2)))
-        adaptor2 <- QualityScaledDNAStringSet(adaptor2, qual2)
-    }
-    
-    if (is.character(reads)) {
-        reads <- DNAStringSet(reads)
-    }
-    if (add.names && is.null(names(reads))) { 
-        names(reads) <- paste0("READ", seq_along(reads))
-    }
-    return(list(adaptor1=adaptor1, adaptor2=adaptor2, reads=reads))
+   
+	truth  
 }
 
 #' @importFrom Biostrings reverseComplement
@@ -116,14 +104,26 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
 }
 
 #' @importFrom Biostrings nucleotideSubstitutionMatrix
-.setup_alignment_args <- function(has.quality, gapOpening, gapExtension, match, mismatch) {
-    all.args <- list(type="local-global", gapOpening=gapOpening, gapExtension=gapExtension)
+.setup_alignment_args <- function(has.quality, gapOpening, gapExtension, match, mismatch, type="local-global") {
+    all.args <- list(type=type, gapOpening=gapOpening, gapExtension=gapExtension)
     if (!has.quality) { 
         all.args$substitutionMatrix <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
     } else {
-        all.args$fuzzyMatrix <- nucleotideSubstitutionMatrix() # support IUPAC. 
+        all.args$fuzzyMatrix <- nucleotideSubstitutionMatrix() # support IUPAC ambiguous codes in quality alignments. 
     }
     return(all.args)
+}
+
+.resolve_strand <- function(start.score, end.score, rc.start.score, rc.end.score) 
+# This determines whether the read orientation needs to be flipped so that 
+# adaptor 1 is at the start and adaptor 2 is at the end (see ?tuneAlignments 
+# for an explanation of what the 'final.score' means).
+{
+    fscore <- pmax(start.score, 0) + pmax(end.score, 0)
+    rscore <- pmax(rc.start.score, 0) + pmax(rc.end.score, 0)
+    is.reverse <- fscore < rscore
+    final.score <- ifelse(is.reverse, rscore, fscore)
+    return(list(reversed=is.reverse, scores=final.score))
 }
 
 #' @importFrom Biostrings pairwiseAlignment
@@ -138,18 +138,6 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=500, gapOpening=5,
     out <- bpmapply(FUN=pairwiseAlignment, pattern=all.patterns, subject=all.subjects, MoreArgs=c(list(...), all.args), BPPARAM=BPPARAM, SIMPLIFY=FALSE)
     names(out) <- c("start", "end", "rc.start", "rc.end")
     out
-}
-
-.resolve_strand <- function(start.score, end.score, rc.start.score, rc.end.score) 
-# This determines whether the read orientation needs to be flipped so that 
-# adaptor 1 is at the start and adaptor 2 is at the end (see ?tuneAlignments 
-# for an explanation of what the 'final.score' means).
-{
-    fscore <- pmax(start.score, 0) + pmax(end.score, 0)
-    rscore <- pmax(rc.start.score, 0) + pmax(rc.end.score, 0)
-    is.reverse <- fscore < rscore
-    final.score <- ifelse(is.reverse, rscore, fscore)
-    return(list(reversed=is.reverse, scores=final.score))
 }
 
 #' @importFrom Biostrings pattern subject aligned unaligned

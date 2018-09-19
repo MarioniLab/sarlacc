@@ -13,12 +13,10 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
 # written by Aaron Lun
 # created 26 February 2018
 {
-    pre.out <- .preprocess_input(adaptor1, adaptor2, reads)
-    adaptor1 <- pre.out$adaptor1
-    adaptor2 <- pre.out$adaptor2
-    reads <- pre.out$reads
-    
     has.quality <- is(reads, "QualityScaledDNAStringSet")
+    adaptor1 <- .assign_qualities(adaptor1, has.quality)
+    adaptor2 <- .assign_qualities(adaptor2, has.quality)
+    reads <- .assign_qualities(reads, has.quality)
     if (has.quality) {
         match.range <- mismatch.range <- c(0L, 0L)
     }
