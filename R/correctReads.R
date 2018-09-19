@@ -25,7 +25,8 @@ correctReads <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
   
     cluster.list <- groupReads(reads, mm.cmd=mm.cmd, mm.args=mm.args, working.dir=working.dir, min.identity=min.identity)
     umi.subgroups <- bplapply(cluster.list, FUN = .umi_group, UMI1 = UMI1, UMI2 = UMI2, umi.args = group.args, BPPARAM = BPPARAM)
-    subclustered <- unlist(mapply(FUN = split, x = cluster.list, f = umi.subgroups, SIMPLIFY = FALSE), recursive = FALSE) 
+    subclustered <- unlist(mapply(FUN = function(x, f) { lapply(f, function(i) { x[i] }) },
+        x = cluster.list, f = umi.subgroups, SIMPLIFY = FALSE), recursive = FALSE, use.names=FALSE) 
         
     # Performing MSA and constructing consensus sequences.
     aligned.reads <- do.call(multiReadAlign, c(list(reads, groups = subclustered, BPPARAM = BPPARAM), mra.read.args))
@@ -40,7 +41,7 @@ correctReads <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
  
     # Reassigning the read ID of the first read in each group as read ID of final consensus sequence
     first <- vapply(subclustered, FUN = "[", i = 1, FUN.VALUE = 0L)
-    names(UMI1.copy) <- names(read.copy) <- names(origins) <- names(reads)[first] 
+    names(UMI1.copy) <- names(read.copy) <- names(reads)[first] 
       
     output <- DataFrame(reads = read.copy, UMI1 = UMI1.copy)
     if (!is.null(UMI2)) {
@@ -48,7 +49,7 @@ correctReads <- function(reads, UMI1, UMI2=NULL, mm.cmd="minimap2", mm.args = NU
         output$UMI2 <-  UMI2.copy
     }
     
-    output$origins <- as(origins, "IntegerList")
+    output$origins <- as(subclustered, "IntegerList")
     return(output)
 }
 
