@@ -2,9 +2,9 @@
 #' @importFrom BiocParallel bplapply SerialParam
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom Biostrings quality encoding
-#' @importFrom methods is new
+#' @importFrom methods is new as
 #' @importFrom S4Vectors metadata
-#' @importClassesFrom S4Vectors DataFrame
+#' @importClassesFrom S4Vectors DataFrame List
 multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., BPPARAM=SerialParam())
 # Returns a DNAStringSet of multiple sequence alignments for the sequences from each cluster id.
 # MUSCLE itself is not quality-aware, so we help it out by masking low-quality bases beforehand.
@@ -39,7 +39,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
         }
     } 
 
-    # Pruning out singleton reads for efficiency.
+    # Pruning out singleton reads to avoid looping over them. 
     all.results <- vector("list", length(by.group))
     solo <- lengths(by.group)==1L
     if (any(solo)) {
@@ -60,20 +60,22 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
 
     # Collating the results into a single DF.
     out <- new("DataFrame", nrows=length(by.group))
-    out$alignments <- all.results 
+    out$alignments <- as(all.results, "List")
     if (has.quals) {
-        out$qualities <- lapply(by.group, function(idx) all.qual[idx]) 
+        out$qualities <- as(lapply(by.group, function(idx) all.qual[idx]), "List")
     }
     rownames(out) <- names(by.group)
     return(out)
 }
 
-#' @importFrom Biostrings unmasked
+#' @importFrom Biostrings unmasked DNAStringSet
 #' @importFrom muscle muscle
-.internal_msa <- function(indices, reads, qualities, masked, keep.masked, ...) {
+.internal_msa <- function(indices, reads, qualities, masked, keep.masked, ...) 
+# Optimized MUSCLE call for speed.
+{
     do.mask <- !is.null(masked)
     to.use <- if (do.mask) masked[indices] else reads[indices]
-    cur.align <- muscle(DNAStringSet(to.use), ..., quiet=TRUE)
+    cur.align <- muscle(DNAStringSet(to.use), ..., quiet=TRUE, diags=TRUE, maxiters=2)
     cur.align <- unmasked(cur.align)
     
     if (do.mask && !keep.masked) {
