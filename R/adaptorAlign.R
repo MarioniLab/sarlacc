@@ -1,6 +1,5 @@
 #' @export
 #' @importFrom Biostrings reverseComplement 
-#' @importFrom BiocGenerics score
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
@@ -25,38 +24,22 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
 
     # Performing the alignment of each adaptor to the start/end of the read.
     all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
-    align.out <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args=all.args, BPPARAM=BPPARAM)
-    align_start <- align.out$start
-    align_end <- align.out$end
-    align_revcomp_start <- align.out$rc.start
-    align_revcomp_end <- align.out$rc.end
+    align_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.start, BPPARAM=BPPARAM), all.args))
+    align_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.end, BPPARAM=BPPARAM), all.args))
+    align_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.end, BPPARAM=BPPARAM), all.args))
+    align_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.start, BPPARAM=BPPARAM), all.args))
     
-    # Figuring out the strand.
-    strand.out <- .resolve_strand(score(align_start), score(align_end), score(align_revcomp_start), score(align_revcomp_end))
+    # Standardizing the strand.
+    strand.out <- .resolve_strand(align_start$score, align_end$score, align_revcomp_start$score, align_revcomp_end$score)
     is_reverse <- strand.out$reversed
 
-    # Extracting all the useful information out of them.
-    if (has.quality) {
-        qual.start <- quality(reads.start)
-        qual.end <- quality(reads.end)
-    } else {
-        qual.start <- NULL
-        qual.end <- NULL
-    }
-
-    align_start <- .align_info_extractor(align_start, quality=qual.start)
-    align_end <- .align_info_extractor(align_end, quality=qual.end)
-    align_revcomp_start <- .align_info_extractor(align_revcomp_start, quality=qual.end)
-    align_revcomp_end <- .align_info_extractor(align_revcomp_end, quality=qual.start)
-
-    # Replacing the alignments.
     align_start[is_reverse,] <- align_revcomp_start[is_reverse,]
     align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
     reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
     details <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
-    metadata(align_start) <- c(sequence=adaptor1, details)
-    metadata(align_end) <- c(sequence=adaptor2, details)
+    metadata(align_start) <- c(list(sequence=adaptor1), details)
+    metadata(align_end) <- c(list(sequence=adaptor2), details)
 
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
@@ -69,8 +52,11 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
     return(output)
 }
 
+############################################
+########### Internal functions #############
+############################################
 
-#' @importFrom Biostrings DNAString PhredQuality
+#' @importFrom Biostrings DNAStringSet PhredQuality
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 .assign_qualities <- function(truth, add.quality=TRUE)
@@ -79,14 +65,12 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
 {
     has.qual <- is(truth, "QualityScaledDNAStringSet")
     if (is.character(truth)) {
-        truth <- DNAString(truth)
+        truth <- DNAStringSet(truth)
     } 
-    
     if (add.quality && !has.qual){
         qual <- PhredQuality(rep(100L, length(truth)))
         truth <- QualityScaledDNAStringSet(truth, qual)
     }
-   
 	truth  
 }
 
@@ -126,35 +110,41 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
     return(list(reversed=is.reverse, scores=final.score))
 }
 
-#' @importFrom Biostrings pairwiseAlignment
-#' @importFrom BiocParallel bpmapply SerialParam
-.get_all_alignments <- function(adaptor1, adaptor2, reads.start, reads.end, all.args=list(), ..., BPPARAM=SerialParam()) 
-# This performs the alignment of adaptor 1 to the start (start) and adaptor 2 to the end (end),
-# or adaptor 1 to the end (rc.start, as it's the start of the reverse complemented read) and 
-# adaptor 2 to the start (rc.end, as it's the end of the reverse complemented read).
-{
-    all.patterns <- list(reads.start, reads.end, reads.end, reads.start)
-    all.subjects <- list(adaptor1, adaptor2, adaptor1, adaptor2)
-    out <- bpmapply(FUN=pairwiseAlignment, pattern=all.patterns, subject=all.subjects, MoreArgs=c(list(...), all.args), BPPARAM=BPPARAM, SIMPLIFY=FALSE)
-    names(out) <- c("start", "end", "rc.start", "rc.end")
-    out
-}
-
-#' @importFrom Biostrings pattern subject aligned unaligned
+#' @importFrom Biostrings pairwiseAlignment quality pattern subject aligned unaligned
+#' @importClassesFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom BiocParallel bplapply SerialParam bpnworkers
+#' @importFrom utils head
+#' @importFrom methods is
 #' @importFrom BiocGenerics score start end
 #' @importFrom S4Vectors DataFrame
 #' @importFrom XVector subseq
-.align_info_extractor <- function(alignments, quality=NULL) {
-    read0 <- pattern(alignments)
-    adaptor0 <- subject(alignments)
-    extended <- .Call(cxx_get_aligned_sequence, aligned(adaptor0), as.character(unaligned(adaptor0)), start(adaptor0), end(adaptor0), aligned(read0))
+.bplalign <- function(adaptor, reads, ..., scoreOnly=FALSE, BPPARAM=SerialParam())
+# Align reads in parallel.
+{
+    n.cores <- bpnworkers(BPPARAM)
+    bounds <- seq(from=1L, to=length(reads), length.out=n.cores+1L)
+    ids <- findInterval(seq_along(reads), head(bounds, -1))
+    by.core <- split(reads, ids)
 
-    output <- DataFrame(score=score(alignments), adaptor=extended[[1]], read=extended[[2]], start=start(read0), end=end(read0))
-    if (!is.null(quality)) {
-        pattern.qual <- subseq(quality, start=output$start, end=output$end)
-        output$quality <- pattern.qual
-    }    
-    return(output)
+    out <- bplapply(by.core, FUN=pairwiseAlignment, subject=adaptor, ..., scoreOnly=scoreOnly, BPPARAM=BPPARAM)
+    if (scoreOnly) {
+        return(unlist(out, use.names=FALSE))
+    }
+
+    has.quality <- is(reads, "QualityScaledDNAStringSet")
+    collected <- vector("list", n.cores)
+    for (i in seq_along(out)) {
+        alignments <- out[[i]]
+        read0 <- pattern(alignments)
+        adaptor0 <- subject(alignments)
+        extended <- .Call(cxx_get_aligned_sequence, aligned(adaptor0), as.character(unaligned(adaptor0)), start(adaptor0), end(adaptor0), aligned(read0))
+
+        output <- DataFrame(score=score(alignments), adaptor=extended[[1]], read=extended[[2]], start=start(read0), end=end(read0))
+        if (has.quality) {
+            output$quality <- subseq(quality(by.core[[i]]), start=output$start, end=output$end)
+        }
+        collected[[i]] <- output
+    }
+
+    do.call(rbind, collected)
 }
-
-
