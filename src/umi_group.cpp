@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "DNA_input.h"
 #include "sorted_trie.h"
+#include "umi_clusterer.h"
 
 SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) {
     BEGIN_RCPP
@@ -22,14 +23,15 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
     }
     const int limit2=check_integer_scalar(thresh1, "threshold 2");
 
-    // Running through each group to define the current set. 
-    Rcpp::List Pregroup(pregroup), output(Pregroup.size());
-    std::vector<const char*> allseqs;
-    std::vector<int> alllens, order;
-
+    // Defining persistent and reusable arrays for intermediate variable-length constructs.
     std::vector<int> match_from_one(1000), workspace;
     std::vector<size_t> match_starts, match_num; 
+    std::vector<const char*> allseqs;
+    std::vector<int> alllens, order;
+    umi_clusterer clusterer;
 
+    // Running through each group to define the current set. 
+    Rcpp::List Pregroup(pregroup), output(Pregroup.size());
     for (size_t g=0; g<Pregroup.size(); ++g) {
         Rcpp::IntegerVector curgroup=Pregroup[g];
         const size_t curN=curgroup.size();
@@ -57,8 +59,9 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
         if (!use_two) {
             for (auto o : order) {
                 auto matches=trie1.find(allseqs[o], alllens[o], limit1);
-                output[curgroup[o]]=Rcpp::IntegerVector(matches.begin(), matches.end());
+                clusterer.add(matches.begin(), matches.end());
             }
+
         } else { 
             // Saving matches for UMI1.
             if (curN > match_starts.size()) {
@@ -110,9 +113,21 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
                     }
                 }
 
-                output[curgroup[o]]=Rcpp::IntegerVector(workspace.begin(), workspace.begin() + counter);
-            }
+                clusterer.add(workspace.begin(), workspace.begin() + counter);
+            }            
         }
+
+        Rcpp::List clusters=clusterer.cluster();
+        for (size_t i=0; i<clusters.size(); ++i) {
+            Rcpp::IntegerVector current=clusters[i];
+            for (auto& val : current) {
+                val=order[val];
+            }
+            clusters[i]=current;
+        }
+        
+        output[g]=clusters;
+        clusterer.clear();
     }
 
     return output;
