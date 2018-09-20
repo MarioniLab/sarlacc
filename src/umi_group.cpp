@@ -68,7 +68,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             // Saving matches for UMI1.
             size_t used=0;
             for (auto o : order) {
-                auto matches=trie1.find(allseqs[o], alllens[o], limit1);
+                const auto& matches=trie1.find(allseqs[o], alllens[o], limit1);
                 match_arrays.add(matches.begin(), matches.end(), o);
                 auto startIt=match_arrays.get_start_unsafe(o);
                 std::sort(startIt, startIt + match_arrays.get_len(o));
@@ -84,7 +84,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             sorted_trie::order(curN, allseqs.data(), alllens.data(), order.data());
 
             for (auto o : order) {
-                auto matches=trie2.find(allseqs[o], alllens[o], limit2);
+                const auto& matches=trie2.find(allseqs[o], alllens[o], limit2);
                 const size_t n_match_one=match_arrays.get_len(o);
 
                 const size_t max_size=std::min(n_match_one, matches.size());
@@ -104,10 +104,8 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
                         ++counter;
                     }
                 }
-
                 clusterer.storage.add(workspace.begin(), workspace.begin() + counter);
             }
-
             match_arrays.clear();
         }
 
