@@ -1,4 +1,6 @@
 #include "sorted_trie.h"
+#include "utils.h"
+#include "DNA_input.h"
 
 const std::vector<char> BASES={'A', 'C', 'G', 'T', 'N'};
 const int NBASES=BASES.size();
@@ -238,6 +240,7 @@ const std::deque<int>& sorted_trie::find(const char* cur_str, const int cur_len,
     if (common==cur_len && cur_len==current.size() && counter) {
         return collected;
     }
+    collected.clear();
 
     // Replacing the remaining elements in 'current'.
     current.resize(cur_len);
@@ -277,4 +280,43 @@ void sorted_trie::order(size_t n, const char ** seqs, const int* lens, int* orde
     return;
 }
 
+/****************************
+* R-level testing function. *
+*****************************/
+
+SEXP fast_levdist_test(SEXP input, SEXP limit, SEXP sorted) {
+    BEGIN_RCPP
+
+    auto seqs=process_DNA_input(input);
+    const size_t nseqs=seqs->size();
+    std::vector<const char*> ptrs(nseqs);
+    std::vector<int> lens(nseqs);
+
+    for (size_t s=0; s<nseqs; ++s) {
+        const auto& val=seqs->get(s);
+        ptrs[s]=val.first;
+        lens[s]=val.second;
+    }
+    sorted_trie trie(nseqs, ptrs.data(), lens.data());
+    
+    std::vector<int> order(nseqs);
+    std::iota(order.begin(), order.end(), 0);
+    if (check_logical_scalar(sorted, "sort specification")) {
+        sorted_trie::order(nseqs, ptrs.data(), lens.data(), order.data());               
+    }
+
+    const int lim=check_integer_scalar(limit, "limit");
+    Rcpp::List output(nseqs);
+    for (auto o : order) {
+        const auto& matches=trie.find(ptrs[o], lens[o], lim);
+        Rcpp::IntegerVector current(matches.begin(), matches.end());
+        for (auto& c : current) { 
+            ++c; 
+        }
+        output[o]=current;
+    }
+
+    return output;
+    END_RCPP
+}
 
