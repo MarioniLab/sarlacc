@@ -68,7 +68,7 @@ tuning$parameters
 
 We confirm that these values are sensible by examining the distribution of scores for the real alignments compared to the scrambled sequences.
 
-```{r, fig.cap="Distribution of alignment scores for the real reads (blue) and scrambled sequences (red) using the tuned alignment parameters."}
+```{r, fig.cap="Distribution of adaptor alignment scores for the real reads (blue) and scrambled sequences (red) using the tuned alignment parameters. Scores for both adaptors in the optimal orientation are added together to give the combined score for each read."}
 real.dist <- density(tuning$scores$reads)
 scram.dist <- density(tuning$scores$scrambled)
 plot(real.dist, xlim=range(real.dist$x, scram.dist$x),
@@ -101,6 +101,62 @@ Whether or not a read sequence was reverse-complemented is indicataed by the `al
 ```{r}
 summary(aln.out$reversed)
 ```
+
+# Removing adaptors
+
+We use the `getScoreThreshold` function to choose an appropriate score threshold for the presence of an adaptor.
+
+```{r}
+thresh <- getScoreThresholds(aln.out)
+thresh$threshold1
+thresh$threshold2
+```
+
+We verify that the thresholds are suitable for adaptor 1:
+
+```{r, fig.cap="Distribution of adaptor 1 alignment scores for the real reads (blue) and scrambled sequences (red)."}
+real.dist <- density(thresh$scores1$reads)
+scram.dist <- density(thresh$scores1$scrambled)
+plot(real.dist, xlim=range(real.dist$x, scram.dist$x),
+    ylim=range(real.dist$y, scram.dist$y), col="blue")
+lines(scram.dist, col="red")
+abline(v=thresh$threshold1, col="grey", lty=2)
+```
+
+... and for adaptor 2:
+
+```{r, fig.cap="Distribution of adaptor 2 alignment scores for the real reads (blue) and scrambled sequences (red)."}
+real.dist <- density(thresh$scores2$reads)
+scram.dist <- density(thresh$scores2$scrambled)
+plot(real.dist, xlim=range(real.dist$x, scram.dist$x),
+    ylim=range(real.dist$y, scram.dist$y), col="blue")
+lines(scram.dist, col="red")
+abline(v=thresh$threshold2, col="grey", lty=2)
+```
+
+We use the `chopReads` function to filter only those reads that have adaptors on both sides^[We'll round the thresholds to fixed values, for simplicity and to simplify reproducibility.].
+This yields a new `DataFrame` with fewer reads and sequences in `reads` where the adaptors have been removed.
+One can use these sequences directly for downstream analyses if error correction is not necessary. 
+
+```{r}
+chopped <- chopReads(aln.out, 11, 11)
+chopped$reads
+```
+
+# Performing error correction
+
+## Extracting the UMIs
+
+We use the `umiExtract` function to extract the UMI sequence for each adaptor alignment.
+By default, it will guess the UMI position from the location of `N`s in the `adaptor1` sequence, but this can also be manually specified if the adaptor sequence is complex.
+
+```{r}
+umis <- umiExtract(aln.out$adaptor1) 
+umis
+```
+
+
+# Grouping the reads
 
 
 
