@@ -6,11 +6,10 @@
 
 class masker {
 public:
-    masker(double, size_t);
-    Rcpp::String mask(const char*, size_t, double*);
+    masker(double, Rcpp::NumericVector);
+    void mask(size_t, const char*, const char*, char*);
 private:
-    std::vector<char> buffer;
-    double threshold;
+    char offset;
 };
 
 class unmasker {
