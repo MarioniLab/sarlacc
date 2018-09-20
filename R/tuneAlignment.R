@@ -2,9 +2,9 @@
 #' @importFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
-tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100, 
-    gapOp.range=c(4, 10), gapExt.range=c(1, 5), 
-    match.range=c(1, 2), mismatch.range=c(-1, 0),
+#' @importFrom utils head
+tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=200, number=10000,
+    gapOp.range=c(4, 10), gapExt.range=c(1, 5), match.range=c(1, 2), mismatch.range=c(-1, 0),
     BPPARAM=SerialParam()) 
 # This function scrambles the input subject sequences and tries to identify the
 # alignment parameters that minimize the overlap between the true alignment 
@@ -16,7 +16,7 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     adaptor1 <- .assign_qualities(adaptor1, has.quality)
     adaptor2 <- .assign_qualities(adaptor2, has.quality)
-    reads <- .assign_qualities(reads, has.quality)
+    reads <- .assign_qualities(head(reads, number), has.quality)
     if (has.quality) {
         match.range <- mismatch.range <- c(0L, 0L)
     }
