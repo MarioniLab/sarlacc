@@ -20,6 +20,7 @@ static const R_CallMethodDef all_call_entries[] = {
 
     REGISTER(umi_group, 5),
     REGISTER(fast_levdist_test, 3),
+    REGISTER(cluster_umis_test, 1), 
     REGISTER(compute_lev_masked, 1),
 
     REGISTER(find_homopolymers, 1),

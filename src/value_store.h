@@ -16,32 +16,27 @@ public:
 
     template<class IT>
     void add(IT start, IT end, size_t index) {
-        if (index > starts.size()) {
-            starts.resize(index);
-            lengths.resize(index);
-        } 
-        if (index > n_stored + 1) { // Clearing intervening values.
-            std::fill(lengths.begin() + n_stored, lengths.begin() + index, 0);
+        if (index > n_stored + 1) { 
+            if (index > starts.size()) {
+                starts.resize(index);
+                lengths.resize(index);
+            } 
+            std::fill(lengths.begin() + n_stored, lengths.begin() + index, 0); // Clearing intervening values to ensure validity.
         }
-
-        const auto len=end - start;
-        starts[index]=nvals_stored;
-        lengths[index]=len;
-
-        const auto required=nvals_stored + len;
-        if (required > storage_values.size()) {
-            storage_values.resize(required);
-        }
-
-        std::copy(start, end, storage_values.begin() + nvals_stored);
-        nvals_stored=required;
+        add_internal(start, end, n_stored);
         n_stored=std::max(index, n_stored);
         return;
     }
 
     template<class IT>
     void add(IT start, IT end) {
-        add(start, end, n_stored+1);
+        if (n_stored > starts.size()) {
+            starts.resize(n_stored);
+            lengths.resize(n_stored);
+        } 
+        add_internal(start, end, n_stored);
+        ++n_stored;
+        return;
     }
     
     void clear() {
@@ -68,6 +63,24 @@ private:
     V storage_values;
     std::deque<size_t> starts, lengths;
     size_t n_stored, nvals_stored;
+
+    template<class IT>
+    void add_internal(IT start, IT end, size_t index) {
+        const auto len=end - start;
+        starts[index]=nvals_stored;
+        lengths[index]=len;
+
+        const auto required=nvals_stored + len;
+        if (required > storage_values.size()) {
+            storage_values.resize(required);
+        }
+
+        std::copy(start, end, storage_values.begin() + nvals_stored);
+        nvals_stored=required;
+        return;
+    }
+
+
 };
 
 
