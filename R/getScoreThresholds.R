@@ -27,12 +27,19 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
     scrambled.start <- .scramble_input(reads.start, has.quality)
     scrambled.end <- .scramble_input(reads.end, has.quality)
 
+    # Computing alignment scores to the adaptors.
     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
-    scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE, BPPARAM=BPPARAM)
-    is.reverse <- .resolve_strand(scrambled.scores$start, scrambled.scores$end, scrambled.scores$rc.start, scrambled.scores$rc.end)$reversed
+    all.args$BPPARAM <- BPPARAM
+    all.args$scoreOnly <- TRUE
 
-    scram.score1 <- ifelse(is.reverse, scrambled.scores$rc.start, scrambled.scores$start)
-    scram.score2 <- ifelse(is.reverse, scrambled.scores$rc.end, scrambled.scores$end)
+    scrambled_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.start), all.args))
+    scrambled_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.end), all.args))
+    scrambled_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.end), all.args))
+    scrambled_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.start), all.args))
+    is.reverse <- .resolve_strand(scrambled_start, scrambled_end, scrambled_revcomp_start, scrambled_revcomp_end)$reversed
+
+    scram.score1 <- ifelse(is.reverse, scrambled_revcomp_start, scrambled_start)
+    scram.score2 <- ifelse(is.reverse, scrambled_revcomp_end, scrambled_end)
     scram.score1 <- sort(scram.score1)
     scram.score2 <- sort(scram.score2)
 

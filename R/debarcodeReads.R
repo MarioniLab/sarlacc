@@ -3,7 +3,8 @@
 #' @importFrom S4Vectors DataFrame metadata
 #' @importFrom methods is
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
-debarcodeReads <- function(align.stats, barcodes, position)
+#' @importFrom BiocParallel SerialParam
+debarcodeReads <- function(align.stats, barcodes, position, BPPARAM=SerialParam())
 # Pulls out the barcodes, aligns them against all possible options,
 # and reports the results.
 #
@@ -23,7 +24,7 @@ debarcodeReads <- function(align.stats, barcodes, position)
     current.id <- rep(NA_integer_, length(barcodes))
     for (b in seq_along(barcodes)) {
         current <- .assign_qualities(barcodes[b])
-        scores <- do.call(pairwiseAlignment, c(list(pattern=extracted, subject=current, scoreOnly=TRUE), all.args))
+        scores <- do.call(.bplalign, c(list(reads=extracted, adaptor=current, scoreOnly=TRUE, BPPARAM=BPPARAM), all.args))
         keep <- scores > current.score
         current.id[keep] <- b
         current.score[keep] <- scores[keep]
