@@ -23,8 +23,10 @@ public:
             } 
             std::fill(lengths.begin() + n_stored, lengths.begin() + index, 0); // Clearing intervening values to ensure validity.
         }
-        add_internal(start, end, n_stored);
-        n_stored=std::max(index, n_stored);
+        add_internal(start, end, index);
+        if (index > n_stored) {
+            n_stored=index;
+        }
         return;
     }
 
