@@ -54,44 +54,52 @@ test_that("fast levenshtein finder works as expected for default data", {
     randoms <- SEQSIM(100, min.length=1, max.length=20)
     ref <- as.matrix(stringDist(randoms, method="levenshtein"))
 
-    closest <- .Call(sarlacc:::cxx_umi_group, randoms, 5L)
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 5L, TRUE)
     for (x in seq_along(closest)) {
         expect_identical(unname(which(ref[x,] <= 5L)), sort(closest[[x]]))
     }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 5L, FALSE))
 
-    closest <- .Call(sarlacc:::cxx_umi_group, randoms, 2L)
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, TRUE)
     for (x in seq_along(closest)) {
         expect_identical(unname(which(ref[x,] <= 2L)), sort(closest[[x]]))
     }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, FALSE))
 
     # Another simulation of many random sequences.
     randoms <- SEQSIM(100, min.length=5, max.length=10)
     ref <- as.matrix(stringDist(randoms, method="levenshtein"))
 
-    closest <- .Call(sarlacc:::cxx_umi_group, randoms, 5L)
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 5L, TRUE)
     for (x in seq_along(closest)) {
         expect_identical(unname(which(ref[x,] <= 5L)), sort(closest[[x]]))
     }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 5L, FALSE))
 
-    closest <- .Call(sarlacc:::cxx_umi_group, randoms, 2L)
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, TRUE)
     for (x in seq_along(closest)) {
         expect_identical(unname(which(ref[x,] <= 2L)), sort(closest[[x]]))
     }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, FALSE))
+})
 
+test_that("fast levenshtein finder works as expected for highly dense space", {
     # Simulations involving lots of the same sequence.
     randoms <- SEQSIM(50, min.length=5, max.length=10)
     randoms <- randoms[sample(50, 100, replace=TRUE),]
     ref <- as.matrix(stringDist(randoms, method="levenshtein"))
 
-    closest <- .Call(sarlacc:::cxx_umi_group, randoms, 5L)
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 5L, TRUE)
     for (x in seq_along(closest)) {
         expect_identical(unname(which(ref[x,] <= 5L)), sort(closest[[x]]))
     }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 5L, FALSE))
 
-    closest <- .Call(sarlacc:::cxx_umi_group, randoms, 2L)
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, TRUE)
     for (x in seq_along(closest)) {
         expect_identical(unname(which(ref[x,] <= 2L)), sort(closest[[x]]))
     }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, FALSE))
 })
 
 test_that("fast levenshtein finder works as expected for masked data", {
@@ -101,12 +109,12 @@ test_that("fast levenshtein finder works as expected for masked data", {
         substr(masked, i, i+1) <- "N"
         
         set <- DNAStringSet(c(ref, masked))
-        out <- .Call(sarlacc:::cxx_umi_group, set, 1L)
+        out <- .Call(sarlacc:::cxx_fast_levdist_test, set, 1L, TRUE)
         expect_identical(sort(out[[1]]), c(1L, 2L))
         expect_identical(sort(out[[2]]), c(1L, 2L))
 
         # N's are missing, so a distance of 1 even when strings are the same
-        out <- .Call(sarlacc:::cxx_umi_group, set, 0L)
+        out <- .Call(sarlacc:::cxx_fast_levdist_test, set, 0L, TRUE)
         expect_identical(sort(out[[1]]), c(1L))
         expect_identical(sort(out[[2]]), integer(0))
     }
