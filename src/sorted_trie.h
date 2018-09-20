@@ -1,8 +1,6 @@
 #ifndef SORTED_TRIE_H
 #define SORTED_TRIE_H
-#include <vector>
-#include <deque>
-#include <algorithm>
+#include "sarlacc.h"
 
 class sorted_trie {
 public:
@@ -22,10 +20,10 @@ private:
         std::vector<int>* scores;
         size_t history;
         
-        trie_node() {}
-        ~trie_node() {}
+        trie_node();
+        ~trie_node();
 
-        bool dead_end () const {}
+        bool dead_end () const;
         void insert (const int, const std::vector<char>&, size_t);
         void insert(int, const std::vector<char>&);
         

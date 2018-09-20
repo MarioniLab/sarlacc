@@ -17,19 +17,19 @@ int get_edit_score (char left, char right) {
  * Internal class for nodes of the trie. *
  *****************************************/
 
-trie_node::trie_node() : indices(NULL), children(NULL), scores(NULL), history(0) {}
+sorted_trie::trie_node::trie_node() : indices(NULL), children(NULL), scores(NULL), history(0) {}
 
-trie_node::~trie_node() {
+sorted_trie::trie_node::~trie_node() {
 	if (indices) { delete indices; }
 	if (children) { delete children; }
 	if (scores) { delete scores; }
 }
 
-bool trie_node::dead_end () const {
+bool sorted_trie::trie_node::dead_end () const {
 	return (!indices && !children);
 }
 
-void trie_node::insert (const int index, const std::vector<char>& current, size_t position) {
+void sorted_trie::trie_node::insert (const int index, const std::vector<char>& current, size_t position) {
 	if (position==current.size()) {
 		if (!indices) {
 			indices=new std::deque<int>(1, index);
@@ -64,13 +64,13 @@ void trie_node::insert (const int index, const std::vector<char>& current, size_
 }
 
 // Top-level insert function.
-void trie_node::insert (int index, const std::vector<char>& current) {
+void sorted_trie::trie_node::insert (int index, const std::vector<char>& current) {
 	insert(index, current, 0);
 	return;
 }
 
 // Debugging function to explore tree shape.
-void trie_node::dump(int depth, char base) {
+void sorted_trie::trie_node::dump(int depth, char base) {
 	for (int d=0; d<depth; ++d) {
 		Rprintf("    ");
 	}
@@ -92,12 +92,12 @@ void trie_node::dump(int depth, char base) {
 	return;
 }
 
-void trie_node::dump() {
+void sorted_trie::trie_node::dump() {
 	dump(0, 'x');
 }
 
 // Computing the progressive levenshtein distance across the trie.
-void trie_node::find_within(std::deque<int>& collected, const std::vector<char>& current, size_t offset, char this_base, std::vector<int>& previous, int limit, size_t iter) {
+void sorted_trie::trie_node::find_within(std::deque<int>& collected, const std::vector<char>& current, size_t offset, char this_base, std::vector<int>& previous, int limit, size_t iter) {
 	const size_t cur_len=current.size();
 	if (!scores) {
 		scores = new std::vector<int>(cur_len+1);
@@ -179,7 +179,7 @@ void trie_node::find_within(std::deque<int>& collected, const std::vector<char>&
     return;
 }
 
-void trie_node::find_within(std::deque<int>& collected, const std::vector<char>& current, int offset, int limit, size_t iter) {
+void sorted_trie::trie_node::find_within(std::deque<int>& collected, const std::vector<char>& current, int offset, int limit, size_t iter) {
     if (!scores) {
         scores = new std::vector<int>(current.size()+1);
     } else {
@@ -236,7 +236,7 @@ const std::deque<int>& sorted_trie::find(const char* cur_str, const int cur_len,
     // If it's fully common, this implies that this string is the same as the previous string,
     // so we use the previous results and skip to avoid redundant work.
     if (common==cur_len && cur_len==current.size() && counter) {
-        return;
+        return collected;
     }
 
     // Replacing the remaining elements in 'current'.
@@ -264,7 +264,7 @@ void sorted_trie::dump() {
     return;
 }
 
-void sorted_trie::order(size_t n, const char ** seqs, int* lens, int* order) {
+void sorted_trie::order(size_t n, const char ** seqs, const int* lens, int* order) {
 	std::iota(order, order+n, 0);
 	std::sort(order, order+n, [&] (int left, int right) -> bool {
 		const char * L=seqs[left], *R=seqs[right];
@@ -274,6 +274,7 @@ void sorted_trie::order(size_t n, const char ** seqs, int* lens, int* order) {
 		}
 		return LN < RN;
 	});
+    return;
 }
 
 
