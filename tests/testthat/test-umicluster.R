@@ -7,7 +7,7 @@ REF <- function(groups)
     collected <- vector("list", length(groups))
 
     for (i in seq_along(groups)){
-        groupsize <- lengths(groups)        
+        groupsize <- lengths(groups)
         chosen <- max(which(groupsize==max(groupsize))) # last, if ties.
         curgroup <- groups[[chosen]]
         collected[[i]] <- curgroup
@@ -29,18 +29,18 @@ REF <- function(groups)
 }
 
 library(Matrix)
-MOCKUP <- function(nnodes, density) 
+MOCKUP <- function(nnodes, density)
 # Mock function to generate the desired symmetric link set.
 {
     out <- rsparsematrix(nnodes, nnodes, density=density, symmetric=TRUE)
     diag(out) <- 1
     has.link <- out!=0
-    
+
     idx <- which(has.link, arr.ind=TRUE)
     split(idx[,1], idx[,2])
 }
 
-COMPARE <- function(left, right) 
+COMPARE <- function(left, right)
 # As ordering of entries may not be the same, due to special handling of solo groups.
 {
     expect_identical(length(left), length(right))
@@ -51,37 +51,37 @@ COMPARE <- function(left, right)
 test_that("UMI clustering routine works as expected", {
     links <- MOCKUP(20, density=0.05)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 
     links <- MOCKUP(20, density=0.1)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 
     links <- MOCKUP(20, density=0.2)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 
     links <- MOCKUP(50, density=0.2)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 
     links <- MOCKUP(50, density=0.4)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 
     links <- MOCKUP(50, density=0.1)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 
     # Handles solo-only groups correctly.
     links <- MOCKUP(50, density=0)
     ref <- REF(links)
-    obs <- .Call(sarlacc:::cxx_cluster_umis, links)    
+    obs <- .Call(sarlacc:::cxx_cluster_umis_test, links)
     COMPARE(ref, obs)
 })
