@@ -3,6 +3,7 @@
 #include "DNA_input.h"
 #include "sorted_trie.h"
 #include "umi_clusterer.h"
+#include "value_store.h"
 
 SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) {
     BEGIN_RCPP
@@ -24,11 +25,12 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
     const int limit2=check_integer_scalar(thresh1, "threshold 2");
 
     // Defining persistent and reusable arrays for intermediate variable-length constructs.
-    std::vector<int> match_from_one(1000), workspace;
-    std::vector<size_t> match_starts, match_num; 
     std::vector<const char*> allseqs;
     std::vector<int> alllens, order;
     umi_clusterer clusterer;
+    
+    value_store<int, std::deque<int> > match_arrays;
+    std::vector<int> workspace;
 
     // Running through each group to define the current set. 
     Rcpp::List Pregroup(pregroup), output(Pregroup.size());
@@ -59,29 +61,17 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
         if (!use_two) {
             for (auto o : order) {
                 auto matches=trie1.find(allseqs[o], alllens[o], limit1);
-                clusterer.add(matches.begin(), matches.end());
+                clusterer.storage.add(matches.begin(), matches.end(), o);
             }
 
         } else { 
             // Saving matches for UMI1.
-            if (curN > match_starts.size()) {
-                match_starts.resize(curN);
-                match_num.resize(curN);
-            }
-
             size_t used=0;
             for (auto o : order) {
                 auto matches=trie1.find(allseqs[o], alllens[o], limit1);
-                match_starts[o]=used;
-                match_num[o]=matches.size();
-
-                const size_t required=used+matches.size();
-                if (required > match_from_one.size()) {
-                    match_from_one.resize(required);
-                }
-                std::copy(matches.begin(), matches.end(), match_from_one.begin() + used);
-                std::sort(match_from_one.begin() + used, match_from_one.begin() + required);
-                used=required;
+                match_arrays.add(matches.begin(), matches.end(), o);
+                auto startIt=match_arrays.get_start_unsafe(o);
+                std::sort(startIt, startIt + match_arrays.get_len(o));
             }
 
             // Processing UMI2.
@@ -95,39 +85,34 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
 
             for (auto o : order) {
                 auto matches=trie2.find(allseqs[o], alllens[o], limit2);
-                const auto left=match_from_one.begin() + match_starts[o];
-                const auto right=left + match_num[o];
+                const size_t n_match_one=match_arrays.get_len(o);
 
-                const size_t max_size=std::min(match_num[o], matches.size());
+                const size_t max_size=std::min(n_match_one, matches.size());
                 if (max_size > workspace.size()) {
                     workspace.resize(max_size);
                 }
 
                 // Identifying the intersection for each read.
+                const auto left=match_arrays.get_start(o);
+                const auto right=left + n_match_one;
                 int counter=0;
-                for (auto i : matches) {
-                    auto it=std::lower_bound(left, right, i);
-                    if (it!=right && *it==i) {
-                        workspace[counter]=i;
+
+                for (auto m2 : matches) {
+                    auto it=std::lower_bound(left, right, m2);
+                    if (it!=right && *it==m2) {
+                        workspace[counter]=m2;
                         ++counter;
                     }
                 }
 
-                clusterer.add(workspace.begin(), workspace.begin() + counter);
-            }            
+                clusterer.storage.add(workspace.begin(), workspace.begin() + counter);
+            }
+
+            match_arrays.clear();
         }
 
-        Rcpp::List clusters=clusterer.cluster();
-        for (size_t i=0; i<clusters.size(); ++i) {
-            Rcpp::IntegerVector current=clusters[i];
-            for (auto& val : current) {
-                val=order[val];
-            }
-            clusters[i]=current;
-        }
-        
-        output[g]=clusters;
-        clusterer.clear();
+        output[g]=clusterer.cluster();
+        clusterer.storage.clear();
     }
 
     return output;
