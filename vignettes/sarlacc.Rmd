@@ -37,19 +37,75 @@ source(system.file("scripts", "create_mock_seqs.R", package="sarlacc"))
 fastq
 ```
 
-Data from any FASTQ file can be loaded in using methods from the `r Biocpkg("ShortRead")` package.
-This requires some further processing to obtain a `DNAStringSet` object for entry into the `r Biocpkg("sarlacc")` pipeline.
+We load in the sequences using `r Biocpkg("Biostrings")` to create a `QualityScaledDNAStringSet`.
 
 ```{r}
-library(ShortRead)
-read.data <- readFastq(fastq)
-read.seq <- sread(read.data)
-quals <- quality(read.data)
-input <- QualityScaledDNAStringSet(read.seq, as(quals, "PhredQuality"))
+input <- readQualityScaledDNAStringSet(fastq)
 input
 ```
 
-We use a `QualityScaledDNAStringSet` to exploit the availability of base-calling scores in this example.
-If such information is not available, a `DNAStringSet` will suffice as input to `r Biocpkg("sarlacc")` functions.
+Note that if quality information is not available, a `DNAStringSet` will suffice as input to `r Biocpkg("sarlacc")` functions.
 
- 
+# Aligning adaptors
+
+## Identifying alignment parameters
+
+Our first task is to align the adaptors to the end of the reads.
+For this mock data set, we have the following adaptor sequences:
+
+```{r}
+adaptor1
+adaptor2
+```
+
+We determine suitable alignment parameters using the `tuneAlignment` function.
+This will identify the parameter combination that maximizes the separation between the real alignment scores and those for scrambled input sequences^[Note that, for quality-based alignments, `match` and `mismatch` are not used.].
+
+```{r}
+tuning <- tuneAlignment(adaptor1, adaptor2, input)
+tuning$parameters
+```
+
+We confirm that these values are sensible by examining the distribution of scores for the real alignments compared to the scrambled sequences.
+
+```{r, fig.cap="Distribution of alignment scores for the real reads (blue) and scrambled sequences (red) using the tuned alignment parameters."}
+real.dist <- density(tuning$scores$reads)
+scram.dist <- density(tuning$scores$scrambled)
+plot(real.dist, xlim=range(real.dist$x, scram.dist$x),
+    ylim=range(real.dist$y, scram.dist$y), col="blue")
+lines(scram.dist, col="red")
+```
+
+## Performing the alignment
+
+We now align the adaptor sequences to all of the reads using the `adaptorAlign` function^[We are using fixed parameters chosen from one run of the `tuneAlignment`. We could also supply the tuned parameters directly but these may vary from run to run.].
+For speed, the alignment will only consider the 250 bp on either end of the read, under the assumption that the adaptors should occur at the read ends.
+This can be further sped up by distributing jobs across multiple cores with the `BPPARAM=` argument.
+
+```{r}
+aln.out <- adaptorAlign(adaptor1, adaptor2, input, gapOpening=4, gapExtension=1)
+colnames(aln.out)
+```
+
+The output is a `DataFrame` that contains alignment information for each adaptor.
+For example, the `adaptor1` field contains a nested `DataFrame` with alignment scores and positions for `adaptor1` on the read:
+
+```{r}
+aln.out$adaptor1
+```
+
+Note that the positions refer to coordinates on the `aln.out$reads`.
+These may be different from `input` as the output `reads` will be reverse-complemented (if necessary) to ensure that adaptor 1 and 2 are located on the 5' and 3' ends respectively. 
+Whether or not a read sequence was reverse-complemented is indicataed by the `aln.out$reversed` field:
+
+```{r}
+summary(aln.out$reversed)
+```
+
+
+
+# Session information
+
+```{r}
+sessionInfo()
+```
