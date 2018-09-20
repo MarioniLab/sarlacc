@@ -3,9 +3,9 @@
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
 tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100, 
-                          gapOp.range=c(4, 10), gapExt.range=c(1, 5), 
-                          match.range=c(1, 2), mismatch.range=c(-1, 0),
-                          BPPARAM=SerialParam()) 
+    gapOp.range=c(4, 10), gapExt.range=c(1, 5), 
+    match.range=c(1, 2), mismatch.range=c(-1, 0),
+    BPPARAM=SerialParam()) 
 # This function scrambles the input subject sequences and tries to identify the
 # alignment parameters that minimize the overlap between the true alignment 
 # scores (to the unscrambled subject) and those to the scrambled sequences. 
@@ -43,15 +43,22 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
         for (ma in seq(match.range[1], match.range[2], by=1)) { 
             for (go in seq(gapOp.range[1], gapOp.range[2], by=1)) { 
                 for (ge in seq(gapExt.range[1], gapExt.range[2], by=1)) { 
+
                     all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm)
+                    all.args$BPPARAM <- BPPARAM
+                    all.args$scoreOnly <- TRUE
 
-                    all.read.scores <- .get_all_alignments(adaptor1, adaptor2, reads.start, reads.end, all.args, scoreOnly=TRUE, BPPARAM=BPPARAM)
-                    read.scores <- .resolve_strand(all.read.scores$start, all.read.scores$end, 
-                                                   all.read.scores$rc.start, all.read.scores$rc.end)$scores
+                    align_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.start), all.args))
+                    align_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.end), all.args))
+                    align_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.end), all.args))
+                    align_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.start), all.args))
+                    read.scores <- .resolve_strand(align_start, align_end, align_revcomp_start, align_revcomp_end)$scores
 
-                    all.scrambled.scores <- .get_all_alignments(adaptor1, adaptor2, scrambled.start, scrambled.end, all.args, scoreOnly=TRUE)
-                    scrambled.scores <- .resolve_strand(all.scrambled.scores$start, all.scrambled.scores$end, 
-                                                        all.scrambled.scores$rc.start, all.scrambled.scores$rc.end)$scores
+                    sc_align_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.start), all.args))
+                    sc_align_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.end), all.args))
+                    sc_align_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.end), all.args))
+                    sc_align_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.start), all.args))
+                    scrambled.scores <- .resolve_strand(sc_align_start, sc_align_end, sc_align_revcomp_start, sc_align_revcomp_end)$scores
 
                     cur.score <- .tied_overlap(read.scores, scrambled.scores)
                     if (max.score < cur.score) {
@@ -72,8 +79,7 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=100,
         }
     }
 
-    return(list(parameters=list(gapOpening=final.gapOp, gapExtension=final.gapExt, 
-                                match=final.match, mismatch=final.mismatch),
+    return(list(parameters=list(gapOpening=final.gapOp, gapExtension=final.gapExt, match=final.match, mismatch=final.mismatch),
                 scores=list(reads=final.reads, scrambled=final.scrambled)))
 }
 
