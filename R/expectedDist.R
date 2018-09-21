@@ -51,6 +51,6 @@ expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, ge
     if (get.seq) {
         return(combined)
     } 
-    combined <- .safe_masker(combined, max.err)   
+    combined <- qualityMask(combined, max.err)   
     return(.Call(cxx_compute_lev_masked, combined))
 }
