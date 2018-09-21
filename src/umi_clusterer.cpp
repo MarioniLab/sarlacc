@@ -19,7 +19,7 @@ Rcpp::List umi_clusterer::cluster() {
                 throw std::runtime_error("single-read groups should contain only the read itself");
             }
 
-            Rcpp::IntegerVector tosave(1, a+1);
+            Rcpp::IntegerVector tosave(1, a);
             if (n_out < output.size()) {
                 output[n_out]=tosave;
             } else {
@@ -63,7 +63,7 @@ Rcpp::List umi_clusterer::cluster() {
         std::swap(*maxIt, *right); // swapping it out of [left, right), effectively a pop_back().
 
         // Adding neighbors if they have not already been used somewhere else.
-        size_t n_cluster=0;        
+        size_t n_cluster=0;
         for (auto curIt=curstart; curIt<curend; ++curIt) { 
             const auto& neighbor=*curIt;
             auto& remain=remaining[neighbor];
@@ -90,17 +90,18 @@ Rcpp::List umi_clusterer::cluster() {
                 }
             }
         }
-                
-        Rcpp::IntegerVector tosave(per_cluster_values.begin(), per_cluster_values.begin() + n_cluster);
-        for (auto& v : tosave) { ++v; }
-        if (n_out < output.size()) {
-            output[n_out]=tosave;
-        } else {
-            output.push_back(tosave);
+
+        if (n_cluster) {
+            Rcpp::IntegerVector tosave(per_cluster_values.begin(), per_cluster_values.begin() + n_cluster);
+            if (n_out < output.size()) {
+                output[n_out]=tosave;
+            } else {
+                output.push_back(tosave);
+            }
+            ++n_out;
         }
-        ++n_out;
     }
-    
+
     return Rcpp::List(output.begin(), output.end());
 }
 
@@ -123,6 +124,12 @@ SEXP cluster_umis_test (SEXP links) {
         }
     }
 
-    return clust.cluster();
+    Rcpp::List curout=clust.cluster();
+    for (size_t i=0; i<curout.size(); ++i) {
+        Rcpp::IntegerVector curvec=curout[i];
+        for (auto& x : curvec) { --x; }
+        curout[i]=curvec;
+    }
+    return curout;
     END_RCPP
 }

@@ -37,6 +37,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
     for (size_t g=0; g<Pregroup.size(); ++g) {
         Rcpp::IntegerVector curgroup=Pregroup[g];
         const size_t curN=curgroup.size();
+        Rprintf("%i %i\n", g, curN);
 
         if (curN==1) {
             output[g]=curgroup;
@@ -52,7 +53,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
         // Processing UMI1.
         seqs1->clear();
         for (size_t s=0; s<curN; ++s) {
-            auto curseq=seqs1->get_persistent(curgroup[s]);
+            auto curseq=seqs1->get_persistent(curgroup[s] - 1);
             allseqs[s]=curseq.first;
             alllens[s]=curseq.second;
         }
@@ -78,7 +79,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             // Processing UMI2.
             seqs2->clear();
             for (size_t s=0; s<curN; ++s) {
-                auto curseq=seqs2->get_persistent(curgroup[s]);
+                auto curseq=seqs2->get_persistent(curgroup[s] - 1);
                 allseqs[s]=curseq.first;
                 alllens[s]=curseq.second;
             }
@@ -111,7 +112,13 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             match_arrays.clear();
         }
 
-        output[g]=clusterer.cluster();
+        Rcpp::List curout=clusterer.cluster();
+        for (size_t i=0; i<curout.size(); ++i) {
+            Rcpp::IntegerVector curvec=curout[i];
+            for (auto& x : curvec) { x=curgroup[x]; }
+            curout[i]=curvec;
+        }
+        output[g]=curout;
         clusterer.storage.clear();
     }
 
