@@ -1,5 +1,6 @@
+#' @export
 #' @importFrom Biostrings writeQualityScaledXStringSet subseq
-groupReads <- function(reads, truncate=Inf, working.dir=NULL, mm.cmd="minimap2", mm.args=NULL, min.identity=0.7)
+groupReads <- function(reads, truncate=1000, working.dir=NULL, mm.cmd="minimap2", mm.args=NULL, min.identity=0.7)
 # Uses minimap2 to perform pairwise alignment of reads.
 {
     if (is.null(working.dir)) {
