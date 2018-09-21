@@ -60,7 +60,6 @@ size_t internal_create_consensus_basic(SEXP alignments, const double mincov, con
 
     // Counting the number of occurrences of each base at each position.
     for (size_t a=0; a<naligns; ++a) {
-        all_aln->clear();
         auto curaln=all_aln->get(a);
         const char* aln_str=curaln.first;
         auto sIt=storage.scores.begin();
@@ -182,7 +181,6 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
 
     // Running through each entry.
     for (size_t a=0; a<naligns; ++a) {
-        all_aln->clear();
         auto curaln=all_aln->get(a);
         const char* astr=curaln.first;
 

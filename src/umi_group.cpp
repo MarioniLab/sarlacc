@@ -50,8 +50,9 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
         }
 
         // Processing UMI1.
+        seqs1->clear();
         for (size_t s=0; s<curN; ++s) {
-            auto curseq=seqs1->get(curgroup[s]);
+            auto curseq=seqs1->get_persistent(curgroup[s]);
             allseqs[s]=curseq.first;
             alllens[s]=curseq.second;
         }
@@ -75,8 +76,9 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             }
 
             // Processing UMI2.
+            seqs2->clear();
             for (size_t s=0; s<curN; ++s) {
-                auto curseq=seqs2->get(curgroup[s]);
+                auto curseq=seqs2->get_persistent(curgroup[s]);
                 allseqs[s]=curseq.first;
                 alllens[s]=curseq.second;
             }

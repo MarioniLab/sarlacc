@@ -22,7 +22,6 @@ SEXP count_gaps_by_base(SEXP adapt_align, SEXP posstart, SEXP posend) {
 
     Rcpp::IntegerVector beforeS(N), beforeE(N);
     for (size_t i=0; i<N; ++i) {
-        alignments->clear(); // Clearing out the stored objects.
         auto curstr=alignments->get(i);
         const char* current=curstr.first;
         const size_t len=curstr.second;
@@ -66,7 +65,6 @@ SEXP count_gaps_by_align(SEXP read_align, SEXP posstart, SEXP posend) {
 
     Rcpp::IntegerVector beforeS(N), beforeE(N);
     for (size_t i=0; i<N; ++i) {
-        alignments->clear();
         auto curstr=alignments->get(i);
         const char* current=curstr.first;
         const size_t len=curstr.second;

@@ -15,7 +15,7 @@ SEXP get_aligned_sequence(SEXP aligned_adaptor, SEXP unaligned_adaptor, SEXP sta
     if (naln!=read_aln->size()) {
         throw std::runtime_error("number of read and adaptor alignment sequences are not equal");
     }
-    
+
     auto adapt_unaln=process_DNA_input(unaligned_adaptor);
     if (adapt_unaln->size()!=1) {
         throw std::runtime_error("only one unaligned adaptor sequence should be present");
@@ -53,14 +53,14 @@ SEXP get_aligned_sequence(SEXP aligned_adaptor, SEXP unaligned_adaptor, SEXP sta
         auto apair=adapt_aln->get(a);
         const char * aptr=apair.first;
         const size_t alen=apair.second;
-        
+
         auto rpair=read_aln->get(a);
         const char * rptr=rpair.first;
         const size_t rlen=rpair.second;
         if (rlen!=alen) {
             throw std::runtime_error("read and adaptor alignment strings are not the same length");
         }
-       
+
         // Recreating the full adaptor (global) and read sequence (local, with gaps).
         size_t counter=0;
         const size_t left=adapt_starts[a] - 1;

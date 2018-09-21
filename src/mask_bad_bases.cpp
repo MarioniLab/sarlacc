@@ -22,7 +22,7 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
 
     // Iterating through the sequences and masking bad bases.
     Rcpp::StringVector output(nseq);
-    std::vector<char> buffer(100, '\0');
+    std::vector<char> buffer(10000, '\0');
 
     for (size_t i=0; i<nseq; ++i) {
         auto curpair=all_seq->get(i);
