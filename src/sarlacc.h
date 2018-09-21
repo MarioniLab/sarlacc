@@ -20,7 +20,7 @@ SEXP count_gaps_by_base(SEXP, SEXP, SEXP);
 SEXP count_gaps_by_align(SEXP, SEXP, SEXP);
 
 SEXP mask_bad_bases(SEXP, SEXP, SEXP, SEXP);
-SEXP unmask_bases(SEXP, SEXP);
+SEXP unmask_alignment(SEXP, SEXP);
 
 SEXP create_consensus_basic(SEXP, SEXP, SEXP);
 SEXP create_consensus_basic_loop(SEXP, SEXP, SEXP);

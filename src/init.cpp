@@ -11,7 +11,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(count_gaps_by_align, 3),
 
     REGISTER(mask_bad_bases, 4),
-    REGISTER(unmask_bases, 2),
+    REGISTER(unmask_alignment, 2),
 
     REGISTER(create_consensus_basic, 3), 
     REGISTER(create_consensus_basic_loop, 3), 

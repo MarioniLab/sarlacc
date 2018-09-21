@@ -12,13 +12,4 @@ private:
     char offset;
 };
 
-class unmasker {
-public:    
-    unmasker(size_t);
-    Rcpp::String unmask(const char*, size_t, const char*, size_t);
-private:
-    std::vector<char> buffer;
-};
-
-
 #endif
