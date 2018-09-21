@@ -113,10 +113,9 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
 #' @importFrom Biostrings pairwiseAlignment quality pattern subject aligned unaligned
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom BiocParallel bplapply SerialParam bpnworkers
-#' @importFrom utils head
 #' @importFrom methods is
 #' @importFrom BiocGenerics score start end
-#' @importFrom S4Vectors DataFrame
+#' @importFrom S4Vectors DataFrame head
 #' @importFrom XVector subseq
 .bplalign <- function(adaptor, reads, ..., scoreOnly=FALSE, BPPARAM=SerialParam())
 # Align reads in parallel.

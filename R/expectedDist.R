@@ -1,6 +1,7 @@
 #' @export
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom Biostrings DNAStringSet QualityScaledDNAStringSet
+#' @importFrom S4Vectors head
 #' @importFrom methods is
 expectedDist <- function(align.stats, position=NULL, offset=NULL, number=100, get.seq=FALSE, max.err=NA)
 # This computes the expected distance between a sequence of 

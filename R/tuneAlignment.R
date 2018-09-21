@@ -2,7 +2,7 @@
 #' @importFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
-#' @importFrom utils head
+#' @importFrom S4Vectors head
 tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=200, number=10000,
     gapOp.range=c(4, 10), gapExt.range=c(1, 5), match.range=c(1, 2), mismatch.range=c(-1, 0),
     BPPARAM=SerialParam()) 
