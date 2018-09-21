@@ -13,8 +13,10 @@ umiGroup <- function(UMI1, threshold1 = 3, UMI2 = NULL, threshold2 = threshold1,
 
     if (is.null(groups)) { 
         by.group <- list(seq_along(UMI1)-1L)
-    } else {
+    } else if (!is.list(groups)) {
         by.group <- split(seq_along(UMI1)-1L, groups)
+    } else {
+        by.group <- groups
     }
 
     out <- .Call(cxx_umi_group, UMI1, threshold1, UMI2, threshold2, by.group)
