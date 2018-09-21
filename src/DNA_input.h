@@ -7,25 +7,28 @@
 class DNA_input {
 public:    
     DNA_input();
-    virtual ~DNA_input();
+    virtual ~DNA_input() = default;
     
     virtual size_t size() const=0;
     virtual std::pair<const char*, size_t> get(size_t)=0; 
+    virtual std::pair<const char*, size_t> get_persistent(size_t)=0; 
     virtual size_t get_len(size_t) const=0;
-    virtual void clear()=0;
+    
+    void clear();
 protected:
     const char * active;
+    size_t used;
 };
 
 class string_input : public DNA_input {
 public:
     string_input(Rcpp::RObject);
-    ~string_input();
+    ~string_input() = default;
 
     size_t size() const;
     std::pair<const char*, size_t> get(size_t); 
+    std::pair<const char*, size_t> get_persistent(size_t); 
     size_t get_len(size_t) const;
-    void clear();
 private:
     Rcpp::StringVector all_values;
     std::deque<Rcpp::String> holder;
@@ -34,17 +37,19 @@ private:
 class DNAStringSet_input : public DNA_input {
 public:
     DNAStringSet_input(Rcpp::RObject);
-    ~DNAStringSet_input();
+    ~DNAStringSet_input() = default;
 
     size_t size() const;
     std::pair<const char*, size_t> get(size_t); 
+    std::pair<const char*, size_t> get_persistent(size_t); 
     size_t get_len(size_t) const;
-    void clear();
 private:
     XStringSet_holder all_values;
     std::deque<Chars_holder> holder;
-    std::deque<std::vector<char> > buffer;
-    size_t used;
+
+    std::vector<char> buffer;
+    size_t reserved;
+    std::pair<const char*, size_t> get_internal(size_t, const Chars_holder&);
 };
 
 std::unique_ptr<DNA_input> process_DNA_input (Rcpp::RObject);
