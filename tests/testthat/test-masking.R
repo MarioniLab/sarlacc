@@ -3,10 +3,7 @@
 
 test_that("masking of bad bases works correctly", {
     CHECKFUN <- function(incoming, qualities, threshold) {          
-        masked <- .Call(sarlacc:::cxx_mask_bad_bases, incoming, 
-            as.list(as(qualities, "NumericList")),
-            threshold)
-
+        masked <- qualityMask(QualityScaledDNAStringSet(incoming, qualities), threshold)
         for (i in seq_along(incoming)) {
             to.mask <- as.numeric(qualities[i]) > threshold
             bases <- strsplit(incoming[i], "")[[1]]
@@ -53,7 +50,7 @@ test_that("unmasking of previously masked bases works correctly", {
         DNAStringSet(gsub("-", "", x))
     }
     unmask_bases <- function(masked, original) {
-        .Call(sarlacc:::cxx_unmask_bases, masked, original)
+        .Call(sarlacc:::cxx_unmask_alignment, masked, original)
     }
 
     # Simple case, no deletions.
