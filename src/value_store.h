@@ -16,26 +16,18 @@ public:
 
     template<class IT>
     void add(IT start, IT end, size_t index) {
-        if (index > n_stored + 1) { 
-            if (index > starts.size()) {
-                starts.resize(index);
-                lengths.resize(index);
-            } 
-            std::fill(lengths.begin() + n_stored, lengths.begin() + index, 0); // Clearing intervening values to ensure validity.
-        }
         add_internal(start, end, index);
-        if (index > n_stored) {
-            n_stored=index;
+        if (index >= n_stored) {
+            if (index > n_stored + 1) {
+                std::fill(lengths.begin() + n_stored, lengths.begin() + index - 1, 0); // Clearing intervening values to ensure validity.
+            }
+            n_stored=index + 1;
         }
         return;
     }
 
     template<class IT>
     void add(IT start, IT end) {
-        if (n_stored > starts.size()) {
-            starts.resize(n_stored);
-            lengths.resize(n_stored);
-        } 
         add_internal(start, end, n_stored);
         ++n_stored;
         return;
@@ -68,6 +60,11 @@ private:
 
     template<class IT>
     void add_internal(IT start, IT end, size_t index) {
+        if (index >= starts.size()) {
+            starts.resize(index+1);
+            lengths.resize(index+1);
+        } 
+
         const auto len=end - start;
         starts[index]=nvals_stored;
         lengths[index]=len;
