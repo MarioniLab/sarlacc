@@ -140,7 +140,7 @@ Based on these thresholds, we use the `chopReads` function to:
 - Remove the ends of the read sequences that align to the adaptors.
 
 ```{r}
-chopped <- chopReads(aln.out, 11, 11)
+chopped <- chopReads(aln.out, 12, 13)
 chopped$reads
 ```
 
@@ -171,49 +171,67 @@ To satisfy the first requirement, we perform pairwise alignments between all rea
 This is based on the _minimap2_ software, which must be installed on the system.
 
 ```{r}
-pre.groups <- sarlacc:::groupReads(chopped$reads, truncate=500)
-summary(pre.groups)
+pre.groups <- groupReads(chopped$reads, truncate=1000)
+summary(lengths(pre.groups))
 ```
 
-For the sake of speed, we only use the first 500 bp of each read.
+For the sake of speed, we only use the first 1 kbp of each read.
 This should be sufficient to obtain a rough measure of similarity - grouping on the full read sequence is unnecessary.
 We only group reads together if they share at least 70% sequence identity in their first 500 bp.
 
 ## Based on the UMI
 
-We use the `umiExtract` function to extract the UMI sequence for each adaptor alignment.
+We use the `umiExtract` function to extract the UMI sequence for each adaptor alignment^[We store the UMI sequences as a column in `chopped` to keep everything in one place.].
 By default, it will guess the UMI position from the location of `N`s in the `adaptor1` sequence, but this can also be manually specified if the adaptor sequence is complex.
 
 ```{r}
-umis <- umiExtract(aln.out$adaptor1) 
-umis
+(chopped$umi1 <- umiExtract(chopped$adaptor1))
 ```
 
 We apply a threshold on the edit distance between UMI sequences to determine whether two reads have the same UMI.
 To obtain an appropriate threshold, we use the `expectedDist` function to compute the distribution of edit distances between (nominally identical) adaptor sequences:
 
 ```{r, fig.cap="Distribution of edit distances between identical sequences flanking the UMI on adaptor 1."}
-edist <- expectedDist(aln.out$adaptor1)
+edist <- expectedDist(chopped$adaptor1)
 hist(edist, xlab="Edit distances", col="grey80")
 ```
 
-... and we set the threshold to the median edit distanec:
+... and we set the threshold to the median edit distance (or 1, if the median is less than zero):
 
 ```{r}
-(ethresh <- ceiling(median(edist)))
+(ethresh <- max(1, median(edist)))
 ```
 
 We group the UMIs for reads _within_ each level of `pre.groups`:
 
 ```{r}
-groups <- umiGroup(umis, max.lev1=edit.thresh)
-summary(table(groups))
+groups <- umiGroup(chopped$umi1, threshold1=ethresh, groups=pre.groups)
+summary(lengths(groups))
 ```
 
 If a second UMI is present (e.g., on the other adaptor), these can be handled by repeating the `umiExtract` and `expectedDist` steps above.
 The second set of sequences and threshold can then be supplied as additional arguments to `umiGroup`.
 
 # Performing error correction
+
+We perform multiple sequence alignments (MSAs) for each read group using the `r Biocpkg("muscle")` package.
+For large data sets, this is often the most time-consuming step and can be parallelized with `BPPARAM`.
+
+```{r}
+msa.out <- multiReadAlign(chopped$reads, groups)
+lapply(msa.out$alignments[[1]], subseq, 1, 80)
+```
+
+We create consensus sequences from these MSAs, representing the error-corrected sequence.
+The quality scores are constructed from the qualities of the individual read sequences.
+Higher consensus qualities for a position indicate that many reads are in agreement.
+
+```{r}
+cons.out <- consensusReadSeq(msa.out)
+cons.out
+```
+
+This can be saved to a FASTQ file with `writeXStringSet` for further analyses.
 
 # Session information
 
