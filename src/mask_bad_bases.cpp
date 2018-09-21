@@ -9,9 +9,9 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
     // Checking inputs.
     auto all_seq=process_DNA_input(sequences);
     const size_t nseq=all_seq->size();
+    auto qholder=hold_XStringSet(qualities);
 
-    Rcpp::StringVector all_qual(qualities);
-    if (nseq!=all_qual.size()) {
+    if (nseq!=qholder.length) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
     
@@ -29,14 +29,16 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
         const char* sstr=curpair.first;
         const size_t slen=curpair.second;
 
+        auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
+        if (slen!=curqual.length) {
+            throw std::runtime_error("sequence and quality strings should have the same length");
+        }
+
         if (slen <= buffer.size()) {
             buffer.resize(slen+1);
         }
 
-        Rcpp::String qualstr=all_qual[i];
-        const char* qptr=qualstr.get_cstring();
-
-        seqmask.mask(slen, sstr, qptr, buffer.data());
+        seqmask.mask(slen, sstr, curqual.ptr, buffer.data());
         buffer[slen]='\0';
         output[i]=Rcpp::String(buffer.data());
     } 

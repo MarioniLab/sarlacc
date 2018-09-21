@@ -32,7 +32,7 @@ masker::masker(double T, Rcpp::NumericVector encoding) : offset(0) {
 
 void masker::mask(size_t len, const char* seq, const char* qual, char* output) {
     for (size_t counter=0; counter<len; ++counter, ++seq, ++qual) {
-        output[counter]=(*qual > offset ? 'N' : *seq);
+        output[counter]=(*qual <= offset ? 'N' : *seq);
     }
     return;
 }
