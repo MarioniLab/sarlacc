@@ -293,7 +293,7 @@ SEXP fast_levdist_test(SEXP input, SEXP limit, SEXP sorted) {
     std::vector<int> lens(nseqs);
 
     for (size_t s=0; s<nseqs; ++s) {
-        const auto& val=seqs->get(s);
+        const auto& val=seqs->get_persistent(s);
         ptrs[s]=val.first;
         lens[s]=val.second;
     }

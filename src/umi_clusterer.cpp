@@ -127,7 +127,7 @@ SEXP cluster_umis_test (SEXP links) {
     Rcpp::List curout=clust.cluster();
     for (size_t i=0; i<curout.size(); ++i) {
         Rcpp::IntegerVector curvec=curout[i];
-        for (auto& x : curvec) { --x; }
+        for (auto& x : curvec) { ++x; } // get back to 1-indexing.
         curout[i]=curvec;
     }
     return curout;
