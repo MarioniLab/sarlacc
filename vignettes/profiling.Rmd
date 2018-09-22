@@ -1,0 +1,148 @@
+---
+title: Profiling errors in Oxford Nanopore reads
+author: Cheuk-Ting Law and Aaron Lun
+package: sarlacc
+output: 
+  BiocStyle::html_document:
+    toc_float: true
+vignette: >
+  %\VignetteIndexEntry{Profiling errors in ONT reads}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, echo=FALSE, results="hide", message=FALSE}
+require(knitr)
+opts_chunk$set(error=FALSE, message=FALSE, warning=FALSE)
+```
+
+```{r setup, echo=FALSE, message=FALSE}
+library(sarlacc)
+```
+
+# Introduction
+
+The `r Biocpkg("sarlacc")` package provides a few methods to examine the accuracy of the read sequences produced generated with the Oxford Nanpore Technology (ONT).
+This requires both the read sequences^[With adaptors removed, see `?chopReads` in the error correction vignette.]:
+
+```{r}
+source(system.file("scripts", "create_mock_seqs.R", package="sarlacc"))
+reads <- readQualityScaledDNAStringSet(fastq)
+reads
+```
+
+... and the true sequence corresponding to each read.
+The latter can be obtained by mapping reads to a reference sequence with tools like _minimap2_.
+Of course, this is only possible in cases where the reference is not in question, e.g., spike-in sequences.
+
+```{r}
+reference # produced by the source'd file.
+```
+
+We further subset to only retain the read sequences corresponding to a single reference.
+In practice, determining the reference for each read requires information from the SAM file, see `sam2ranges` for more details.
+
+```{r}
+reads <- reads[grep("MOLECULE_1:", names(reads))]
+reference <- reference["MOLECULE_1"]
+```
+
+# Quantifying sequencing errors
+
+We first perform pairwise alignment between the each of the read sequences and the reference sequence.
+
+```{r}
+aligns <- pairwiseAlignment(reads, reference)
+```
+
+The alignment object is passed to the `errorFinder` function to characterize the errors in the reads.
+
+```{r}
+err.out <- errorFinder(aligns)
+```
+
+The transition matrix describes the number and identity of the read bases (column) for each true base (rows).
+The values on the diagonal should be largest (> 90% at least), with off-diagonal elements representing substitutions.
+Note that this is only reported for positions where the base is present in both the read and reference.
+
+```{r}
+# Showing as percentages:
+err.out$transition / rowSums(err.out$transition) * 100
+```
+
+The full statistics `DataFrame` contains the error profile for each base.
+This describes the number of times a base was deleted in the read sequence:
+
+```{r}
+# Distribution of deletions across all positions
+# (names are number of deletions per position, values are number of positions).
+table(err.out$full$deletion)
+
+# Deletion rate as a percentage:
+not.na <- !is.na(err.out$full$deletion)
+sum(err.out$full$deletion[not.na]) / (sum(not.na) * length(reads)) * 100
+```
+
+... and the profile of the insertions preceding each base position:
+
+```{r}
+# Insertion rate as a percentage:
+ninsertions <- unlist(lapply(err.out$full$insertion, 
+    FUN=function(x) { sum(x > 0) }))
+sum(ninsertions) / (nrow(err.out$full) * length(reads)) * 100
+
+# Insertion stats per position:
+qstats <- lapply(err.out$full$insertion, quantile, p=c(0, 0.25, 0.5, 0.75, 1))
+qstats <- do.call(rbind, qstats) 
+summary(qstats)
+```
+
+Readers may observe that `nrow(err.out$full)` is one position longer than `length(reference)`.
+The last row accommodates insertions at the end of the sequence, which would not otherwise fit into a scheme where insertions are reported when they precede a base.
+
+Obviously, it is straightforward to examine error profiles for individual bases by focusing on the corresponding rows of `err.out$full`.
+
+# Handling homopolymers
+
+ONT reads are notoriously inaccurate for long homopolymer stretches.
+The lack of changes in current means that the length of the stretch is difficult to resolve.
+We examine this in more detail using the `homopolymerMatcher` function:
+
+```{r}
+homo.out <- homopolymerMatcher(aligns)
+homo.out
+```
+
+This identifies all homopolymer stretches in the reference sequence and reports the distribution of observed homopolymer lengths in the read sequences.
+A useful diagnostic is to examine the observed widths against the true width:
+
+```{r}
+by.true.width <- split(mcols(homo.out)$observed, width(homo.out))
+by.true.width <- lapply(by.true.width, unlist) 
+by.true.width <- lapply(by.true.width, as.integer) 
+boxplot(by.true.width, at=as.integer(names(by.true.width)),
+    xlab="True width (nt)", ylab="Observed width (nt)")
+abline(a=0, b=1, col="red")
+```
+
+... which matches up nicely here, but recall that this is simulated data.
+In real data, one will often see a plateau in the observed width as the true homopolymer width increases past 5 nucleotides.
+
+Users may wish to remove homopolymers from the error statistics in `err.out`, as the homopolymer-related errors may inflate the overall deletion rate.
+This is achieved by simply subsetting the `DataFrame` according to the bases that are _not_ in homopolymers:
+
+```{r}
+no.homo.err <- err.out$full[which(coverage(homo.out)==0),]
+no.homo.err
+
+# Recomputing transition statistics:
+no.homo.subs <- as.matrix(no.homo.err[,c("A", "C", "G", "T")])
+rowsum(no.homo.subs, group=no.homo.err$base)
+```
+
+# Session information
+
+```{r}
+sessionInfo()
+```
