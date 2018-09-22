@@ -36,12 +36,12 @@ Rcpp::List umi_clusterer::cluster() {
     auto left=ordering.begin() + infront, right=ordering.begin() + n_stored;
     while (left < right) {
 
-        // Wiping out empty nodes.
-        auto discarded=left;
-        while (left!=right && remaining[*left]==0) {
-            std::swap(*left, *discarded);
-            ++discarded;
-            ++left;
+        // Wiping out empty nodes with an effective pop_front().
+        for (auto it=left; it!=right; ++it) {
+            if (remaining[*left]==0) {
+                std::swap(*left, *it);
+                ++left;
+            }
         }
         if (left==right) { 
             break;
@@ -83,26 +83,23 @@ Rcpp::List umi_clusterer::cluster() {
             const auto neighstart=storage.get_start(neighbor);
             const auto neighend=neighstart + storage.get_len(neighbor);
             for (auto nextIt=neighstart; nextIt<neighend; ++nextIt) {
-                const auto& nextneighbor=*nextIt;
-                auto& nextremain=remaining[nextneighbor];
+                auto& nextremain=remaining[*nextIt];
                 if (nextremain > 0) { 
                     --nextremain;
                 }
             }
         }
 
-        if (n_cluster) {
-            Rcpp::IntegerVector tosave(per_cluster_values.begin(), per_cluster_values.begin() + n_cluster);
-            if (n_out < output.size()) {
-                output[n_out]=tosave;
-            } else {
-                output.push_back(tosave);
-            }
-            ++n_out;
+        Rcpp::IntegerVector tosave(per_cluster_values.begin(), per_cluster_values.begin() + n_cluster);
+        if (n_out < output.size()) {
+            output[n_out]=tosave;
+        } else {
+            output.push_back(tosave);
         }
+        ++n_out;
     }
 
-    return Rcpp::List(output.begin(), output.end());
+    return Rcpp::List(output.begin(), output.begin() + n_out);
 }
 
 /*****************************
