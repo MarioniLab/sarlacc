@@ -16,20 +16,19 @@ size_t string_input::size() const {
 }
 
 std::pair<const char*, size_t> string_input::get(size_t i) {
-    used=0;
     holder[0]=Rcpp::String(all_values[i]);
     const auto& active_string=holder[0];
+    used=1;
     return std::make_pair(active_string.get_cstring(), Rf_length(active_string.get_sexp()));
 }
 
 std::pair<const char*, size_t> string_input::get_persistent(size_t i) {
-    ++used;
     if (used==holder.size()) {
         holder.push_back(Rcpp::String(all_values[i]));
     } else {
         holder[used]=Rcpp::String(all_values[i]);
     }
-    const auto& active_string=holder[used];
+    const auto& active_string=holder[(used++)];
     return std::make_pair(active_string.get_cstring(), Rf_length(active_string.get_sexp()));
 }
 
@@ -46,25 +45,25 @@ size_t DNAStringSet_input::size() const {
 }
 
 std::pair<const char*, size_t> DNAStringSet_input::get(size_t i) {
-    used=0;
+    used=1;
+    reserved=0;
     holder[0]=get_elt_from_XStringSet_holder(&all_values, i);
-    return get_internal(i, holder[0]);
+    return get_internal(holder[0]);
 }
 
 std::pair<const char*, size_t> DNAStringSet_input::get_persistent(size_t i) {
-    ++used;
     if (used==holder.size()) {
         holder.push_back(get_elt_from_XStringSet_holder(&all_values, i));
     } else {
         holder[used]=get_elt_from_XStringSet_holder(&all_values, i);
     }
-    return get_internal(i, holder[used]);
+    return get_internal(holder[(used++)]);
 }
 
-std::pair<const char*, size_t> DNAStringSet_input::get_internal(size_t i, const Chars_holder& active_string) {
+std::pair<const char*, size_t> DNAStringSet_input::get_internal(const Chars_holder& active_string) {
     const size_t len=active_string.length;
     const size_t required=reserved+len+1;
-    if (required >= buffer.size()) {
+    if (required > buffer.size()) {
         buffer.resize(required);
     }
 
@@ -75,12 +74,19 @@ std::pair<const char*, size_t> DNAStringSet_input::get_internal(size_t i, const 
     }    
 
     curbuffer[len]='\0'; // guarantee null termination.
+    reserved=required;
     return std::make_pair(curbuffer, len);
 }
 
 size_t DNAStringSet_input::get_len(size_t i) const {
     auto tmp=get_elt_from_XStringSet_holder(&all_values, i);
     return tmp.length;
+}
+
+void DNAStringSet_input::clear() {
+    used=0;
+    reserved=0;
+    return;
 }
 
 std::unique_ptr<DNA_input> process_DNA_input (Rcpp::RObject incoming) {

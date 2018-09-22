@@ -14,7 +14,7 @@ public:
     virtual std::pair<const char*, size_t> get_persistent(size_t)=0; 
     virtual size_t get_len(size_t) const=0;
     
-    void clear();
+    virtual void clear();
 protected:
     const char * active;
     size_t used;
@@ -43,13 +43,15 @@ public:
     std::pair<const char*, size_t> get(size_t); 
     std::pair<const char*, size_t> get_persistent(size_t); 
     size_t get_len(size_t) const;
+
+    void clear();
 private:
     XStringSet_holder all_values;
     std::deque<Chars_holder> holder;
 
     std::vector<char> buffer;
     size_t reserved;
-    std::pair<const char*, size_t> get_internal(size_t, const Chars_holder&);
+    std::pair<const char*, size_t> get_internal(const Chars_holder&);
 };
 
 std::unique_ptr<DNA_input> process_DNA_input (Rcpp::RObject);
