@@ -22,7 +22,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             throw std::runtime_error("'umi1' and 'umi2' should have the same length");
         }
     }
-    const int limit2=check_integer_scalar(thresh1, "threshold 2");
+    const int limit2=check_integer_scalar(thresh2, "threshold 2");
 
     // Defining persistent and reusable arrays for intermediate variable-length constructs.
     std::vector<const char*> allseqs;
@@ -37,7 +37,6 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
     for (size_t g=0; g<Pregroup.size(); ++g) {
         Rcpp::IntegerVector curgroup=Pregroup[g];
         const size_t curN=curgroup.size();
-        Rprintf("%i %i\n", g, curN);
 
         if (curN==1) {
             output[g]=curgroup;
@@ -57,19 +56,21 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             allseqs[s]=curseq.first;
             alllens[s]=curseq.second;
         }
+
         sorted_trie trie1(curN, allseqs.data(), alllens.data());
         sorted_trie::order(curN, allseqs.data(), alllens.data(), order.data());
 
         if (!use_two) {
-            for (auto o : order) {
+            for (size_t s=0; s<curN; ++s) {
+                auto o=order[s];
                 auto matches=trie1.find(allseqs[o], alllens[o], limit1);
                 clusterer.storage.add(matches.begin(), matches.end(), o);
             }
 
         } else { 
             // Saving matches for UMI1.
-            size_t used=0;
-            for (auto o : order) {
+            for (size_t s=0; s<curN; ++s) {
+                auto o=order[s];
                 const auto& matches=trie1.find(allseqs[o], alllens[o], limit1);
                 match_arrays.add(matches.begin(), matches.end(), o);
                 auto startIt=match_arrays.get_start_unsafe(o);
@@ -86,7 +87,8 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             sorted_trie trie2(curN, allseqs.data(), alllens.data());
             sorted_trie::order(curN, allseqs.data(), alllens.data(), order.data());
 
-            for (auto o : order) {
+            for (size_t s=0; s<curN; ++s) {
+                auto o=order[s];
                 const auto& matches=trie2.find(allseqs[o], alllens[o], limit2);
                 const size_t n_match_one=match_arrays.get_len(o);
 
@@ -97,7 +99,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
 
                 // Identifying the intersection for each read.
                 const auto left=match_arrays.get_start(o);
-                const auto right=left + n_match_one;
+                const auto right=left + match_arrays.get_len(o);
                 int counter=0;
 
                 for (auto m2 : matches) {
@@ -107,7 +109,8 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
                         ++counter;
                     }
                 }
-                clusterer.storage.add(workspace.begin(), workspace.begin() + counter);
+
+                clusterer.storage.add(workspace.begin(), workspace.begin() + counter, o);
             }
             match_arrays.clear();
         }
