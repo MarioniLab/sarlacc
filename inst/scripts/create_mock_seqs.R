@@ -9,6 +9,7 @@ listed2 <- strsplit(as.character(rc.adaptor2), "")[[1]]
 nucleotides <- c("A", "C", "G", "T")
 
 fastq <- tempfile(fileext=".fastq")
+reference <- list()
 for (i in seq_len(10)) {
     nreads <- runif(1, 10, 50)
     seqlen <- runif(1, 500, 5000)
@@ -18,6 +19,7 @@ for (i in seq_len(10)) {
     to.replace <- tmp.listed1=="N"
     tmp.listed1[to.replace] <- sample(nucleotides, sum(to.replace), replace=TRUE)
     ref <- c(tmp.listed1, refseq, listed2)
+    reference[[i]] <- paste(ref, collapse="")
     
     # Introducing mutations or deletions.
     readseq <- quals <- vector("list", nreads)
@@ -30,7 +32,7 @@ for (i in seq_len(10)) {
 
         # Adding indels at a 5% rate.
         chosen <- rbinom(length(ref), 1, 0.05)==1
-        new.values <- paste0(ref[chosen], sample(nucleotides, sum(chosen), replace=TRUE))
+        new.values <- strrep(reref[chosen], sample(0:3, sum(chosen), replace=TRUE))
         reref[chosen] <- new.values
 
         readseq[[j]] <- paste(reref, collapse="")
@@ -44,3 +46,5 @@ for (i in seq_len(10)) {
                     format="fastq", qualities=quals)
 }
 
+reference <- DNAStringSet(unlist(reference))
+names(reference) <- paste0("MOLECULE_", seq_along(reference))
