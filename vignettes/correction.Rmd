@@ -1,11 +1,12 @@
 ---
-title: "Error correction of long ONT reads with UMIs"
-author: "Florian Bieberich and Aaron Lun"
+title: Correcting errors in Oxford Nanopore reads with UMIs
+author: Florian Bieberich and Aaron Lun
 package: sarlacc
 output: 
-  BiocStyle::html_document
+  BiocStyle::html_document:
+    toc_float: true
 vignette: >
-  %\VignetteIndexEntry{Error correction of long ONT reads with UMIs}
+  %\VignetteIndexEntry{Correcting errors in ONT reads with UMIs}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}  
 ---
