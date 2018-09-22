@@ -13,7 +13,11 @@ for (i in seq_len(10)) {
     nreads <- runif(1, 10, 50)
     seqlen <- runif(1, 500, 5000)
     refseq <- sample(nucleotides, seqlen, replace=TRUE)
-    ref <- c(listed1, refseq, listed2)
+
+    tmp.listed1 <- listed1
+    to.replace <- tmp.listed1=="N"
+    tmp.listed1[to.replace] <- sample(nucleotides, sum(to.replace), replace=TRUE)
+    ref <- c(tmp.listed1, refseq, listed2)
     
     # Introducing mutations or deletions.
     readseq <- quals <- vector("list", nreads)
