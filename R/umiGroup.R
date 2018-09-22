@@ -12,9 +12,9 @@ umiGroup <- function(UMI1, threshold1 = 3, UMI2 = NULL, threshold2 = threshold1,
     }
 
     if (is.null(groups)) { 
-        by.group <- list(seq_along(UMI1)-1L)
+        by.group <- list(seq_along(UMI1))
     } else if (!is.list(groups)) {
-        by.group <- split(seq_along(UMI1)-1L, groups)
+        by.group <- split(seq_along(UMI1), groups)
     } else {
         by.group <- groups
     }
