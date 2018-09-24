@@ -4,6 +4,7 @@
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
+#' @importFrom BiocGenerics width rownames<-
 adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5, gapExtension=1, match=1, mismatch=0, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
@@ -130,11 +131,19 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
 
     out <- bplapply(by.core, FUN=pairwiseAlignment, subject=adaptor, ..., scoreOnly=scoreOnly, BPPARAM=BPPARAM)
     if (scoreOnly) {
+        if (length(out)==0L) {
+            return(numeric(0))
+        }
         return(unlist(out, use.names=FALSE))
     }
 
     has.quality <- is(reads, "QualityScaledDNAStringSet")
     collected <- vector("list", n.cores)
+    collected[[1]] <- DataFrame(score=numeric(0), adaptor=character(0), read=character(0), start=integer(0), end=integer(0)) # Defined output even if there are no reads.
+    if (has.quality) {
+        collected[[1]]$quality <- quality(reads)[0]
+    }
+
     for (i in seq_along(out)) {
         alignments <- out[[i]]
         read0 <- pattern(alignments)
