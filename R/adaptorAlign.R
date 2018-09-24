@@ -56,7 +56,8 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
 ########### Internal functions #############
 ############################################
 
-#' @importFrom Biostrings DNAStringSet PhredQuality
+#' @importFrom Biostrings DNAStringSet PhredQuality QualityScaledDNAStringSet
+#' @importFrom BiocGenerics width
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
 .assign_qualities <- function(truth, add.quality=TRUE)
@@ -68,13 +69,15 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
         truth <- DNAStringSet(truth)
     } 
     if (add.quality && !has.qual){
-        qual <- PhredQuality(rep(100L, length(truth)))
+        enc <- as.character(PhredQuality(100L))
+        qual <- PhredQuality(strrep(enc,  width(truth)))
         truth <- QualityScaledDNAStringSet(truth, qual)
     }
 	truth  
 }
 
 #' @importFrom Biostrings reverseComplement
+#' @importFrom BiocGenerics width
 #' @importFrom XVector subseq
 .get_front_and_back <- function(reads, tolerance) 
 # Extracting the front part of the read (on the forward strand) 
