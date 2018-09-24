@@ -15,7 +15,7 @@ debarcodeReads(align.stats, barcodes, position)
 }
 
 \value{
-A \linkS4class{DataFrame} containing \code{id}, the index of the barcode in \code{barcodes} to which each read is assigned;
+A \linkS4class{DataFrame} containing \code{barcode}, the index of the barcode in \code{barcodes} to which each read is assigned;
 and \code{score}, the alignment score to the assigned barcode.
 Each row corresponds to an entry in \code{align.stats}.
 }
