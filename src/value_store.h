@@ -36,6 +36,7 @@ public:
     void clear() {
         n_stored=0;
         nvals_stored=0;
+        return;
     }
 
     typename V::const_iterator get_start(size_t i) const {
@@ -78,8 +79,6 @@ private:
         nvals_stored=required;
         return;
     }
-
-
 };
 
 
