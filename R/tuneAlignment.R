@@ -20,7 +20,11 @@ tuneAlignment <- function(adaptor1, adaptor2, reads, tolerance=200, number=10000
     if (has.quality) {
         match.range <- mismatch.range <- c(0L, 0L)
     }
-    
+    if (length(reads)==0L) {
+        return(list(parameters=list(match=NA_integer_, mismatch=NA_integer_, gapOpening=NA_integer_, gapExtension=NA_integer_),
+                    scores=list(reads=numeric(0), scrambled=numeric(0))))
+    }
+
     # Taking subsequences of the reads for pairwise alignment.
     reads.out <- .get_front_and_back(reads, tolerance)
     reads.start <- reads.out$front
