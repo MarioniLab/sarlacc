@@ -46,7 +46,7 @@ test_that("alignment function behaves with quality strings", {
 })
 
 test_that("alignment behaves correctly around ambiguous bases", {
-    adaptorN <- "AAAAGGNNNNCCTTTT"
+    adaptorN <- DNAString("AAAAGGNNNNCCTTTT")
 
     # No quality strings.
     args <- sarlacc:::.setup_alignment_args(has.quality=FALSE, gapOpening=5, gapExtension=1, match=5, mismatch=0)
@@ -66,11 +66,18 @@ test_that("alignment behaves correctly around ambiguous bases", {
     expect_true(is.null(qargs$substitutionMatrix))
     expect_true(!is.null(qargs$fuzzyMatrix))
 
-    qref <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptor), args))
-    qout <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptorN), args))
+    qref <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptor), qargs))
+    qout <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptorN), qargs))
     expect_identical(ref$read, qout$read)
     expect_identical(ref$start, qout$start)
     expect_identical(ref$end, qout$end)
+
+    # For comparison, to show that the 'fuzzyMatrix' is necessary:
+    bad.args <- qargs
+    bad.args$fuzzyMatrix <- NULL
+    bad.out <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptorN), bad.args))
+    expect_false(identical(bad.out$read, qref$read))
+    expect_true(all(bad.out$score <= qref$score + 1e-8))
 })
 
 test_that("alignment function handles multiple cores and empty inputs", {

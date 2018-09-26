@@ -59,7 +59,7 @@ These are stored in the names of the output \code{reads} as well as the row name
 This function ensures that the 5' end of the output read sequence is the one that aligns best to adaptor 1.
 To this end, reads are reverse-complemented, quality strings are reversed and alignment positions are adjusted accordingly.
 Thus, adaptor 1 will always be reported as aligning to the forward strand, while adaptor 2 will always be reported as aligning to the reverse strand.
-This simplifies downstream analyses and comparions between read sequences, e.g., in \code{\link{consensusReadSeq}}.
+This simplifies downstream analyses and comparisons between read sequences, e.g., in \code{\link{consensusReadSeq}}.
 
 The choice of the best orientation is performed by considering the sum of bounded alignment scores for each orientation.
 To explain:
