@@ -129,6 +129,7 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
     ids <- findInterval(seq_along(reads), head(bounds, -1))
     by.core <- split(reads, ids)
 
+    by.core <- as.list(by.core) # hack as bplapply doesn't acknowledge DNAStringSetList when BPPARAM is a BatchtoolsParam object.
     out <- bplapply(by.core, FUN=pairwiseAlignment, subject=adaptor, ..., scoreOnly=scoreOnly, BPPARAM=BPPARAM)
     if (scoreOnly) {
         if (length(out)==0L) {
