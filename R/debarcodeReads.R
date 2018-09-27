@@ -42,5 +42,5 @@ debarcodeReads <- function(align.stats, barcodes, position, BPPARAM=SerialParam(
         next.best[second.keep] <- scores[second.keep]
     }
 
-    list(barcode=current.id, score=current.score, alternative=next.best)
+    list(barcode=current.id, score=current.score, gap=current.score - next.best)
 }
