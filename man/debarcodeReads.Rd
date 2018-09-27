@@ -20,7 +20,7 @@ A \linkS4class{DataFrame} containing:
 \item{\code{sequence}:}{A DNAStringSet object containing the read sequence corresponding to the putative barcode.}
 \item{\code{barcode}:}{Integer, the index of the best-matching barcode in \code{barcodes} to which each read is assigned.}
 \item{\code{score}:}{Numeric, the alignment score to the assigned barcode.}
-\item{\code{alternative}:}{Numeric, the alignment score to the next best-matching barcode.}
+\item{\code{gap}:}{Numeric, the difference of \code{score} from the alignment score to the next best-matching barcode.}
 }
 Each row corresponds to a read (i.e., row) in \code{align.stats}.
 }
@@ -50,12 +50,12 @@ reads <- DNAStringSet(c(
     "AACGGGTCGCCTTCCTTCGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG"
 ))
 
-(out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads))
+out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads)
 
 # Assigning reads to individual barcodes.
 debarcoded <- debarcodeReads(out$adaptor1, 
     barcodes=c("AAAAAAAA", "AATTAATT", "TTAATTAA", "AAGGAAGG", 
         "CCAACCAA", "CCGGCCGG", "CCTTCCTT"),
      position=c(10, 17))
-            
+debarcoded
 }
