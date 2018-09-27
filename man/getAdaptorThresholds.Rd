@@ -9,10 +9,9 @@ getAdaptorThresholds(aligned, error=0.01, BPPARAM=SerialParam())
 }
 
 \arguments{
-\item{aligned}{A list of adaptor alignment information and read sequences, identical to the output of \code{\link{adaptorAlign}}.}
+\item{aligned}{A \linkS4class{DataFrame} of adaptor alignment information and read sequences, identical to the output of \code{\link{adaptorAlign}}.}
 \item{error}{A numeric scalar specifying the acceptable false discovery rate.}
-\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
-Currently only effective up to a maximum of 4 workers.}
+\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.}
 } 
 
 \value{
