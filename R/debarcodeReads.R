@@ -11,7 +11,7 @@ debarcodeReads <- function(align.stats, barcodes, position, BPPARAM=SerialParam(
     extracted <- umiExtract(align.stats, position=position)
     bout <- .align_to_barcodes(extracted, barcodes, metadata(align.stats), BPPARAM)
     output <- DataFrame(sequence=extracted, bout, row.names=rownames(align.stats))
-    metadata(output) <- list(gapOpening=go, gapExtension=ge, match=ma, mismatch=mm, barcodes=barcodes)
+    metadata(output) <- c(metadata(align.stats)[c("gapOpening", "gapExtension", "match", "mismatch")], list(barcodes=barcodes))
     output
 }
 
