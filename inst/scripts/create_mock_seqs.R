@@ -1,12 +1,10 @@
 set.seed(1000)
-adaptor1 <- "AAAACCCCNNNNGGGGTTTT" # UMI-containing adaptor.
-adaptor2 <- "AAGGCCTTTTCCGGAA"     # adaptor for PCR.
-
-listed1 <- strsplit(adaptor1, "")[[1]]
+adaptor1 <- "ACGCAGATCGATCGATNNNNNNNNNNNNCGCGCGAGCTGACTNNNNGCACGACTCTGGTTTTTTTTTTTT" # UMI-containing adaptor.
+adaptor2 <- "AAGGCCTTTTCCGACTCATGAA"     # adaptor for PCR.
 rc.adaptor2 <- reverseComplement(DNAString(adaptor2))
-listed2 <- strsplit(as.character(rc.adaptor2), "")[[1]]
 
 nucleotides <- c("A", "C", "G", "T")
+all.barcodes <- c("AAACCCGGGTTT", "TTTCCCGGGAAA", "TTTGGGCCCAAA", "TTTAAACCCGGG")
 
 fastq <- tempfile(fileext=".fastq")
 reference <- list()
@@ -15,10 +13,15 @@ for (i in seq_len(10)) {
     seqlen <- runif(1, 500, 5000)
     refseq <- sample(nucleotides, seqlen, replace=TRUE)
 
-    tmp.listed1 <- listed1
-    to.replace <- tmp.listed1=="N"
-    tmp.listed1[to.replace] <- sample(nucleotides, sum(to.replace), replace=TRUE)
-    ref <- c(tmp.listed1, refseq, listed2)
+    # Choosing a barcode (replace the first stretch of N's).
+    tmp.adaptor1 <- adaptor1
+    tmp.adaptor1 <- sub("NNNNNNNNNNNN", sample(all.barcodes, 1), tmp.adaptor1)
+
+    # Choosing a UMI (replace the second stretch of N's).
+    umi <- paste(sample(nucleotides, 4, replace=TRUE), collapse="")
+    tmp.adaptor1 <- sub("NNNN", umi, tmp.adaptor1)
+
+    ref <- c(strsplit(tmp.adaptor1, "")[[1]], refseq, strsplit(as.character(rc.adaptor2), "")[[1]])
     reference[[i]] <- paste(ref, collapse="")
     
     # Introducing mutations or deletions.
