@@ -2,7 +2,7 @@
 #' @importFrom S4Vectors metadata
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom BiocParallel SerialParam
-getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
+getAdaptorThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 # Scrambles the input sequence and performs the same thing as adaptorAlign but with a scrambled input. 
 # Identifies the score threshold for the adaptors that achieves the specified error rate.
 #
@@ -40,22 +40,13 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 
     scram.score1 <- ifelse(is.reverse, scrambled_revcomp_start, scrambled_start)
     scram.score2 <- ifelse(is.reverse, scrambled_revcomp_end, scrambled_end)
-    scram.score1 <- sort(scram.score1)
-    scram.score2 <- sort(scram.score2)
 
-    # Computing the expected FDR at each score threshold (a bit conservative, 
-    # as we can't remove true positives prior to scrambling).
-    score1 <- sort(aligned$adaptor1$score)
-    fdr1 <- (length(scram.score1) - findInterval(score1, scram.score1))/(length(score1) - seq_along(score1))
-    ix1 <- min(which(fdr1 <= error))
-
-    score2 <- sort(aligned$adaptor2$score)
-    fdr2 <- (length(scram.score2) - findInterval(score2, scram.score2))/(length(score2) - seq_along(score2))
-    ix2 <- min(which(fdr2 <= error))
-
-    return(list(threshold1=score1[ix1], threshold2=score2[ix2],
+    list(
+        threshold1=.compute_threshold(score1, scram.score1, error),
+        threshold2=.compute_threshold(score2, scram.score2, error),
         scores1=list(reads=score1, scrambled=scram.score1),
-        scores2=list(reads=score2, scrambled=scram.score2)))
+        scores2=list(reads=score2, scrambled=scram.score2)
+    )
 }
 
 #' @importFrom Biostrings DNAStringSet QualityScaledDNAStringSet
@@ -83,4 +74,15 @@ getScoreThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
         output <- QualityScaledDNAStringSet(output, as(unlist(collected.quals), class(quality(seqs))))
     }
     return(output)
+}
+
+.compute_threshold <- function(real, scrambled, error) 
+# Computing the expected FDR at each score threshold 
+# (a bit conservative, s we can't remove true positives prior to scrambling)
+# and then finds the score threshold where the FDR is below the specified error threshold.
+{
+    real <- sort(real)
+    scrambled <- sort(scrambled)
+    fdr <- (length(scrambled) - findInterval(real, scrambled))/(length(real) - seq_along(real))
+    real[min(which(fdr <= error))]
 }
