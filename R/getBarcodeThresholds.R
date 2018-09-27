@@ -12,7 +12,7 @@ getBarcodeThresholds <- function(baligned, error=0.01, BPPARAM=SerialParam())
 {
     seq <- baligned$sequence
     scrambled <- .scramble_input(seq, is(seq, "QualityScaledDNAStringSet"))
-    bscores <- .align_to_barcodes(seq, metadata(baligned)$barcodes, metadata(baligned), BPPARAM)
+    bscores <- .align_to_barcodes(scrambled, metadata(baligned)$barcodes, metadata(baligned), BPPARAM)
 
     on.score <- .compute_threshold(baligned$score, bscores$score, error)
     on.diff <- .compute_threshold(baligned$gap, bscores$gap, error)

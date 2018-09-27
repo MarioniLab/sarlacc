@@ -40,12 +40,14 @@ getAdaptorThresholds <- function(aligned, error=0.01, BPPARAM=SerialParam())
 
     scram.score1 <- ifelse(is.reverse, scrambled_revcomp_start, scrambled_start)
     scram.score2 <- ifelse(is.reverse, scrambled_revcomp_end, scrambled_end)
+    real.score1 <- aligned$adaptor1$score
+    real.score2 <- aligned$adaptor2$score
 
     list(
-        threshold1=.compute_threshold(score1, scram.score1, error),
-        threshold2=.compute_threshold(score2, scram.score2, error),
-        scores1=list(reads=score1, scrambled=scram.score1),
-        scores2=list(reads=score2, scrambled=scram.score2)
+        threshold1=.compute_threshold(real.score1, scram.score1, error),
+        threshold2=.compute_threshold(real.score2, scram.score2, error),
+        scores1=list(reads=real.score1, scrambled=scram.score1),
+        scores2=list(reads=real.score2, scrambled=scram.score2)
     )
 }
 
