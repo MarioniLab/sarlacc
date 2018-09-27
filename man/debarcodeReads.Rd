@@ -9,7 +9,7 @@ debarcodeReads(align.stats, barcodes, position)
 }
 
 \arguments{
-\item{align.stats}{A \linkS4class{DataFrame} of adaptor alignment information and read sequences, identical to the \code{adaptor*} output of \code{\link{adaptorAlign}}.}
+\item{align.stats}{A \linkS4class{DataFrame} of adaptor alignment information for all reads, equivalent to one of the \code{adaptor*} output fields from \code{\link{adaptorAlign}}.}
 \item{barcodes}{A character vector or \linkS4class{DNAStringSet} containing the barcode sequences.}
 \item{position}{An integer vector of length two specifying the start and end position of the barcode on the adaptor, equivalent to the same argument in \code{\link{umiExtract}}.}
 }

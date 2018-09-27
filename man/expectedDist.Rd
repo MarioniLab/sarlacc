@@ -10,7 +10,7 @@ expectedDist(align.stats, position=NULL, offset=NULL,
 }
 
 \arguments{
-\item{align.stats}{A DataFrame of alignment information, including the alignment strings for the read and adaptor.}
+\item{align.stats}{A \linkS4class{DataFrame} of adaptor alignment information for all reads, equivalent to one of the \code{adaptor*} output fields from \code{\link{adaptorAlign}}.}
 \item{position}{An integer vector of length 2 specifying the positions of first and last base of the UMI on the adaptor sequence.}
 \item{offset}{An integer scalar in \code{[0, UMI length]} specifying the offset with which subsequences are extracted from the adaptor.}
 \item{number}{An integer scalar specifying the number of reads to process.}

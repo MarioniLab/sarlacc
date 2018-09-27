@@ -10,7 +10,7 @@ umiExtract(align.stats, position=NULL)
 }
 
 \arguments{
-\item{align.stats}{A DataFrame of alignment information, including the alignment strings for the read and adaptor.}
+\item{align.stats}{A \linkS4class{DataFrame} of adaptor alignment information for all reads, equivalent to one of the \code{adaptor*} output fields from \code{\link{adaptorAlign}}.}
 \item{position}{An integer vector of length 2 specifying the positions of first and last base of the UMI on the adaptor sequence.}
 }
 
