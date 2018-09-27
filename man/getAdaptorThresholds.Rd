@@ -1,11 +1,11 @@
-\name{getScoreThresholds}
-\alias{getScoreThresholds}
+\name{getAdaptorThresholds}
+\alias{getAdaptorThresholds}
 
 \title{Get score thresholds for adaptor alignments}
 \description{Compute score thresholds to be used to determine if adaptors are present at the read ends.}
 
 \usage{
-getScoreThresholds(aligned, error=0.01, BPPARAM=SerialParam())
+getAdaptorThresholds(aligned, error=0.01, BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -47,5 +47,5 @@ Aaron Lun
 
 \examples{
 example(adaptorAlign)
-getScoreThresholds(out)
+getAdaptorThresholds(out)
 }
