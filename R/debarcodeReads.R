@@ -1,8 +1,5 @@
 #' @export
-#' @importFrom Biostrings pairwiseAlignment
-#' @importFrom S4Vectors DataFrame metadata
-#' @importFrom methods is
-#' @importClassesFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom S4Vectors metadata 
 #' @importFrom BiocParallel SerialParam
 debarcodeReads <- function(align.stats, barcodes, position, BPPARAM=SerialParam())
 # Pulls out the barcodes, aligns them against all possible options,
@@ -11,24 +8,39 @@ debarcodeReads <- function(align.stats, barcodes, position, BPPARAM=SerialParam(
 # written by Aaron Lun
 # created 19 September 2018
 {
-    go <- metadata(align.stats)$gapOpening 
-    ge <- metadata(align.stats)$gapExtension
-    ma <- metadata(align.stats)$match
-    mm <- metadata(align.stats)$mismatch
-
     extracted <- umiExtract(align.stats, position=position)
-    has.quality <- is(extracted, "QualityScaledDNAStringSet")
-    all.args <- .setup_alignment_args(has.quality, go, ge, ma, mm, type="global")
+    bout <- .align_to_barcodes(extracted, barcodes, metadata(align.stats), BPPARAM)
+    output <- DataFrame(sequence=extracted, bout, row.names=rownames(align.stats))
+    metadata(output) <- list(gapOpening=go, gapExtension=ge, match=ma, mismatch=mm, barcodes=barcodes)
+    output
+}
 
-    current.score <- rep(-Inf, length(barcodes))
-    current.id <- rep(NA_integer_, length(barcodes))
+#' @importFrom methods is
+#' @importClassesFrom Biostrings QualityScaledDNAStringSet
+#' @importFrom S4Vectors DataFrame metadata<-
+.align_to_barcodes <- function(sequences, barcodes, param.list, BPPARAM) {
+    has.quality <- is(sequences, "QualityScaledDNAStringSet")
+    all.args <- .setup_alignment_args(has.quality, param.list$gapOpening, param.list$gapExtension, 
+            param.list$match, param.list$mismatch, type="global")
+    all.args$reads <- sequences
+    all.args$scoreOnly <- TRUE
+    all.args$BPPARAM <- BPPARAM
+
+    current.score <- next.best <- rep(-Inf, length(sequences))
+    current.id <- rep(NA_integer_, length(sequences))
     for (b in seq_along(barcodes)) {
         current <- .assign_qualities(barcodes[b])
-        scores <- do.call(.bplalign, c(list(reads=extracted, adaptor=current, scoreOnly=TRUE, BPPARAM=BPPARAM), all.args))
+        scores <- do.call(.bplalign, c(list(adaptor=current), all.args))
+
+        # Need to update both the best and the next best on record.
         keep <- scores > current.score
+        second.keep <- !keep & scores > next.best
+
         current.id[keep] <- b
+        next.best[keep] <- current.score[keep]
         current.score[keep] <- scores[keep]
+        next.best[second.keep] <- scores[second.keep]
     }
 
-    DataFrame(barcode=current.id, score=current.score)
+    list(barcode=current.id, score=current.score, alternative=next.best)
 }
