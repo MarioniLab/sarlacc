@@ -60,7 +60,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     align_start[is_reverse,] <- align_revcomp_start[is_reverse,]
     align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
 
-    details <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
+    details <- list(gapOpening=gapOpening, gapExtension=gapExtension)
     metadata(align_start) <- c(list(sequence=adaptor1), details)
     metadata(align_end) <- c(list(sequence=adaptor2), details)
 
@@ -75,6 +75,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     all.names <- unlist(all.names)
     rownames(align_start) <- rownames(align_end) <- all.names
     output <- DataFrame(read.width=all.widths, adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=all.names)
+    metadata(output) <- list(filepath=filepath, qual.type=qual.type, tolerance=tolerance)
     return(output)
 }
 

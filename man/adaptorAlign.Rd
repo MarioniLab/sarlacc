@@ -32,7 +32,8 @@ the start and end positions of the alignment on the read; the alignment score; a
 \item{\code{reversed}:}{A logical vector indicating whether each read has been reverse-complemented, see below.}
 }
 
-Alignment parameters are stored in the metadata of the overall DataFrame as well as in the metadata of each internal \code{adaptor*} DataFrame.
+The \code{filepath}, \code{qual.type} and \code{tolerance} used are stored in the metadata of the overall DataFrame.
+Alignment parameters and reference adaptor sequences are stored in the metadata of the each internal \code{adaptor*} DataFrame.
 }
 
 \details{
