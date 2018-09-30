@@ -5,7 +5,9 @@
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocGenerics width rownames<-
-adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5, gapExtension=1, match=1, mismatch=0, BPPARAM=SerialParam())
+#' @importFrom ShortRead FastqStreamer sread yield id
+adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening=5, gapExtension=1, 
+    qual.type=c("phred", "solexa", "illumina"), block.size=1e8, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
@@ -13,30 +15,53 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
 # with modifications by Aaron Lun
 # created 7 November 2017    
 {
-    has.quality <- is(reads, "QualityScaledDNAStringSet")
-    adaptor1 <- .assign_qualities(adaptor1, has.quality)
-    adaptor2 <- .assign_qualities(adaptor2, has.quality)
-    reads <- .assign_qualities(reads, has.quality)
+    adaptor1 <- .assign_qualities(adaptor1, TRUE)
+    adaptor2 <- .assign_qualities(adaptor2, TRUE)
 
-    # Getting the start and (rc'd) end of the read.
-    reads.out <- .get_front_and_back(reads, tolerance)
-    reads.start <- reads.out$front
-    reads.end <- reads.out$back
+    all.args <- .setup_alignment_args(TRUE, gapOpening, gapExtension, match, mismatch)
+    all.args$BPPARAM <- BPPARAM
 
-    # Performing the alignment of each adaptor to the start/end of the read.
-    all.args <- .setup_alignment_args(has.quality, gapOpening, gapExtension, match, mismatch)
-    align_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.start, BPPARAM=BPPARAM), all.args))
-    align_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.end, BPPARAM=BPPARAM), all.args))
-    align_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.end, BPPARAM=BPPARAM), all.args))
-    align_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.start, BPPARAM=BPPARAM), all.args))
+    qual.type <- match.arg(qual.type)
+    qual.class <- paste0(toupper(substr(qual.type, 1, 1)), substr(qual.type, 2, nchar(qual.type)), "Quality")
+
+    # Looping across reads.
+    fhandle <- FastqStreamer(filepath, readerBlockSize=block.size)
+    on.exit(close(fhandle))
+
+    all.starts <- all.ends <- all.rc.starts <- all.rc.ends <- all.names <- all.widths <- list()
+    counter <- 1L
+
+    while (length(fq <- yield(fhandle))) {
+        seq <- sread(fq)
+        qual <- as(quality(fq), qual.class)
+        reads <- QualityScaledDNAStringSet(seq, qual)
+        all.names[[counter]] <- as.character(id(fq))
+        all.widths[[counter]] <- width(reads)
+
+        # Getting the start and (rc'd) end of the read.
+        reads.out <- .get_front_and_back(reads, tolerance)
+        reads.start <- reads.out$front
+        reads.end <- reads.out$back
     
+        # Performing the alignment of each adaptor to the start/end of the read.
+        all.starts[[counter]] <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.start), all.args))
+        all.ends[[counter]] <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.end), all.args))
+        all.rc.starts[[counter]] <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.end), all.args))
+        all.rc.ends[[counter]] <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.start), all.args))
+        counter <- counter + 1L
+    }
+
+    align_start <- do.call(rbind, all.starts)
+    align_end <- do.call(rbind, all.ends)
+    align_revcomp_start <- do.call(rbind, all.rc.starts)
+    align_revcomp_end <- do.call(rbind, all.rc.ends)
+
     # Standardizing the strand.
     strand.out <- .resolve_strand(align_start$score, align_end$score, align_revcomp_start$score, align_revcomp_end$score)
     is_reverse <- strand.out$reversed
 
     align_start[is_reverse,] <- align_revcomp_start[is_reverse,]
     align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
-    reads[is_reverse] <- reverseComplement(reads[is_reverse])
 
     details <- list(tolerance=tolerance, gapOpening=gapOpening, gapExtension=gapExtension, match=match, mismatch=mismatch)
     metadata(align_start) <- c(list(sequence=adaptor1), details)
@@ -45,11 +70,14 @@ adaptorAlign <- function(adaptor1, adaptor2, reads, tolerance=250, gapOpening=5,
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
     old.end <- align_end$end
-    align_end$start <- width(reads) - old.start + 1L
-    align_end$end <- width(reads) - old.end + 1L
-       
-    rownames(align_start) <- rownames(align_end) <- names(reads) 
-    output <- DataFrame(reads=reads, adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=names(reads))
+
+    all.widths <- unlist(all.widths)
+    align_end$start <- all.widths - old.start + 1L
+    align_end$end <- all.widths - old.end + 1L
+
+    all.names <- unlist(all.names)
+    rownames(align_start) <- rownames(align_end) <- all.names
+    output <- DataFrame(adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=all.names)
     return(output)
 }
 
