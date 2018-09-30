@@ -5,7 +5,7 @@
 #' @importFrom methods is
 #' @importFrom BiocParallel SerialParam
 #' @importFrom BiocGenerics width rownames<-
-#' @importFrom ShortRead FastqStreamer sread yield id
+#' @importFrom ShortRead FastqStreamer yield 
 adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening=5, gapExtension=1, 
     qual.type=c("phred", "solexa", "illumina"), block.size=1e8, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
@@ -17,12 +17,11 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 {
     adaptor1 <- .assign_qualities(adaptor1, TRUE)
     adaptor2 <- .assign_qualities(adaptor2, TRUE)
-
-    all.args <- .setup_alignment_args(TRUE, gapOpening, gapExtension, match, mismatch)
-    all.args$BPPARAM <- BPPARAM
-
     qual.type <- match.arg(qual.type)
-    qual.class <- paste0(toupper(substr(qual.type, 1, 1)), substr(qual.type, 2, nchar(qual.type)), "Quality")
+    qual.class <- .qual2class(qual.type)
+
+    all.args <- .setup_alignment_args(TRUE, gapOpening, gapExtension)
+    all.args$BPPARAM <- BPPARAM
 
     # Looping across reads.
     fhandle <- FastqStreamer(filepath, readerBlockSize=block.size)
@@ -32,10 +31,8 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     counter <- 1L
 
     while (length(fq <- yield(fhandle))) {
-        seq <- sread(fq)
-        qual <- as(quality(fq), qual.class)
-        reads <- QualityScaledDNAStringSet(seq, qual)
-        all.names[[counter]] <- as.character(id(fq))
+        reads <- .FASTQ2QSDS(fq, qual.class)
+        all.names[[counter]] <- names(reads)
         all.widths[[counter]] <- width(reads)
 
         # Getting the start and (rc'd) end of the read.
@@ -117,6 +114,21 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     reads.end <- subseq(reads, end = width(reads), width = tolerance)
     reads.end <- reverseComplement(reads.end)
     return(list(front=reads.start, back=reads.end))
+}
+
+.qual2class <- function(qual.type) {
+     paste0(toupper(substr(qual.type, 1, 1)), substr(qual.type, 2, nchar(qual.type)), "Quality")
+}
+
+#' @importFrom Biostrings quality
+#' @importFrom methods as
+#' @importFrom ShortRead FastqStreamer sread id
+.FASTQ2QSDS <- function(fq, qual.class) {
+    seq <- sread(fq)
+    qual <- as(quality(fq), qual.class)
+    reads <- QualityScaledDNAStringSet(seq, qual)
+    names(reads) <- as.character(id(fq))
+    reads
 }
 
 #' @importFrom Biostrings nucleotideSubstitutionMatrix
