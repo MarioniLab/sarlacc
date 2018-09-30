@@ -74,7 +74,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 
     all.names <- unlist(all.names)
     rownames(align_start) <- rownames(align_end) <- all.names
-    output <- DataFrame(adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=all.names)
+    output <- DataFrame(read.width=all.widths, adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=all.names)
     return(output)
 }
 

@@ -25,6 +25,7 @@ Currently only effective up to a maximum of 4 workers.}
 A \linkS4class{DataFrame} where each row corresponds to a read in \code{filepath} and is named with the read name.
 It contains the following fields:
 \describe{
+\item{read.width}{Integer vector containing the length of each read.}
 \item{\code{adaptor1}:}{A DataFrame of alignment information for adaptor 1, including the pairwise alignment strings for the adaptor and read sequence; 
 the start and end positions of the alignment on the read; the alignment score; and the qualities of the read subsequence, if they were originally supplied.}
 \item{\code{adaptor2}:}{A similar DataFrame of alignment information for adaptor 2.}
