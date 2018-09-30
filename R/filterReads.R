@@ -1,6 +1,5 @@
 #' @export
-#' @importFrom XVector subseq
-chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = TRUE)
+filterReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = TRUE)
 # This filters out reads that don't have essential adaptors aligning on either or both ends.
 # We also chop out the adaptor sequences for future use.
 #
@@ -31,28 +30,14 @@ chopReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 = T
     has1 <- aligned$adaptor1$score >= score1
     start_point[has1] <- aligned$adaptor1$end[has1] + 1L
 
-    end_point <- width(aligned$reads)
+    end_point <- aligned$read.width
     has2 <- aligned$adaptor2$score >= score2
     end_point[has2] <- aligned$adaptor2$end[has2] - 1L
 
     keep <- start_point < end_point
     aligned <- aligned[keep,]
-    aligned$reads <- subseq(aligned$reads, start=start_point[keep], end=end_point[keep])
-
-    # Destroying pattern positional information, as this is no longer valid after chopping.
-    if (essential1) {
-        aligned$adaptor1$start <- NULL
-        aligned$adaptor1$end <- NULL
-    } else {
-        aligned$adaptor1 <- NULL
-    }
-
-    if (essential2) {
-        aligned$adaptor2$start <- NULL
-        aligned$adaptor2$end <- NULL
-    } else {
-        aligned$adaptor2 <- NULL
-    }
+    aligned$trimmed.start <- start_point[keep]
+    aligned$trimmed.end <- end_point[keep]
 
     return(aligned)
 }
