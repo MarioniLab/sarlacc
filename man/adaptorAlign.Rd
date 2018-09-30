@@ -5,39 +5,33 @@
 \description{Perform pairwise alignments of adaptor sequences to the ends of the read sequences.}
 
 \usage{
-adaptorAlign(adaptor1, adaptor2, reads, tolerance=100, gapOpening=1, 
-    gapExtension=5, match=1, mismatch=0, BPPARAM=SerialParam()) 
+adaptorAlign(adaptor1, adaptor2, filepath, tolerance=100, gapOpening=1, 
+    gapExtension=5, qual.type=c("phred", "solexa", "illumina"), 
+    block.size=1e8, BPPARAM=SerialParam())
 }
 
 \arguments{
 \item{adaptor1, adaptor2}{A string or DNAString object containing the 5'-to-3' sequences of the adaptors on each end of the read.}
-\item{reads}{A DNAStringSet object containing the read sequences.
-A QualityScaledDNAStringSet can also be supplied containing quality scores.}
+\item{filepath}{A string containing the name of the FASTQ file.}
 \item{tolerance}{An integer scalar specifying the region at the ends of the reads to search for the adaptors.}
 \item{gapOpening, gapExtension}{Arguments to pass to \code{\link{pairwiseAlignment}}.}
-\item{match, mismatch}{Arguments to pass to \code{\link{nucleotideSubstitutionMatrix}} for use in \code{\link{pairwiseAlignment}}.
-These are ignored if \code{reads} contains quality scores.}
+\item{qual.type}{String specifying the type of quality scores.}
+\item{block.size}{Integer scalar specifying the number of bytes to read in at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
 Currently only effective up to a maximum of 4 workers.}
 } 
 
 \value{
-A named list with the following components:
+A \linkS4class{DataFrame} where each row corresponds to a read in \code{filepath} and is named with the read name.
+It contains the following fields:
 \describe{
-\item{\code{reads}:}{A DNAStringSet or QualityScaledDNAStringSet object containing the read sequences.
-If necessary, reverse-complementing is performed on specific entries such that the 5' end is always the one that aligns best to adaptor 1.}
 \item{\code{adaptor1}:}{A DataFrame of alignment information for adaptor 1, including the pairwise alignment strings for the adaptor and read sequence; 
-the start and end positions of the alignment on the read; the alignment score; and the qualities of the read subsequence, if they were originally supplied.
-The read alignment string corresponds to the forward strand of the output \code{reads}, \emph{not} the input \code{reads}.
-Alignment positions also refer to the forward strand of the output \code{reads}.
+the start and end positions of the alignment on the read; the alignment score; and the qualities of the read subsequence, if they were originally supplied.}
+\item{\code{adaptor2}:}{A similar DataFrame of alignment information for adaptor 2.}
+\item{\code{reversed}:}{A logical vector indicating whether each read has been reverse-complemented, see below.}
 }
-\item{\code{adaptor2}:}{A similar DataFrame of alignment information for adaptor 2.
-The read alignment string corresponds to the \emph{reverse} strand of the output \code{reads}.
-Alignment positions still refer to the forward strand of the output \code{reads}.
-}
-\item{\code{reversed}:}{A logical vector indicating whether each read has been reverse-complemented in the output.}
-\item{\code{parameters}:}{A list containing the values of the arguments supplied to \code{adaptorAlign}, e.g., gap opening/extension penalties, \code{tolerance}.}
-}
+
+Alignment parameters are stored in the metadata of the overall DataFrame as well as in the metadata of each internal \code{adaptor*} DataFrame.
 }
 
 \details{
@@ -50,18 +44,15 @@ The adaptor sequences should be provided 5'-to-3', corresponding to the sequence
 Reverse-complementing is performed automatically within the function to search both strands of the read sequence.
 There should usually be some experimental distinction between adaptor 1 and 2.
 For example, in RNA sequencing, adaptor 1 may be used for reverse transcription while adaptor 2 may be used for second-strand synthesis.
-
-Names are automatically generated for all reads if they are not supplied in the input \code{reads}.
-These are stored in the names of the output \code{reads} as well as the row names of the output \code{adaptor1} and \code{adaptor2} DataFrames.
 }
 
 \section{Flipping reads by strand}{
-This function ensures that the 5' end of the output read sequence is the one that aligns best to adaptor 1.
-To this end, reads are reverse-complemented, quality strings are reversed and alignment positions are adjusted accordingly.
-Thus, adaptor 1 will always be reported as aligning to the forward strand, while adaptor 2 will always be reported as aligning to the reverse strand.
-This simplifies downstream analyses and comparisons between read sequences, e.g., in \code{\link{consensusReadSeq}}.
+We standardize the alignment statistics in terms of the \dQuote{canonical cDNA orientation}.
+In this canonical orientation, the sequence of adaptor 1 is located on the 5' end while the reverse complement of adaptor 2 is located on the 3' end.
+Any reads observed in the opposite orientation are conceptually reverse-complemented, as marked by the \code{reversed} field in the output.
+This standardization simplifies downstream analyses and comparisons between read sequences, e.g., in \code{\link{consensusReadSeq}}.
 
-The choice of the best orientation is performed by considering the sum of bounded alignment scores for each orientation.
+We decide whether or not a read is in the canonical orientation by considering the sum of bounded alignment scores for each orientation.
 To explain:
 \enumerate{
 \item Let us conceptually combine the two alignments of adaptor 1 and 2 to the (input) read sequence.
@@ -72,9 +63,19 @@ This mimics the effect of local alignment, where an adaptor is ignored on either
 \item We do the same for the scores for the reverse-complemented read sequence.
 If this is higher than the original score, we decide that the read needs to be reverse-complemented.
 }
-The same approach is used to compute the scores that are returned by \code{\link{tuneAlignment}}.
+
+Start and end positions of the adaptor alignments are reported relative to the canonical orientation. 
+\itemize{
+\item For adaptor 1, all coordinates should generally be small, and the start position should be smaller than the end position.
+This is because the start of adaptor 1 should align to the start of the read, while the end of the adaptor should align closer to the centre of the read.
+\item For adaptor 2, all coordinates should generally be close to the read length, and the start position should be \emph{larger} than the end position.
+This is because the start of adaptor 2 should align to the end of the read, while the end of the adaptor should align closer to the centre of the read.
 }
 
+The interpretation of the alignment strings is slightly different, as they are reported relative to the supplied adaptor sequences. 
+The starts of the alignment strings always refer to the 5' end of the reference adaptor sequence, regardless of which adaptor is involved.
+This simplifies downstream processing steps that extract the read sequence corresponding to a stretch of the adaptor sequence, e.g., \code{\link{umiExtract}}.
+}
 
 \author{
 Florian Bieberich,
@@ -87,17 +88,12 @@ Aaron Lun
 }
 
 \examples{
-a1 <- "AACGGGTCG"
+# Mocking up a data set.
+a1 <- "AACGGGTCGNNNNNNNACGTACGTNNNNACGA" 
 a2 <- "CGTGCTGCATCG"
+fout <- tempfile(fileext=".fastq")
+ref <- sarlacc:::mockReads(a1, a2, fout, nmolecules=3)
 
-reads <- DNAStringSet(c(
-    "AACGGGTCGCTCGACGACTACGTCCGATGCAGCACG",
-    "CGTGCTGCATCGGACGTAGTCGTCGAGCGACCCGTT"))
-(out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads))
-
-# Adding some qualities.
-reads <- QualityScaledDNAStringSet(reads, PhredQuality(c(
-    "123917891232#@*&^312376328943453$2!^",
-    "9-0368560495--(*)1312-34983923401098")))
-(out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads))
+# Aligning it.
+(out <- adaptorAlign(adaptor1=a1, adaptor2=a2, filepath=fout))
 }
