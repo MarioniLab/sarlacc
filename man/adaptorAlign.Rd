@@ -12,10 +12,10 @@ adaptorAlign(adaptor1, adaptor2, filepath, tolerance=100, gapOpening=1,
 
 \arguments{
 \item{adaptor1, adaptor2}{A string or DNAString object containing the 5'-to-3' sequences of the adaptors on each end of the read.}
-\item{filepath}{A string containing the name of the FASTQ file.}
-\item{tolerance}{An integer scalar specifying the region at the ends of the reads to search for the adaptors.}
+\item{filepath}{A string containing the path to the FASTQ file, or a connection object to a FASTQ file.}
+\item{tolerance}{An integer scalar specifying the length of the ends of the reads to search for adaptors.}
 \item{gapOpening, gapExtension}{Arguments to pass to \code{\link{pairwiseAlignment}}.}
-\item{qual.type}{String specifying the type of quality scores.}
+\item{qual.type}{String specifying the type of quality scores in \code{filepath}.}
 \item{block.size}{Integer scalar specifying the number of bytes to read in at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
 Currently only effective up to a maximum of 4 workers.}
