@@ -5,12 +5,13 @@
 \description{Compute score thresholds to be used to determine if adaptors are present at the read ends.}
 
 \usage{
-getAdaptorThresholds(aligned, error=0.01, BPPARAM=SerialParam())
+getAdaptorThresholds(aligned, error=0.01, block.size=1e8, BPPARAM=SerialParam())
 }
 
 \arguments{
 \item{aligned}{A \linkS4class{DataFrame} of adaptor alignment information and read sequences, identical to the output of \code{\link{adaptorAlign}}.}
 \item{error}{A numeric scalar specifying the acceptable false discovery rate.}
+\item{block.size}{Integer scalar specifying the maximum block size, see \code{?\link{FastqStreamer}} for details.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.}
 } 
 
@@ -33,6 +34,9 @@ For each adaptor, the scrambled alignment scores represent a null distribution o
 We aim to define a score threshold above which the adaptor is considered to be present in the read sequence.
 This is done by estimating the false discovery rate as the ratio of the number of scrambled scores above the threshold to the number of real alignment scores above the threshold.
 We choose a threshold such that the false discovery rate is kept below the specified \code{error}.
+
+For speed, users may wish to subset \code{aligned} to a random sample of reads before running this function.
+It is unnecessary to scramble every read in order to compute a satisfactorily precise threshold.
 }
 
 \author{
