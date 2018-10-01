@@ -1,5 +1,5 @@
 #' @importFrom Biostrings reverseComplement DNAString DNAStringSet PhredQuality writeXStringSet QualityScaledDNAStringSet quality
-#' @importClaasesFrom Biostrings BStringSet
+#' @importClassesFrom Biostrings BStringSet
 #' @importFrom stats runif rbinom
 #' @importFrom methods as
 mockReads <- function(adaptor1, adaptor2, filepath,
