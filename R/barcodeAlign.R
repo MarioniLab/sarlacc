@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom S4Vectors metadata 
 #' @importFrom BiocParallel SerialParam
-debarcodeReads <- function(align.stats, barcodes, position, BPPARAM=SerialParam())
+barcodeAlign <- functio(align.stats, barcodes, position, BPPARAM=SerialParam())
 # Pulls out the barcodes, aligns them against all possible options,
 # and reports the results.
 #

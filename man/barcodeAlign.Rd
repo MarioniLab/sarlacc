@@ -1,11 +1,11 @@
-\name{debarcodeReads}
-\alias{debarcodeReads}
+\name{barcodeAlign}
+\alias{barcodeAlign}
 
 \title{Determine barcode identity}
 \description{Determine the barcode identity for each read, based on alignment to a set of reference sequences.}
 
 \usage{
-debarcodeReads(align.stats, barcodes, position)
+barcodeAlign(align.stats, barcodes, position)
 }
 
 \arguments{
@@ -36,26 +36,11 @@ Aaron Lun
 }
 
 \examples{
-a1 <- "AACGGGTCGNNNNNNNACGNNNNACGA" # first N stretch is a barcode.
-a2 <- "CGTGCTGCATCG"
-
-# Mocking up reads with different barcodes (same UMI for simplicity).
-reads <- DNAStringSet(c(
-    "AACGGGTCGAAAAAAAACGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG",
-    "AACGGGTCGAATTAATTCGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG",
-    "AACGGGTCGTTAATTAACGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG",
-    "AACGGGTCGAAGGAAGGCGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG",
-    "AACGGGTCGCCAACCAACGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG",
-    "AACGGGTCGCCGGCCGGCGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG",
-    "AACGGGTCGCCTTCCTTCGACGTACGACGACTGACTGACTAGCATTGCGATGCAGCACG"
-))
-
-out <- adaptorAlign(adaptor1=a1, adaptor2=a2, reads=reads)
+example(adaptorAlign)
 
 # Assigning reads to individual barcodes.
-debarcoded <- debarcodeReads(out$adaptor1, 
-    barcodes=c("AAAAAAAA", "AATTAATT", "TTAATTAA", "AAGGAAGG", 
-        "CCAACCAA", "CCGGCCGG", "CCTTCCTT"),
-     position=c(10, 17))
+debarcoded <- barcodeAlign(out$adaptor1, 
+    barcodes=c("AAAAAAAA", "TTTTTTTT", "CCCCCCCCC", "GGGGGGGG"),
+    position=c(10, 17))
 debarcoded
 }
