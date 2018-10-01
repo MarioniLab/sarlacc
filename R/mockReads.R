@@ -17,7 +17,7 @@ mockReads <- function(adaptor1, adaptor2, filepath,
     # Checking barcode and UMI position, if not supplied.
     allNs <- gregexpr("N+", adaptor1)[[1]]
     starts <- as.integer(allNs)
-    ends <- starts + attr(allNs, "match.length")
+    ends <- starts + attr(allNs, "match.length") - 1L
 
     if (identical(barcode.position, "auto")) {
         barcode.position <- c(starts[1], ends[1])
