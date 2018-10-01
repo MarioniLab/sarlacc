@@ -47,7 +47,7 @@ Aaron Lun
 \examples{
 example(adaptorAlign)
 
-filterReads(out, score1=5, score2=5) # both identified
+(filt <- filterReads(out, score1=5, score2=5)) # both identified
 
 filterReads(out, score1=100, score2=5) # adaptor 1 not identified
 
