@@ -51,6 +51,7 @@ all.barcodes <- c("AAGGAATTAAGG", "GGCCAACCGGTT", "CCGGTTGGCCAA")
 To demonstrate the various `r Biocpkg("sarlacc")` functions in this vignette, we will mock up some data and save it as a FASTQ file.
 
 ```{r}
+set.seed(1000)
 fastq <- tempfile(fileext=".fastq")
 ref.seq <- sarlacc:::mockReads(adaptor1=adaptor1, adaptor2=adaptor2, 
     filepath=fastq, all.barcodes=all.barcodes) 
@@ -224,6 +225,7 @@ To satisfy the first requirement, we perform pairwise alignments between all rea
 This is based on the _minimap2_ software, which must be installed on the system.
 
 ```{r}
+my.sample$reads <- realizeReads(my.sample)
 pre.groups <- groupReads(my.sample$reads, truncate=1000)
 summary(lengths(pre.groups))
 ```
