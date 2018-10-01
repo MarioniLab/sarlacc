@@ -2,7 +2,7 @@
 #' @importFrom S4Vectors metadata
 #' @importFrom ShortRead FastqStreamer yield
 #' @importFrom Biostrings reverseComplement subseq
-realizeReads <- function(aligned, block.size=1e8, trim=TRUE) 
+realizeReads <- function(aligned, number=1e5, trim=TRUE) 
 # Converts conceptual reads into actual reads.
 #
 # written by Aaron Lun
@@ -12,7 +12,7 @@ realizeReads <- function(aligned, block.size=1e8, trim=TRUE)
     qual.type <- metadata(aligned)$qual.type
     qual.class <- .qual2class(qual.type)
 
-    fhandle <- FastqStreamer(filepath, readerBlockSize=block.size)
+    fhandle <- FastqStreamer(filepath, n=number)
     on.exit(close(fhandle))
     all.reads <- list()
     counter <- 1L

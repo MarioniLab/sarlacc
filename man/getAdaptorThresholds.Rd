@@ -5,13 +5,13 @@
 \description{Compute score thresholds to be used to determine if adaptors are present at the read ends.}
 
 \usage{
-getAdaptorThresholds(aligned, error=0.01, block.size=1e8, BPPARAM=SerialParam())
+getAdaptorThresholds(aligned, error=0.01, number=1e5, BPPARAM=SerialParam())
 }
 
 \arguments{
 \item{aligned}{A \linkS4class{DataFrame} of adaptor alignment information and read sequences, identical to the output of \code{\link{adaptorAlign}}.}
 \item{error}{A numeric scalar specifying the acceptable false discovery rate.}
-\item{block.size}{Integer scalar specifying the maximum block size, see \code{?\link{FastqStreamer}} for details.}
+\item{number}{Integer scalar specifying the number of records to read at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.}
 } 
 

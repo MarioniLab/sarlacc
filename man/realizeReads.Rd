@@ -5,12 +5,12 @@
 \description{Execute delayed operations (reverse-complementing, trimming) to generate the actual read sequences.}
 
 \usage{
-realizeReads(aligned, block.size=1e8, trim=TRUE) 
+realizeReads(aligned, number=1e5, trim=TRUE) 
 }
 
 \arguments{
 \item{aligned}{A \linkS4class{DataFrame} of alignment results produced by \code{\link{adaptorAlign}} - or, if \code{trim=TRUE}, by \code{\link{filterReads}}.}
-\item{block.size}{Integer scalar specifying the number of bytes to read in at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
+\item{number}{Integer scalar specifying the number of records to read at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
 \item{trim}{Logical scalar indicating whether adaptor trimming should be performed.}
 }
 

@@ -7,7 +7,7 @@
 \usage{
 adaptorAlign(adaptor1, adaptor2, filepath, tolerance=100, gapOpening=1, 
     gapExtension=5, qual.type=c("phred", "solexa", "illumina"), 
-    block.size=1e8, BPPARAM=SerialParam())
+    number=1e5, BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -16,7 +16,7 @@ adaptorAlign(adaptor1, adaptor2, filepath, tolerance=100, gapOpening=1,
 \item{tolerance}{An integer scalar specifying the length of the ends of the reads to search for adaptors.}
 \item{gapOpening, gapExtension}{Arguments to pass to \code{\link{pairwiseAlignment}}.}
 \item{qual.type}{String specifying the type of quality scores in \code{filepath}.}
-\item{block.size}{Integer scalar specifying the number of bytes to read in at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
+\item{number}{Integer scalar specifying the number of records to read at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
 \item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
 Currently only effective up to a maximum of 4 workers.}
 } 

@@ -7,7 +7,7 @@
 #' @importFrom BiocGenerics width rownames<-
 #' @importFrom ShortRead FastqStreamer yield 
 adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening=5, gapExtension=1, 
-    qual.type=c("phred", "solexa", "illumina"), block.size=1e8, BPPARAM=SerialParam())
+    qual.type=c("phred", "solexa", "illumina"), number=1e5, BPPARAM=SerialParam())
 # This function aligns both adaptors to the read sequence with the specified parameters,
 # and returns the alignments that best match the sequence (with reverse complementing if necessary).
 #    
@@ -24,9 +24,8 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     all.args$BPPARAM <- BPPARAM
 
     # Looping across reads.
-    fhandle <- FastqStreamer(filepath, readerBlockSize=block.size)
+    fhandle <- FastqStreamer(filepath, n=number)
     on.exit(close(fhandle))
-
     all.starts <- all.ends <- all.rc.starts <- all.rc.ends <- all.names <- all.widths <- list()
     counter <- 1L
 

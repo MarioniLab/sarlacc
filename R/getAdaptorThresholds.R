@@ -3,7 +3,7 @@
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom BiocParallel SerialParam
 #' @importFrom ShortRead FastqStreamer yield
-getAdaptorThresholds <- function(aligned, error=0.01, block.size=1e8, BPPARAM=SerialParam())
+getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=SerialParam())
 # Scrambles the input sequence and performs the same thing as adaptorAlign but with a scrambled input. 
 # Identifies the score threshold for the adaptors that achieves the specified error rate.
 #
@@ -25,7 +25,7 @@ getAdaptorThresholds <- function(aligned, error=0.01, block.size=1e8, BPPARAM=Se
     qual.class <- .qual2class(qual.type)
 
     # Looping through the files.
-    fhandle <- FastqStreamer(filepath, readerBlockSize=block.size)
+    fhandle <- FastqStreamer(filepath, n=number)
     on.exit(close(fhandle))
     scram.score1 <- scram.score2 <- used.names <- list()
     counter <- 1L
