@@ -26,12 +26,13 @@ The same logic applies to \code{essential2} for adaptor 2.
 
 This function will also report the start and end of the read sequence between the adaptors, marking the interval that would remain after adaptor trimming.
 These positions are reported relative to the canonical orientation, see \code{?\link{adaptorAlign}} for more details.
-Also note that the interval may include the start or end of the read if adaptor 1 or 2, respectively, is not essential and not found. 
+The interval may include the start or end of the read if adaptor 1 or 2, respectively, is not essential and not found. 
+Reads will also be discarded if adaptor 1 ends after adaptor 2 begins, as this implies that the adaptors overlap (and that there is no sequence in between).
 }
 
 \value{
 \code{aligned} is returned, subsetted to only retain rows (i.e., reads) that have all essential adaptors.
-It also contains the additional \code{trimmed.start} and \code{trimmed.end} fields, indicating the start of the sequence between the two adaptors.
+It also contains the additional \code{trim.start} and \code{trim.end} fields, indicating the start of the sequence between the two adaptors.
 }
 
 \author{

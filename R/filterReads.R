@@ -36,8 +36,8 @@ filterReads <- function(aligned, score1, score2, essential1 = TRUE, essential2 =
 
     keep <- start_point < end_point
     aligned <- aligned[keep,]
-    aligned$trimmed.start <- start_point[keep]
-    aligned$trimmed.end <- end_point[keep]
+    aligned$trim.start <- start_point[keep]
+    aligned$trim.end <- end_point[keep]
 
     return(aligned)
 }
