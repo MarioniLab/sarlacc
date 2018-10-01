@@ -58,6 +58,9 @@ getAdaptorThresholds <- function(aligned, error=0.01, block.size=1e8, BPPARAM=Se
     scram.score1 <- unlist(scram.score1)
     scram.score2 <- unlist(scram.score2)
     m <- match(unlist(used.names), rownames(aligned))
+    if (any(is.na(m))) {
+        stop("read names in 'aligned' not present in FASTQ file")
+    }
     real.score1 <- aligned$adaptor1$score[m]
     real.score2 <- aligned$adaptor2$score[m]
 
