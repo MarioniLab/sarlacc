@@ -10,16 +10,18 @@ getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=Serial
 # written by Aaron Lun
 # created 10 March 2018
 {
-    adaptor1 <- metadata(aligned$adaptor1)$sequence
-    adaptor2 <- metadata(aligned$adaptor2)$sequence
-
     go <- metadata(aligned$adaptor1)$gapOpening 
     ge <- metadata(aligned$adaptor1)$gapExtension
     all.args <- .setup_alignment_args(TRUE, go, ge)
-    all.args$BPPARAM <- BPPARAM
-    all.args$scoreOnly <- TRUE
+    
+    adaptor1 <- metadata(aligned$adaptor1)$sequence
+    adaptor2 <- metadata(aligned$adaptor2)$sequence
+    all.args$adaptor1 <- adaptor1
+    all.args$adaptor2 <- adaptor2
 
     tolerance <- metadata(aligned)$tolerance
+    all.args$tolerance <- tolerance
+
     filepath <- metadata(aligned)$filepath
     qual.type <- metadata(aligned)$qual.type
     qual.class <- .qual2class(qual.type)
@@ -35,23 +37,11 @@ getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=Serial
         reads <- reads[names(reads) %in% rownames(aligned)]
         used.names[[counter]] <- names(reads)
 
-        # Scrambling the start and end of the read sequences.
-        reads.out <- .get_front_and_back(reads, tolerance)
-        reads.start <- reads.out$front
-        reads.end <- reads.out$back
+        by.cores <- .parallelize(reads, BPPARAM)
+        out <- bpmapply(by.cores, FUN=.align_AT_internal, MoreArgs=all.args, BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
-        scrambled.start <- .scramble_input(reads.start, TRUE)
-        scrambled.end <- .scramble_input(reads.end, TRUE)
-
-        # Computing alignment scores to the adaptors.
-        scrambled_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.start), all.args))
-        scrambled_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.end), all.args))
-        scrambled_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.end), all.args))
-        scrambled_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.start), all.args))
-
-        is.reverse <- .resolve_strand(scrambled_start, scrambled_end, scrambled_revcomp_start, scrambled_revcomp_end)$reversed
-        scram.score1[[counter]] <- ifelse(is.reverse, scrambled_revcomp_start, scrambled_start)
-        scram.score2[[counter]] <- ifelse(is.reverse, scrambled_revcomp_end, scrambled_end)
+        scram.score1[[counter]] <- unlist(lapply(out, "[[", i="adaptor1"))
+        scram.score2[[counter]] <- unlist(lapply(out, "[[", i="adaptor2"))
         counter <- counter + 1L
     }
 
@@ -108,4 +98,29 @@ getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=Serial
     scrambled <- sort(scrambled)
     fdr <- (length(scrambled) - findInterval(real, scrambled))/(length(real) - seq_along(real))
     real[min(which(fdr <= error))]
+}
+
+.align_AT_internal <- function(reads, adaptor1, adaptor2, tolerance, ...) 
+# Wrapper to ensure that the sarlacc namespace is passed along in bpmapply.
+{
+    # Scrambling the start and end of the read sequences.
+    reads.out <- .get_front_and_back(reads, tolerance)
+    reads.start <- reads.out$front
+    reads.end <- reads.out$back
+
+    scrambled.start <- .scramble_input(reads.start, TRUE)
+    scrambled.end <- .scramble_input(reads.end, TRUE)
+
+    # Computing alignment scores to the adaptors.
+    all.scores <- .get_alignment_scores(scrambled.start, scrambled.end, adaptor1, adaptor2, ...)
+    scrambled_start <- all.scores$START
+    scrambled_end <- all.scores$END
+    scrambled_revcomp_start <- all.scores$RSTART
+    scrambled_revcomp_end <- all.scores$REND
+
+    is.reverse <- .resolve_strand(scrambled_start, scrambled_end, scrambled_revcomp_start, scrambled_revcomp_end)$reversed
+    list(
+        adaptor1=ifelse(is.reverse, scrambled_revcomp_start, scrambled_start),
+        adaptor2=ifelse(is.reverse, scrambled_revcomp_end, scrambled_end)
+    )
 }

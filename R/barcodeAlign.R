@@ -19,18 +19,18 @@ barcodeAlign <- function(align.stats, barcodes, position, BPPARAM=SerialParam())
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom S4Vectors DataFrame metadata<-
 .align_to_barcodes <- function(sequences, barcodes, param.list, BPPARAM) {
-    has.quality <- is(sequences, "QualityScaledDNAStringSet")
-    all.args <- .setup_alignment_args(has.quality, param.list$gapOpening, param.list$gapExtension, 
-            param.list$match, param.list$mismatch, type="global")
-    all.args$reads <- sequences
+    all.args <- .setup_alignment_args(TRUE, param.list$gapOpening, param.list$gapExtension, type="global")
     all.args$scoreOnly <- TRUE
-    all.args$BPPARAM <- BPPARAM
+    by.core <- .parallelize(sequences, BPPARAM)
 
     current.score <- next.best <- rep(-Inf, length(sequences))
     current.id <- rep(NA_integer_, length(sequences))
     for (b in seq_along(barcodes)) {
         current <- .assign_qualities(barcodes[b])
-        scores <- do.call(.bplalign, c(list(adaptor=current), all.args))
+        scores <- bpmapply(FUN=pairwiseAlignment, pattern=by.core, 
+            MoreArgs=c(list(subject=current), all.args),
+            BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        scores <- unlist(scores)
 
         # Need to update both the best and the next best on record.
         keep <- scores > current.score

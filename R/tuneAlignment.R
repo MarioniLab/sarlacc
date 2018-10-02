@@ -1,8 +1,7 @@
 #' @export
 #' @importFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
-#' @importFrom BiocParallel SerialParam
-#' @importFrom S4Vectors head
+#' @importFrom BiocParallel bpmapply SerialParam
 #' @importFrom ShortRead FastqSampler
 tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10000,
     gapOp.range=c(4, 10), gapExt.range=c(1, 5), qual.type=c("phred", "solexa", "illumina"), 
@@ -35,6 +34,11 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
     scrambled.start <- .scramble_input(reads.start, TRUE)
     scrambled.end <- .scramble_input(reads.end, TRUE)
 
+    reads.start <- .parallelize(reads.start, BPPARAM)
+    reads.end <- .parallelize(reads.end, BPPARAM)
+    scrambled.start <- .parallelize(scrambled.start, BPPARAM)
+    scrambled.end <- .parallelize(scrambled.end, BPPARAM)
+
     # Performing a grid search to maximize the separation in scores.
     gapOp.range <- as.integer(cummax(gapOp.range))
     gapExt.range <- as.integer(cummax(gapExt.range))
@@ -46,20 +50,14 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
         for (ge in seq(gapExt.range[1], gapExt.range[2], by=1)) { 
 
             all.args <- .setup_alignment_args(TRUE, go, ge)
-            all.args$BPPARAM <- BPPARAM
-            all.args$scoreOnly <- TRUE
+            all.args$adaptor1 <- adaptor1
+            all.args$adaptor2 <- adaptor2
 
-            align_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.start), all.args))
-            align_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.end), all.args))
-            align_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=reads.end), all.args))
-            align_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=reads.start), all.args))
-            read.scores <- .resolve_strand(align_start, align_end, align_revcomp_start, align_revcomp_end)$scores
-
-            sc_align_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.start), all.args))
-            sc_align_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.end), all.args))
-            sc_align_revcomp_start <- do.call(.bplalign, c(list(adaptor=adaptor1, reads=scrambled.end), all.args))
-            sc_align_revcomp_end <- do.call(.bplalign, c(list(adaptor=adaptor2, reads=scrambled.start), all.args))
-            scrambled.scores <- .resolve_strand(sc_align_start, sc_align_end, sc_align_revcomp_start, sc_align_revcomp_end)$scores
+            out <- bpmapply(FUN=.align_TA_internal, reads.start=reads.start, reads.end=reads.end,
+                scrambled.start=scrambled.start, scrambled.end=scrambled.end,
+                MoreArgs=all.args, SIMPLIFY=FALSE, BPPARAM=BPPARAM, USE.NAMES=FALSE)
+            read.scores <- unlist(lapply(out, "[[", i="reads"))
+            scrambled.scores <- unlist(lapply(out, "[[", i="scrambled"))
 
             cur.score <- .tied_overlap(read.scores, scrambled.scores)
             if (max.score < cur.score) {
@@ -83,4 +81,27 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
     upper.bound <- findInterval(real, fake)
     lower.bound <- findInterval(real, fake, left.open=TRUE)
     sum((upper.bound + lower.bound)/2)/(length(real)*length(fake))
+}
+
+.align_TA_internal <- function(reads.start, reads.end, scrambled.start, scrambled.end, adaptor1, adaptor2, ...) 
+# Wrapper to ensure that the sarlacc namespace is passed along in bpmapply.
+{
+    read.scores <- .get_alignment_scores(reads.start, reads.end, adaptor1, adaptor2, ...)
+    scram.scores <- .get_alignment_scores(scrambled.start, scrambled.end, adaptor1, adaptor2, ...)
+    list(
+        .resolve_strand(read.scores$START, read.scores$END, read.scores$RSTART, read.scores$REND)$scores,
+        .resolve_strand(scram.scores$START, scram.scores$END, scram.scores$RSTART, scram.scores$REND)$scores
+    )
+}
+
+#' @importFrom Biostrings pairwiseAlignment
+.get_alignment_scores <- function(reads.start, reads.end, adaptor1, adaptor2, ...) 
+# Retrieve all alignment scores for adaptor/read end combinations.
+{
+    list(
+        START=pairwiseAlignment(subject=adaptor1, pattern=reads.start, ..., scoreOnly=TRUE),
+        END=pairwiseAlignment(subject=adaptor2, pattern=reads.end, ..., scoreOnly=TRUE),
+        RSTART=pairwiseAlignment(subject=adaptor1, pattern=reads.end, ..., scoreOnly=TRUE),
+        REND=pairwiseAlignment(subject=adaptor2, pattern=reads.start, ..., scoreOnly=TRUE)
+    )
 }
