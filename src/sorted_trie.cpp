@@ -198,6 +198,16 @@ void sorted_trie::trie_node::find_within(std::deque<int>& collected, const std::
         limit*=MULT;
     }
 
+    // Adding discovered indices from the top level node (account for empty strings).
+    {
+        const int cur_score = *(scores->begin() + current.size());
+        if (limit >= cur_score && indices) {
+            for (const auto& s : *indices) {
+                collected.push_back(s);
+            }
+        }
+    }
+
     if (children) {
         for (size_t i=0; i<NBASES; ++i) {
             auto& child=(*children)[i];
@@ -298,7 +308,7 @@ SEXP fast_levdist_test(SEXP input, SEXP limit, SEXP sorted) {
         lens[s]=val.second;
     }
     sorted_trie trie(nseqs, ptrs.data(), lens.data());
-    
+
     std::vector<int> order(nseqs);
     std::iota(order.begin(), order.end(), 0);
     if (check_logical_scalar(sorted, "sort specification")) {
