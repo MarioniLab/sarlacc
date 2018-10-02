@@ -169,8 +169,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 #' @importFrom Biostrings pairwiseAlignment quality pattern subject aligned unaligned
 #' @importFrom BiocGenerics score start end
 #' @importFrom S4Vectors DataFrame 
-#' @importFrom XVector subseq
-#' @importFrom methods as
+#' @importFrom XVector subseq compact
 .align_and_extract <- function(adaptor, reads, ...)
 # Align reads and extract alignment strings.
 # This requires custom code as the Biostrings getters for the full alignment strings are not efficient.
@@ -182,9 +181,8 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     extended <- .Call(cxx_get_aligned_sequence, aligned(adaptor0), as.character(unaligned(adaptor0)), start(adaptor0), end(adaptor0), aligned(read0))
     output <- DataFrame(score=score(alignments), adaptor=extended[[1]], read=extended[[2]], start=start(read0), end=end(read0))
 
-    # Complicated subsetting to recreate a new shared-pool.
     init <- subseq(quality(reads), start=output$start, end=output$end)
-    output$quality <- as(as.character(init), class(init))
+    output$quality <- compact(init)
     output
 }
 
