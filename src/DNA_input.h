@@ -3,6 +3,7 @@
 
 #include "sarlacc.h"
 #include <memory>
+#include <string>
 
 class DNA_input {
 public:    
@@ -43,15 +44,10 @@ public:
     std::pair<const char*, size_t> get(size_t); 
     std::pair<const char*, size_t> get_persistent(size_t); 
     size_t get_len(size_t) const;
-
-    void clear();
 private:
     XStringSet_holder all_values;
-    std::deque<Chars_holder> holder;
-
-    std::vector<char> buffer;
-    size_t reserved;
-    std::pair<const char*, size_t> get_internal(const Chars_holder&);
+    std::deque<std::string> holder;
+    std::string get_internal(size_t);
 };
 
 std::unique_ptr<DNA_input> process_DNA_input (Rcpp::RObject);
