@@ -26,6 +26,8 @@ Rcpp::List umi_clusterer::cluster() {
                 output.push_back(tosave);
             }
             ++n_out;
+        } else if (curlen==0) {
+            throw std::runtime_error("zero length read group");
         }
 
         std::swap(ordering[a], ordering[infront]);
