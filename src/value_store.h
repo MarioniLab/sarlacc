@@ -18,8 +18,8 @@ public:
     void add(IT start, IT end, size_t index) {
         add_internal(start, end, index);
         if (index >= n_stored) {
-            if (index > n_stored + 1) {
-                std::fill(lengths.begin() + n_stored, lengths.begin() + index - 1, 0); // Clearing intervening values to ensure validity.
+            if (index > n_stored) {
+                std::fill(lengths.begin() + n_stored, lengths.begin() + index, 0); // Clearing intervening values to ensure validity.
             }
             n_stored=index + 1;
         }
