@@ -32,7 +32,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
     # Converting everything to a string, which is faster to work with.
     all.masked <- NULL
     all.reads <- as.character(reads)
-    if (has.quals && !is.na(max.error)) {
+    if (has.quals && do.mask) {
         all.masked <- qualityMask(reads, max.error)
     } 
 
