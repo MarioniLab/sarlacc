@@ -102,6 +102,23 @@ test_that("fast levenshtein finder works as expected for highly dense space", {
     expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, FALSE))
 })
 
+test_that("fast levenshtein finder works for empty strings", {
+    randoms <- SEQSIM(100, min.length=0, max.length=5)
+    ref <- as.matrix(stringDist(randoms, method="levenshtein"))
+
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 1L, TRUE)
+    for (x in seq_along(closest)) {
+        expect_identical(unname(which(ref[x,] <= 1L)), sort(closest[[x]]))
+    }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 1L, FALSE))
+
+    closest <- .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, TRUE)
+    for (x in seq_along(closest)) {
+        expect_identical(unname(which(ref[x,] <= 2L)), sort(closest[[x]]))
+    }
+    expect_identical(closest, .Call(sarlacc:::cxx_fast_levdist_test, randoms, 2L, FALSE))
+})
+
 test_that("fast levenshtein finder works as expected for masked data", {
     ref <- "ACAGCTAGC"
     for (i in seq_len(nchar(ref))) { 
@@ -119,3 +136,5 @@ test_that("fast levenshtein finder works as expected for masked data", {
         expect_identical(sort(out[[2]]), integer(0))
     }
 })
+
+
