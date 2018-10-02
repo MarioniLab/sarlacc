@@ -30,13 +30,10 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
     do.mask <- !is.na(max.error)
 
     # Converting everything to a string, which is faster to work with.
-    all.masked <- all.qual <- NULL
+    all.masked <- NULL
     all.reads <- as.character(reads)
-    if (has.quals) {
-        all.qual <- as.list(as(quality(reads), "NumericList"))
-        if (do.mask) {
-            all.masked <- .Call(cxx_mask_bad_bases, all.reads, all.qual, max.error)
-        }
+    if (has.quals && !is.na(max.error)) {
+        all.masked <- qualityMask(reads, max.error)
     } 
 
     # Pruning out singleton reads to avoid looping over them. 
@@ -53,8 +50,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
     # Running the multiple sequence alignment across multiple cores.
     multi <- !solo
     if (any(multi)) { 
-        all.results[multi] <- bplapply(by.group[multi], FUN=.internal_msa, 
-            reads=all.reads, qualities=all.qual, masked=all.masked, 
+        all.results[multi] <- bplapply(by.group[multi], FUN=.internal_msa, reads=all.reads, masked=all.masked, 
             ..., keep.masked=keep.masked, BPPARAM=BPPARAM)
     }
 
@@ -62,6 +58,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
     out <- new("DataFrame", nrows=length(by.group))
     out$alignments <- as(all.results, "List")
     if (has.quals) {
+        all.qual <- quality(reads)
         out$qualities <- as(lapply(by.group, function(idx) all.qual[idx]), "List")
     }
     rownames(out) <- names(by.group)
@@ -70,7 +67,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
 
 #' @importFrom Biostrings unmasked DNAStringSet
 #' @importFrom muscle muscle
-.internal_msa <- function(indices, reads, qualities, masked, keep.masked, ...) 
+.internal_msa <- function(indices, reads, masked, keep.masked, ...) 
 # Optimized MUSCLE call for speed.
 {
     do.mask <- !is.null(masked)
@@ -79,7 +76,7 @@ multiReadAlign <- function(reads, groups, max.error=NA, keep.masked=FALSE, ..., 
     cur.align <- unmasked(cur.align)
     
     if (do.mask && !keep.masked) {
-        cur.align <- .Call(cxx_unmask_bases, cur.align, reads[indices])
+        cur.align <- .Call(cxx_unmask_alignment, cur.align, reads[indices])
     } else {
         cur.align <- as.character(cur.align)
     }
