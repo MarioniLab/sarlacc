@@ -51,7 +51,7 @@ a1 <- "AACGGGTCGNNNNNNNACGTACGTNNNNACGA"
 a2 <- "CGTGCTGCATCG"
 fout <- tempfile(fileext=".fastq")
 ref <- sarlacc:::mockReads(a1, a2, fout, nmolecules=1, 
-    reads.range=c(10, 10), seqlen.range=c(50, 200))
+    nreads.range=c(10, 10), seqlen.range=c(50, 200))
 
 # Aligning it.
 (out <- tuneAlignment(adaptor1=a1, adaptor2=a2, filepath=fout))
