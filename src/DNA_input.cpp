@@ -46,7 +46,7 @@ size_t DNAStringSet_input::size() const {
 
 std::pair<const char*, size_t> DNAStringSet_input::get(size_t i) {
     used=1;
-    holder[0]=get_internal(0);
+    holder[0]=get_internal(i);
     return std::make_pair(holder[0].c_str(), holder[0].size());
 }
 
