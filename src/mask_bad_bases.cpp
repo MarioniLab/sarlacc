@@ -1,6 +1,6 @@
 #include "sarlacc.h"
 #include "DNA_input.h"
-#include "masker.h"
+#include "quality_encoding.h"
 #include "utils.h"
 
 SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP threshold) {
@@ -15,10 +15,8 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
     
-    masker seqmask(
-        check_numeric_scalar(threshold, "quality threshold"),
-        encoding
-    );
+    quality_encoding seqmask(encoding);
+    double maxerr=check_numeric_scalar(threshold, "quality threshold");
 
     // Iterating through the sequences and masking bad bases.
     Rcpp::StringVector output(nseq);
@@ -38,7 +36,9 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
             buffer.resize(slen+1);
         }
 
-        seqmask.mask(slen, sstr, curqual.ptr, buffer.data());
+        for (size_t counter=0; counter<slen; ++counter) {
+            buffer[counter]=(seqmask.to_error(curqual.ptr[counter]) > maxerr ? 'N' : sstr[counter]);
+        }
         buffer[slen]='\0';
         output[i]=Rcpp::String(buffer.data());
     } 

@@ -1,6 +1,6 @@
-#include "masker.h"
+#include "quality_encoding.h"
 
-masker::masker(double T, Rcpp::NumericVector encoding) : offset(0) {
+quality_encoding::quality_encoding(Rcpp::NumericVector encoding) : offset(0), errors(encoding) {
     Rcpp::StringVector topbases=encoding.names();
     if (topbases.size()==0 || topbases.size()!=encoding.size()) {
         throw std::runtime_error("encoding vector must be non-empty and named");
@@ -20,19 +20,22 @@ masker::masker(double T, Rcpp::NumericVector encoding) : offset(0) {
             } else if (encoding[i] > encoding[i-1]) {
                 throw std::runtime_error("error probabilities should decrease");
             }
+        } else {
+            offset=curval;
         }
 
         last=curval;
-        if (encoding[i] > T) {
-            offset=curval;
-        }
     }
     return;
 }
 
-void masker::mask(size_t len, const char* seq, const char* qual, char* output) {
-    for (size_t counter=0; counter<len; ++counter, ++seq, ++qual) {
-        output[counter]=(*qual <= offset ? 'N' : *seq);
+double quality_encoding::to_error(char Q) const {
+    if (Q < offset) {
+        throw std::runtime_error("quality cannot be lower than smallest encoded value");
     }
-    return;
+    size_t i=Q - offset;
+    if (i > errors.size()) {
+        i=errors.size() - 1; // must be non-empty, so this won't underflow.
+    }
+    return errors[i];
 }
