@@ -89,8 +89,8 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
     read.scores <- .get_alignment_scores(reads.start, reads.end, adaptor1, adaptor2, ...)
     scram.scores <- .get_alignment_scores(scrambled.start, scrambled.end, adaptor1, adaptor2, ...)
     list(
-        .resolve_strand(read.scores$START, read.scores$END, read.scores$RSTART, read.scores$REND)$scores,
-        .resolve_strand(scram.scores$START, scram.scores$END, scram.scores$RSTART, scram.scores$REND)$scores
+        reads=.resolve_strand(read.scores$START, read.scores$END, read.scores$RSTART, read.scores$REND)$scores,
+        scrambled=.resolve_strand(scram.scores$START, scram.scores$END, scram.scores$RSTART, scram.scores$REND)$scores
     )
 }
 
