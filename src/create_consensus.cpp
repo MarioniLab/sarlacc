@@ -1,5 +1,6 @@
 #include "sarlacc.h"
 #include "DNA_input.h"
+#include "quality_encoding.h"
 #include "utils.h"
 
 // Constants.
@@ -126,7 +127,7 @@ size_t internal_create_consensus_basic(SEXP alignments, const double mincov, con
     return cIt - storage.buffer.begin();
 }
 
-SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) { 
+SEXP create_consensus_basic(SEXP alignments, SEXP min_cov, SEXP pseudo_count) { // for testing purposes.
     BEGIN_RCPP
     const double mincov=check_numeric_scalar(min_cov, "minimum coverage");
     const double pseudo_denom=check_numeric_scalar(pseudo_count, "pseudo count");
@@ -167,14 +168,14 @@ SEXP create_consensus_basic_loop(SEXP alignments, SEXP min_cov, SEXP pseudo_coun
  * and an external function, which accepts a list of alignments for efficient looping.
  */
 
-size_t internal_create_consensus_quality(SEXP alignments, const double mincov, SEXP qualities, data_holder& storage) {
+size_t internal_create_consensus_quality(SEXP alignments, const double mincov, SEXP qualities, const quality_encoding& qualenc, data_holder& storage) {
     auto all_aln=process_DNA_input(alignments);
     const size_t naligns=all_aln->size();
     const size_t alignwidth=check_alignment_width(all_aln.get());
     storage.expand(alignwidth);
 
-    Rcpp::List qual(qualities); // need the numeric qualities as they are decoded differently depending on whether they are Solexa or Phred.
-    const size_t nquals=qual.size();
+    auto qholder=hold_XStringSet(qualities);
+    const size_t nquals=qholder.length;
     if (nquals!=naligns) {
         throw std::runtime_error("alignments and qualities have different numbers of entries");
     }
@@ -183,10 +184,12 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
     for (size_t a=0; a<naligns; ++a) {
         auto curaln=all_aln->get(a);
         const char* astr=curaln.first;
+        auto curqual=get_elt_from_XStringSet_holder(&qholder, a);
+        const char* qptr=curqual.ptr;
+        const size_t qlen=curqual.length;
 
-        Rcpp::NumericVector curqual(qual[a]);
         auto sIt=storage.scores.begin();
-        int position=0;
+        size_t position=0;
 
         for (size_t i=0; i<alignwidth; ++i, sIt+=NBASES) { // leave sIt here to ensure it runs even when 'continue's.
             const char curbase=astr[i];
@@ -197,7 +200,7 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
 
             // Again, N's only contribute to the existence of a base, but not decisions regarding its identity.
             // We keep it after the error check to ensure that mismatches still throw.
-            if (position >= curqual.size()) {
+            if (position >= qlen) {
                 throw std::runtime_error("quality vector is shorter than the alignment sequence");
             }
             if (curbase=='N') {
@@ -205,7 +208,7 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
                 continue;
             }
 
-            double newqual=curqual[position];
+            double newqual=qualenc.to_error(qptr[position]);
             if (newqual>max_error) {
                 newqual=max_error;
             } else if (newqual<min_error) {
@@ -222,7 +225,7 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
             }
         }
 
-        if (position!=curqual.size()) { 
+        if (position!=qlen) { 
             throw std::runtime_error("quality vector is longer than the alignment sequence");
         }
     }
@@ -261,22 +264,24 @@ size_t internal_create_consensus_quality(SEXP alignments, const double mincov, S
     return cIt - storage.buffer.begin();
 }
 
-SEXP create_consensus_quality(SEXP alignments, SEXP min_cov, SEXP qualities) { // loop over a list of alignments.
+SEXP create_consensus_quality(SEXP alignments, SEXP min_cov, SEXP qualities, SEXP encoding) { // for testing purposes.
     BEGIN_RCPP
     const double mincov=check_numeric_scalar(min_cov, "minimum coverage");
 
     data_holder storage;
-    size_t conlen=internal_create_consensus_quality(alignments, mincov, qualities, storage);
+    quality_encoding qualenc(encoding);
+    size_t conlen=internal_create_consensus_quality(alignments, mincov, qualities, qualenc, storage);
 
     auto eIt=storage.errorprobs.begin();
     return Rcpp::List::create(Rcpp::String(storage.buffer.data()), Rcpp::NumericVector(eIt, eIt+conlen));
     END_RCPP
 }
 
-SEXP create_consensus_quality_loop(SEXP alignments, SEXP min_cov, SEXP qualities) { // loop over a list of alignments.
+SEXP create_consensus_quality_loop(SEXP alignments, SEXP min_cov, SEXP qualities, SEXP encoding) { // loop over a list of alignments.
     BEGIN_RCPP
     Rcpp::List aln_list(alignments);
     Rcpp::List qual_list(qualities);
+    quality_encoding qualenc(encoding);
     const double mincov=check_numeric_scalar(min_cov, "minimum coverage");
 
     const size_t nalign=aln_list.size();
@@ -286,7 +291,7 @@ SEXP create_consensus_quality_loop(SEXP alignments, SEXP min_cov, SEXP qualities
     std::vector<char> qual_buffer;
     
     for (size_t i=0; i<nalign; ++i) {
-        size_t conlen=internal_create_consensus_quality(aln_list[i], mincov, qual_list[i], storage);
+        size_t conlen=internal_create_consensus_quality(aln_list[i], mincov, qual_list[i], qualenc, storage);
         all_cons[i]=Rcpp::String(storage.buffer.data());
         all_qual[i]=errorsToString(conlen, storage.errorprobs, qual_buffer);
     }

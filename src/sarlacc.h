@@ -24,8 +24,8 @@ SEXP unmask_alignment(SEXP, SEXP);
 
 SEXP create_consensus_basic(SEXP, SEXP, SEXP);
 SEXP create_consensus_basic_loop(SEXP, SEXP, SEXP);
-SEXP create_consensus_quality(SEXP, SEXP, SEXP);
-SEXP create_consensus_quality_loop(SEXP, SEXP, SEXP);
+SEXP create_consensus_quality(SEXP, SEXP, SEXP, SEXP);
+SEXP create_consensus_quality_loop(SEXP, SEXP, SEXP, SEXP);
 
 SEXP umi_group(SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP fast_levdist_test(SEXP, SEXP, SEXP);
