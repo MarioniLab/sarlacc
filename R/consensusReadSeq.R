@@ -14,7 +14,8 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6, BPPAR
 
     has.quals <- !is.null(qual)
     if (has.quals) {
-        out <- .Call(cxx_create_consensus_quality_loop, aln, min.coverage, qual)
+        error.probs <- .create_encoding_vector(qual[[1]])
+        out <- .Call(cxx_create_consensus_quality_loop, aln, min.coverage, qual, error.probs)
     } else {
         out <- .Call(cxx_create_consensus_basic_loop, aln, min.coverage, pseudo.count)
     }
