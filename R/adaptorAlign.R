@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom Biostrings reverseComplement 
 #' @importFrom S4Vectors DataFrame metadata<-
-#' @importFrom BiocParallel bpmapply SerialParam
+#' @importFrom BiocParallel bpmapply SerialParam bpstart bpstop bpisup
 #' @importFrom BiocGenerics width rownames<-
 #' @importFrom ShortRead FastqStreamer yield 
 adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening=5, gapExtension=1, 
@@ -28,6 +28,11 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     on.exit(close(fhandle))
     all.starts <- all.ends <- all.rc.starts <- all.rc.ends <- all.names <- all.widths <- list()
     counter <- 1L
+
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM), add=TRUE)
+    }
 
     while (length(fq <- yield(fhandle))) {
         reads <- .FASTQ2QSDS(fq, qual.class)

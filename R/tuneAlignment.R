@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom Biostrings QualityScaledDNAStringSet
 #' @importFrom methods is
-#' @importFrom BiocParallel bpmapply SerialParam
+#' @importFrom BiocParallel bpmapply SerialParam bpstart bpstop bpisup
 #' @importFrom ShortRead FastqSampler
 tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10000,
     gapOp.range=c(4, 10), gapExt.range=c(1, 5), qual.type=c("phred", "solexa", "illumina"), 
@@ -45,6 +45,11 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
     max.score <- 0L
     final.gapOp <- final.gapExt <- NA
     final.reads <- final.scrambled <- NULL
+
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM), add=TRUE)
+    }
 
     for (go in seq(gapOp.range[1], gapOp.range[2], by=1)) { 
         for (ge in seq(gapExt.range[1], gapExt.range[2], by=1)) { 
