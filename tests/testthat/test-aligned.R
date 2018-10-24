@@ -1,5 +1,8 @@
-# This tests the C++ function to extract the aligned subject and pattern.
+# This tests the C++ functions for pairwise sequence alignment.
 # library(sarlacc); library(testthat); source("test-aligned.R")
+
+library(Biostrings)
+adaptor <- "AAAAGGGGCCCCTTTT"
 
 read.seq <- c("AAAAGGGGCCCCTTTT", # identical
               "acgtacgtacgtAAAAGGGGCCCCTTTT", # insertion at the start
@@ -16,104 +19,79 @@ read.seq <- c("AAAAGGGGCCCCTTTT", # identical
               "AAAAGGCCTTTT") # deletion in the middle
 
 reads <- DNAStringSet(read.seq)
-adaptor <- DNAString("AAAAGGGGCCCCTTTT")
 
-##########################################
+set.seed(1000)
+quals <- do.call(c, lapply(read.seq, FUN=function(x) { PhredQuality(rbeta(nchar(x), 1, 10)) }))
+qreads <- QualityScaledDNAStringSet(reads, quals)
+   
+REF_ALIGN <- function(R, A, gapOpening, gapExtension) {
+    pairwiseAlignment(pattern=R, 
+        subject=QualityScaledDNAStringSet(DNAString(A), PhredQuality(rep(0, nchar(A)))),
+        fuzzyMatrix=nucleotideSubstitutionMatrix(), 
+        type="local-global",
+        gapExtension=gapExtension, gapOpening=gapOpening)            
+}
 
-test_that("alignment function is behaving correctly", {
-    aln <- pairwiseAlignment(pattern=reads, subject=adaptor, type="local-global", gapOpening=1)
-    obs <- sarlacc:::.bplalign(reads=reads, adaptor=adaptor, type="local-global", gapOpening=1)
+REF_ALIGN(qreads[11], substr(adaptor, 1, 14), gapOpening=5, gapExtension=1)            
+out <- sarlacc:::.align_and_extract(substr(adaptor, 1, 14), qreads[11], gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
 
-    expect_identical(obs$score, score(aln))
-    expect_identical(obs$read, as.character(alignedPattern(aln)))
-    expect_identical(obs$adaptor, as.character(alignedSubject(aln)))
+test_that("alignment scores and positions are computed correctly", {
+    ref <- REF_ALIGN(qreads, adaptor, gapOpening=5, gapExtension=1)
 
-    true.pos <- gregexpr("[AGCT]", read.seq)
-    true.start <- unlist(lapply(true.pos, min))
-    true.end <- unlist(lapply(true.pos, max))
-    expect_identical(obs$start, true.start)
-    expect_identical(obs$end, true.end)
+    # Alignment scores match up (mostly, as 'error' for the reference is non-zero:
+    # this results in some differences in unfortunate cases, try set.seed(1002)).
+    out <- sarlacc:::.align_and_extract(adaptor, qreads, gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
+    expect_equal(score(ref), out$score, tol=0.001) 
+
+    # Alignment positions match up.
+    read0 <- pattern(ref)
+    expect_identical(start(read0), out$start)
+    expect_identical(end(read0), out$end)
+
+    # Function behaves with empty adaptor.
+    out <- sarlacc:::.align_and_extract("", qreads, gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
+    expect_identical(out$score, numeric(nrow(out)))
+    expect_identical(out$start, integer(nrow(out)))
+    expect_identical(out$end, integer(nrow(out)))
+
+    out <- sarlacc:::.align_and_extract(adaptor, subseq(qreads, start=1, width=0), gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
+    expect_identical(out$score, rep(-nchar(adaptor) - 5, nrow(out)))
+    expect_identical(out$start, integer(nrow(out)))
+    expect_identical(out$end, integer(nrow(out)))
 })
 
-test_that("alignment function behaves with quality strings", {
-    quals <- gsub("[acgt]","!", gsub("[ACGT]", "7", read.seq))
-    qreads <- QualityScaledDNAStringSet(reads, PhredQuality(quals))
-    obs <- sarlacc:::.bplalign(reads=qreads, adaptor=adaptor, type="local-global", gapOpening=1)
+test_that("alignment extraction works correctly", {
+    ref <- REF_ALIGN(qreads, adaptor, gapOpening=5, gapExtension=1)
+    refR <- as.character(alignedPattern(ref))
+    refA <- as.character(alignedSubject(ref))
+    gapsA <- lapply(strsplit(refA, ""), FUN=function(x) cumsum(x!="-"))
 
-    expect_identical(nchar(obs$quality), nchar(gsub("-", "", obs$read)))
-    expect_identical(nchar(obs$quality), obs$end - obs$start + 1L)
-    expect_true(all(grepl("^7.*7$", obs$quality)))
+    # Extracts the correct components.
+    possibilities <- combn(nchar(adaptor)+1L, 2)
+    possibilities[2,] <- possibilities[2,] - 1L 
+    possibilities <- possibilities[,sample(ncol(possibilities))]
+
+    out <- sarlacc:::.align_and_extract(adaptor, qreads, gap.opening=5, gap.extension=1, subseq.starts=possibilities[1,], subseq.ends=possibilities[2,])
+
+    # Comparing to a reference implementation.
+    for (i in ncol(possibilities)) {
+        observed <- as.character(out$subseqs[,i])
+        curstart <- possibilities[1,i]
+        curend <- possibilities[2,i]
+
+        collected <- character(length(observed))
+        for (j in seq_along(gapsA)) {
+            collected[j] <- substr(refR[j], min(which(gapsA[[j]]==curstart)), max(which(gapsA[[j]]==curend)))
+        }
+        collected <- gsub("-", "", collected)
+        expect_identical(observed, collected)
+    }
 })
 
-test_that("alignment behaves correctly around ambiguous bases", {
-    adaptorN <- DNAString("AAAAGGNNNNCCTTTT")
-
-    # No quality strings.
-    args <- sarlacc:::.setup_alignment_args(has.quality=FALSE, gapOpening=5, gapExtension=1, match=5, mismatch=0)
-    expect_true(!is.null(args$substitutionMatrix))
-    expect_true(is.null(args$fuzzyMatrix))
-
-    ref <- do.call(sarlacc:::.bplalign, c(list(reads=reads, adaptor=adaptor), args))
-    out <- do.call(sarlacc:::.bplalign, c(list(reads=reads, adaptor=adaptorN), args))
-    expect_identical(ref$read, out$read)
-    expect_identical(ref$start, out$start)
-    expect_identical(ref$end, out$end)
-
-    # With qualities.
-    quals <- PhredQuality(strrep("9", width(reads)))
-    qreads <- QualityScaledDNAStringSet(reads, quals)
-    qargs <- sarlacc:::.setup_alignment_args(has.quality=TRUE, gapOpening=5, gapExtension=1)
-    expect_true(is.null(qargs$substitutionMatrix))
-    expect_true(!is.null(qargs$fuzzyMatrix))
-
-    qref <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptor), qargs))
-    qout <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptorN), qargs))
-    expect_identical(ref$read, qout$read)
-    expect_identical(ref$start, qout$start)
-    expect_identical(ref$end, qout$end)
-
-    # For comparison, to show that the 'fuzzyMatrix' is necessary:
-    bad.args <- qargs
-    bad.args$fuzzyMatrix <- NULL
-    bad.out <- do.call(sarlacc:::.bplalign, c(list(reads=qreads, adaptor=adaptorN), bad.args))
-    expect_false(identical(bad.out$read, qref$read))
-    expect_true(all(bad.out$score <= qref$score + 1e-8))
-})
-
-test_that("alignment function handles multiple cores and empty inputs", {
-    # Multiple cores:
-    ref <- sarlacc:::.bplalign(adaptor=adaptor, reads=reads)
-    multi2 <- sarlacc:::.bplalign(adaptor=adaptor, reads=reads, BPPARAM=MulticoreParam(2))
-    expect_identical(multi2, ref)
-    multi3 <- sarlacc:::.bplalign(adaptor=adaptor, reads=reads, BPPARAM=MulticoreParam(3))
-    expect_identical(multi3, ref)
-
-    # Empty inputs:
-    empty <- sarlacc:::.bplalign(adaptor=adaptor, reads=reads[0])
-    expect_identical(ref[0,], empty)
-    empty <- sarlacc:::.bplalign(adaptor=adaptor, reads=reads[0], scoreOnly=TRUE)
-    expect_identical(empty, numeric(0))
-})
-
-##########################################
-
-test_that("quality assigner works correctly", {
-    # As character strings:
-    Q <- sarlacc:::.assign_qualities(read.seq)
-    expect_s4_class(Q, "QualityScaledDNAStringSet")
-    expect_identical(seq_along(Q), grep("^~+$", as.character(quality(Q))))
-    expect_identical(toupper(read.seq), as.character(Q))
-
-    # As a DNAStringSet.
-    Q2 <- sarlacc:::.assign_qualities(reads)
-    expect_s4_class(Q2, "QualityScaledDNAStringSet")
-    expect_identical(quality(Q), quality(Q2))
-
-    # As a QSDS:
-    quals <- gsub("[acgt]","!", gsub("[ACGT]", "7", read.seq))
-    qreads <- QualityScaledDNAStringSet(reads, PhredQuality(quals))
-    Q3 <- sarlacc:::.assign_qualities(qreads)
-    expect_identical(Q3, qreads)
+test_that("subsequence finder behaves correctly around ambiguous bases", {
+    expect_identical(sarlacc:::.setup_subseqs("AAAAGGNNNNCCTTTT"), list(starts=7L, ends=10L))
+    expect_identical(sarlacc:::.setup_subseqs("AAAAGGYYYYCCTTTT"), list(starts=7L, ends=10L))
+    expect_identical(sarlacc:::.setup_subseqs("AAAAGGCCTTTTRRRR"), list(starts=13L, ends=16L))
 })
 
 test_that("sequence front/back getter works correctly", {
@@ -127,40 +105,30 @@ test_that("sequence front/back getter works correctly", {
     expect_identical(as.character(reverseComplement(extremes$back)), toupper(read.seq))
 })
 
-##########################################
-
 test_that("overall adaptorAlign function works correctly", {
-    myread <- "AAAAAAACGTACGTACGTGGGGGGG"
-    revread <- as.character(reverseComplement(DNAString(myread)))
+    myread <- "AACGTAACGTACGTACGTGGGGGGG"
+    myqual <- "1234567890ABCDEFGHIJKLMNO"
+    QSDS <- QualityScaledDNAStringSet(myread, PhredQuality(myqual))
+    QSDS <- c(QSDS, reverseComplement(QSDS))
+
+    tmp <- tempfile(, fileext=".fastq")
+    names(QSDS) <- c("X", "Y")
+    writeXStringSet(QSDS, qualities=quality(QSDS), format="fastq", filepath=tmp)
 
     # Checking that the flipping of reads works correctly:
-    out <- adaptorAlign("AAAAAAA", "CCCCCCC", c(myread, revread))
+    out <- adaptorAlign("AANNNAA", "CCCCCCC", tmp)
+
     expect_identical(out$reversed, c(FALSE, TRUE))
-    expect_identical(out$reads[1], DNAStringSet(myread))
-    expect_identical(out$reads[1], out$reads[2])
+    expect_identical(nrow(unique(out$adaptor1)), 1L) # otherwise identical.
+    expect_identical(nrow(unique(out$adaptor2)), 1L) # otherwise identical.
 
     expect_identical(out$adaptor1$start[1], 1L)
     expect_identical(out$adaptor1$end[1], 7L)
     expect_identical(out$adaptor2$start[1], nchar(myread))
     expect_identical(out$adaptor2$end[1], nchar(myread)-7L+1L)
 
-    expect_identical(out$adaptor1[1,], out$adaptor1[2,])
-    expect_identical(out$adaptor2[1,], out$adaptor2[2,])
-
-    # Checking that quality reporting works correctly:
-    myqual <- "1234567890ABCDEFGHIJKLMNO"
-    QSDS <- QualityScaledDNAStringSet(c(myread, revread), PhredQuality(rep(myqual, 2)))
-    out <- adaptorAlign("AAAAAAA", "CCCCCCC", QSDS)
-    expect_identical(out$reversed, c(FALSE, TRUE))
-    expect_identical(out$reads[1], QSDS[1])
-    expect_identical(out$reads[2], reverseComplement(QSDS[2]))
-
-    expect_identical(as.character(out$adaptor1$quality[1]), substr(myqual, 1, 7))
-    expect_identical(as.character(out$adaptor1$quality[2]), reverse(substr(myqual, start=nchar(myqual) - 7 + 1, stop=nchar(myqual))))
-    expect_identical(as.character(out$adaptor2$quality[1]), as.character(out$adaptor1$quality[2]))
-    expect_identical(as.character(out$adaptor2$quality[2]), as.character(out$adaptor1$quality[1]))
-
     # Handles empty inputs.
-    empty <- adaptorAlign("AAAAAAA", "CCCCCCC", QSDS[0])
+    writeXStringSet(QSDS[0], qualities=quality(QSDS)[0], format="fastq", filepath=tmp)
+    empty <- adaptorAlign("AAAAAAA", "CCCCCCC", tmp)
     expect_identical(nrow(empty), 0L)
 })
