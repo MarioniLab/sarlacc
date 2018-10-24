@@ -16,6 +16,8 @@ extern "C" {
 
 extern "C" {
 
+SEXP adaptor_align(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+        
 SEXP count_gaps_by_base(SEXP, SEXP, SEXP);
 SEXP count_gaps_by_align(SEXP, SEXP, SEXP);
 
