@@ -1,5 +1,5 @@
 #' @export
-#' @importFrom Biostrings reverseComplement 
+#' @importFrom Biostrings reverseComplement QualityScaledDNAStringSet DNAStringSet PhredQuality
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom BiocParallel bpmapply SerialParam bpstart bpstop bpisup
 #' @importFrom BiocGenerics width rownames<-
@@ -25,7 +25,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     # Looping across reads.
     fhandle <- FastqStreamer(filepath, n=number)
     on.exit(close(fhandle))
-    all.starts <- all.ends <- all.names <- all.widths <- list()
+    all.starts <- all.ends <- all.names <- all.rev <- all.widths <- list()
     counter <- 1L
 
     if (!bpisup(BPPARAM)) {
@@ -54,8 +54,15 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
         all.widths[[counter]] <- width(reads)
         all.starts[[counter]] <- cur.starts
         all.ends[[counter]] <- cur.ends
+        all.rev[[counter]] <- is_reverse
 
         counter <- counter + 1L
+    }
+
+    if (!length(all.starts)) {
+        # Guarantee some value is returned.
+        all.starts[[1]] <- all.ends[[1]] <- do.call(.align_AA_internal,
+            c(list(reads=QualityScaledDNAStringSet(DNAStringSet(), PhredQuality(0))), all.args))$START
     }
 
     align_start <- do.call(rbind, all.starts)
@@ -75,7 +82,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 
     all.names <- unlist(all.names)
     rownames(align_start) <- rownames(align_end) <- all.names
-    output <- DataFrame(read.width=all.widths, adaptor1=I(align_start), adaptor2=I(align_end), reversed=is_reverse, row.names=all.names)
+    output <- DataFrame(read.width=all.widths, adaptor1=I(align_start), adaptor2=I(align_end), reversed=unlist(all.rev), row.names=all.names)
     metadata(output) <- list(filepath=filepath, qual.type=qual.type, tolerance=tolerance)
     return(output)
 }
