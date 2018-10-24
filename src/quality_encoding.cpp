@@ -29,6 +29,10 @@ quality_encoding::quality_encoding(Rcpp::NumericVector encoding) : offset(0), er
     return;
 }
 
+char quality_encoding::lowest() const { return offset; }
+
+Rcpp::NumericVector quality_encoding::get_errors() const { return errors; }
+
 double quality_encoding::to_error(char Q) const {
     if (Q < offset) {
         throw std::runtime_error("quality cannot be lower than smallest encoded value");
