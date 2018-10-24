@@ -165,7 +165,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     if (length(subseq.starts)) {
         segments <- vector("list", length(out[[4]]))
         for (i in seq_along(segments)) {
-            segments[[i]] <- compact(subseq(reads, out[[4]][[i]], out[[5]][[i]]))
+            segments[[i]] <- compact(subseq(reads, start=out[[4]][[i]], width=out[[5]][[i]]))
         }
         names(segments) <- sprintf("Sub%i", seq_along(segments))
         segments <- DataFrame(segments)

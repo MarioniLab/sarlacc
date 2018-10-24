@@ -29,10 +29,10 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
     Rcpp::NumericVector scores(nseq);
     Rcpp::IntegerVector aln_starts(nseq), aln_ends(nseq);
 
-    std::vector<Rcpp::IntegerVector> collected_starts(nsections), collected_ends(nsections);
+    std::vector<Rcpp::IntegerVector> collected_starts(nsections), collected_widths(nsections);
     for (size_t i=0; i<nsections; ++i) { 
         collected_starts[i]=Rcpp::IntegerVector(nseq); // ensure each vector points to separate memory.
-        collected_ends[i]=Rcpp::IntegerVector(nseq); 
+        collected_widths[i]=Rcpp::IntegerVector(nseq); 
     }
 
     for (size_t i=0; i<nseq; ++i) {
@@ -48,20 +48,21 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
         scores[i]=RA.align(slen, sstr, curqual.ptr);
         RA.backtrack(false);
         auto aln_pos=RA.map(0, adaptor_seq.size());
-        aln_starts[i]=aln_pos.first+1; // 1-based indexing.
-        aln_ends[i]=aln_pos.second;
+        if (aln_pos.first < aln_pos.second) { // protect against empty sequences for which start/end are zero-indexed equal.
+            aln_starts[i]=aln_pos.first+1; // 1-based indexing.
+            aln_ends[i]=aln_pos.second;
+        }
 
         for (size_t sec=0; sec<nsections; ++sec) {
             auto current=RA.map(Sec_starts[sec], Sec_ends[sec]);
             collected_starts[sec][i]=current.first + 1; // 1-based indexing.
-            collected_ends[sec][i]=current.second;
+            collected_widths[sec][i]=current.second - current.first;
         }
-
     }
 
     return Rcpp::List::create(scores, aln_starts, aln_ends,
         Rcpp::List(collected_starts.begin(), collected_starts.end()), 
-        Rcpp::List(collected_ends.begin(), collected_ends.end())
+        Rcpp::List(collected_widths.begin(), collected_widths.end())
     );
 
     END_RCPP
