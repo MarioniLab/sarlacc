@@ -65,7 +65,9 @@ double reference_align::align(size_t len, const char* seq, const char* qual) {
     }
         
     location+=nrows;
-    align_column(location, rseq[rlen-1], len, seq, qual, true);
+    if (rlen) {
+        align_column(location, rseq[rlen-1], len, seq, qual, true);
+    }
 
     aligned=true;
     backtracked=false;
@@ -203,6 +205,11 @@ void reference_align::backtrack(bool include_gaps) {
 std::pair<size_t, size_t> reference_align::map (size_t ref_start, size_t ref_end) const {
     if (!backtracked) {
         throw std::runtime_error("cannot extract regions without backtracking");
+    }
+
+    // Protect against empty references.
+    if (!rlen) {
+        return std::make_pair(0, 0);
     }
 
     // +1 to convert to DP matrix column index; -1 to get back to sequence index from DP row index.
