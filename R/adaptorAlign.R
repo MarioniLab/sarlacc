@@ -13,20 +13,19 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 # with modifications by Aaron Lun
 # created 7 November 2017    
 {
-    adaptor1 <- .assign_qualities(adaptor1, TRUE)
-    adaptor2 <- .assign_qualities(adaptor2, TRUE)
+    adaptor1 <- toupper(as.character(adaptor1))
+    adaptor2 <- toupper(as.character(adaptor2))
     qual.type <- match.arg(qual.type)
     qual.class <- .qual2class(qual.type)
 
-    all.args <- .setup_alignment_args(TRUE, gapOpening, gapExtension)
-    all.args$adaptor1 <- adaptor1
-    all.args$adaptor2 <- adaptor2
-    all.args$tolerance <- tolerance
+    all.args <- list(adaptor1=adaptor1, adaptor2=adaptor2, tolerance=tolerance, 
+            subseq1=.setup_subseqs(adaptor1), subseq2=.setup_subseqs(adaptor2),
+            gap.opening=gapOpening, gap.extension=gapExtension)
 
     # Looping across reads.
     fhandle <- FastqStreamer(filepath, n=number)
     on.exit(close(fhandle))
-    all.starts <- all.ends <- all.rc.starts <- all.rc.ends <- all.names <- all.widths <- list()
+    all.starts <- all.ends <- all.names <- all.widths <- list()
     counter <- 1L
 
     if (!bpisup(BPPARAM)) {
@@ -39,26 +38,28 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
         by.cores <- .parallelize(reads, BPPARAM)
         out <- bpmapply(by.cores, FUN=.align_AA_internal, MoreArgs=all.args, BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
+        cur.starts <- do.call(rbind, lapply(out, "[[", i="START"))
+        cur.ends <- do.call(rbind, lapply(out, "[[", i="END"))
+        cur.rc.starts <- do.call(rbind, lapply(out, "[[", i="RSTART"))
+        cur.rc.ends <- do.call(rbind, lapply(out, "[[", i="REND"))
+
+        # Standardizing the strand.
+        strand.out <- .resolve_strand(cur.starts$score, cur.ends$score, cur.rc.starts$score, cur.rc.ends$score)
+        is_reverse <- strand.out$reversed
+       
+        cur.starts[is_reverse,] <- cur.rc.starts[is_reverse,]
+        cur.ends[is_reverse,] <- cur.rc.ends[is_reverse,]
+
         all.names[[counter]] <- names(reads)
         all.widths[[counter]] <- width(reads)
-        all.starts[[counter]] <- lapply(out, "[[", i="START")
-        all.ends[[counter]] <- lapply(out, "[[", i="END")
-        all.rc.starts[[counter]] <- lapply(out, "[[", i="RSTART")
-        all.rc.ends[[counter]] <- lapply(out, "[[", i="REND")
+        all.starts[[counter]] <- cur.starts
+        all.ends[[counter]] <- cur.ends
+
         counter <- counter + 1L
     }
 
-    align_start <- do.call(rbind, unlist(all.starts, recursive=TRUE))
-    align_end <- do.call(rbind, unlist(all.ends, recursive=TRUE))
-    align_revcomp_start <- do.call(rbind, unlist(all.rc.starts, recursive=TRUE))
-    align_revcomp_end <- do.call(rbind, unlist(all.rc.ends, recursive=TRUE))
-
-    # Standardizing the strand.
-    strand.out <- .resolve_strand(align_start$score, align_end$score, align_revcomp_start$score, align_revcomp_end$score)
-    is_reverse <- strand.out$reversed
-
-    align_start[is_reverse,] <- align_revcomp_start[is_reverse,]
-    align_end[is_reverse,] <- align_revcomp_end[is_reverse,]
+    align_start <- do.call(rbind, all.starts)
+    align_end <- do.call(rbind, all.ends)
 
     details <- list(gapOpening=gapOpening, gapExtension=gapExtension)
     metadata(align_start) <- c(list(sequence=adaptor1), details)
@@ -80,28 +81,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 }
 
 #########################################
-########### Setup functions #############
 #########################################
-
-#' @importFrom Biostrings DNAStringSet PhredQuality QualityScaledDNAStringSet
-#' @importFrom BiocGenerics width
-#' @importClassesFrom Biostrings QualityScaledDNAStringSet
-#' @importFrom methods is
-.assign_qualities <- function(truth, add.quality=TRUE)
-# pairwiseAlignment() needs both strings to have qualities for quality-based pairwise alignment. 
-# Obviously, the true reference has no qualities so we assign it the highest score possible.
-{
-    has.qual <- is(truth, "QualityScaledDNAStringSet")
-    if (is.character(truth)) {
-        truth <- DNAStringSet(truth)
-    } 
-    if (add.quality && !has.qual){
-        enc <- as.character(PhredQuality(100L))
-        qual <- PhredQuality(strrep(enc,  width(truth)))
-        truth <- QualityScaledDNAStringSet(truth, qual)
-    }
-	truth  
-}
 
 #' @importFrom Biostrings reverseComplement
 #' @importFrom BiocGenerics width
@@ -156,42 +136,48 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     as.list(split(reads, ids))
 }
 
-#########################################
-########### Align functions #############
-#########################################
-
-#' @importFrom Biostrings nucleotideSubstitutionMatrix
-.setup_alignment_args <- function(has.quality, gapOpening, gapExtension, match, mismatch, type="local-global") {
-    all.args <- list(type=type, gapOpening=gapOpening, gapExtension=gapExtension)
-    if (!has.quality) { 
-        all.args$substitutionMatrix <- nucleotideSubstitutionMatrix(match=match, mismatch=mismatch)
+.setup_subseqs <- function(adaptor) {
+    mpos <- gregexpr("[^ACTG]+", adaptor)[[1]]
+    if (length(mpos)==1L && mpos==-1L) {
+        list(starts=integer(0), ends=integer(0))
     } else {
-        all.args$fuzzyMatrix <- nucleotideSubstitutionMatrix() # support IUPAC ambiguous codes in quality alignments. 
+        list(starts=as.integer(mpos), ends=as.integer(mpos) + attr(mpos, "match.length") - 1L)
     }
-    return(all.args)
 }
 
-#' @importFrom Biostrings pairwiseAlignment quality pattern subject aligned unaligned
+#' @importFrom Biostrings quality pattern subject aligned unaligned
 #' @importFrom BiocGenerics score start end
 #' @importFrom S4Vectors DataFrame 
 #' @importFrom XVector subseq compact
-.align_and_extract <- function(adaptor, reads, ...)
+#' @importFrom methods new
+#' @importClassesFrom S4Vectors DataFrame
+.align_and_extract <- function(adaptor, reads, gap.opening, gap.extension, subseq.starts, subseq.ends)
 # Align reads and extract alignment strings.
 # This requires custom code as the Biostrings getters for the full alignment strings are not efficient.
 {
-    alignments <- pairwiseAlignment(pattern=reads, subject=adaptor, ..., scoreOnly=FALSE) 
+    quals <- quality(reads)
+    out <- .Call(cxx_adaptor_align, reads, quals, .create_encoding_vector(quals), 
+            gap.opening, gap.extension, 
+            adaptor, subseq.starts - 1L, subseq.ends)
+   
+    output <- DataFrame(score=out[[1]], start=out[[2]], end=out[[3]])
+    
+    if (length(subseq.starts)) {
+        segments <- vector("list", length(out[[4]]))
+        for (i in seq_along(segments)) {
+            segments[[i]] <- compact(subseq(reads, out[[4]][[i]], out[[5]][[i]]))
+        }
+        names(segments) <- sprintf("Sub%i", seq_along(segments))
+        segments <- DataFrame(segments)
+    } else {
+        segments <- new("DataFrame", nrows=length(reads))
+    }
 
-    read0 <- pattern(alignments)
-    adaptor0 <- subject(alignments)
-    extended <- .Call(cxx_get_aligned_sequence, aligned(adaptor0), as.character(unaligned(adaptor0)), start(adaptor0), end(adaptor0), aligned(read0))
-    output <- DataFrame(score=score(alignments), adaptor=extended[[1]], read=extended[[2]], start=start(read0), end=end(read0))
-
-    init <- subseq(quality(reads), start=output$start, end=output$end)
-    output$quality <- compact(init)
+    output$subseqs <- segments
     output
 }
 
-.align_AA_internal <- function(reads, adaptor1, adaptor2, tolerance, ...) 
+.align_AA_internal <- function(reads, adaptor1, adaptor2, tolerance, subseq1, subseq2, ...) 
 # Wrapper function to pass to bplapply, along with the sarlacc namespace.
 {
     reads.out <- .get_front_and_back(reads, tolerance)
@@ -200,9 +186,9 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
 
     # Performing the alignment of each adaptor to the start/end of the read.
     list(
-        START=.align_and_extract(adaptor=adaptor1, reads=reads.start, ...),
-        END=.align_and_extract(adaptor=adaptor2, reads=reads.end, ...),
-        RSTART=.align_and_extract(adaptor=adaptor1, reads=reads.end, ...),
-        REND=.align_and_extract(adaptor=adaptor2, reads=reads.start, ...)
+        START=.align_and_extract(adaptor=adaptor1, reads=reads.start, subseq.starts=subseq1$starts, subseq.ends=subseq1$ends, ...),
+        END=.align_and_extract(adaptor=adaptor2, reads=reads.end, subseq.starts=subseq2$starts, subseq.ends=subseq2$ends, ...),
+        RSTART=.align_and_extract(adaptor=adaptor1, reads=reads.end, subseq.starts=subseq1$starts, subseq.ends=subseq1$ends, ...),
+        REND=.align_and_extract(adaptor=adaptor2, reads=reads.start, subseq.starts=subseq2$starts, subseq.ends=subseq2$ends, ...)
     )
 }
