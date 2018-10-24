@@ -1,7 +1,7 @@
 #include "reference_align.h"
 
 reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::NumericVector qualities, double go, double ge) : 
-        rlen(reflen), rseq(refseq), gap_open(go), gap_ext(ge), 
+        rlen(reflen), rseq(refseq), gap_open(go+ge), gap_ext(ge), 
         dpmatrix(nrows*(rlen+1)), 
         backtrack_start(rlen+1), backtrack_end(rlen+1) 
 {
@@ -79,7 +79,7 @@ void reference_align::align_column(std::deque<dpentry>::iterator storage, char r
 
     // Compute stats for the first row of the DP matrix separately.
     storage->first=left;
-    storage->second = (lastcol->first == left ? gap_ext : gap_open);
+    storage->second = lastcol->second - (lastcol->first == left ? gap_ext : gap_open);
     ++storage;
     ++lastcol;
 
