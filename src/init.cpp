@@ -8,6 +8,7 @@ extern "C" {
 
 static const R_CallMethodDef all_call_entries[] = {
     REGISTER(adaptor_align, 8),
+    REGISTER(barcode_align, 6),
 
     REGISTER(count_gaps_by_base, 3),
     REGISTER(count_gaps_by_align, 3),
