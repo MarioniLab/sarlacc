@@ -5,19 +5,27 @@
 \description{Determine the barcode identity for each read, based on alignment to a set of reference sequences.}
 
 \usage{
-barcodeAlign(align.stats, barcodes, position)
+barcodeAlign(sequences, barcodes, gapOpening=5, gapExtension=1, 
+    BPPARAM=SerialParam())
 }
 
 \arguments{
-\item{align.stats}{A \linkS4class{DataFrame} of adaptor alignment information for all reads, equivalent to one of the \code{adaptor*} output fields from \code{\link{adaptorAlign}}.}
-\item{barcodes}{A character vector or \linkS4class{DNAStringSet} containing the barcode sequences.}
-\item{position}{An integer vector of length two specifying the start and end position of the barcode on the adaptor, equivalent to the same argument in \code{\link{umiExtract}}.}
+\item{sequences}{A \linkS4class{QualityScaledDNAStringSet} of observed barcode sequences, usually one of the subsequences from \code{\link{adaptorAlign}}.}
+\item{barcodes}{A character vector or \linkS4class{DNAStringSet} containing the reference barcode sequences.}
+\item{gapOpening}{A numeric scalar specifying the gap opening penalty.}
+\item{gapExtension}{A numeric scalar specifying the gap extension penalty.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether alignment should be parallelized.}
+}
+
+\details{
+Each entry of \code{sequences} is expected to contain the read subsequence that was aligned to the (usually ambiguous) barcode region of the adaptor in \code{\link{adaptorAlign}}.
+These represent observed barcodes that are aligned to the reference set of known barcode sequences.
+The read corresponding to each entry of \code{sequences} is assigned to the reference barcode to which the subsequence aligns best.
 }
 
 \value{
 A \linkS4class{DataFrame} containing:
 \describe{
-\item{\code{sequence}:}{A DNAStringSet object containing the read sequence corresponding to the putative barcode.}
 \item{\code{barcode}:}{Integer, the index of the best-matching barcode in \code{barcodes} to which each read is assigned.}
 \item{\code{score}:}{Numeric, the alignment score to the assigned barcode.}
 \item{\code{gap}:}{Numeric, the difference of \code{score} from the alignment score to the next best-matching barcode.}
@@ -30,7 +38,7 @@ Aaron Lun
 }
 
 \seealso{
-\code{\link{adaptorAlign}} to generate \code{adaptor*} input. 
+\code{\link{adaptorAlign}} to generate subsequences.
 
 \code{\link{getBarcodeThresholds}} to determine a suitable threshold for \code{score}.
 }
@@ -39,8 +47,9 @@ Aaron Lun
 example(adaptorAlign)
 
 # Assigning reads to individual barcodes.
-debarcoded <- barcodeAlign(out$adaptor1, 
+debarcoded <- barcodeAlign(out$adaptor1$subseqs$Sub1, 
     barcodes=c("AAAAAAAA", "TTTTTTTT", "CCCCCCCCC", "GGGGGGGG"),
-    position=c(10, 17))
+    gapOpening=metadata(out$adaptor1)$gapOpening,
+    gapExtension=metadata(out$adaptor1)$gapExtension)
 debarcoded
 }
