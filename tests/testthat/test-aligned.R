@@ -32,16 +32,12 @@ REF_ALIGN <- function(R, A, gapOpening, gapExtension) {
         gapExtension=gapExtension, gapOpening=gapOpening)            
 }
 
-REF_ALIGN(qreads[11], substr(adaptor, 1, 14), gapOpening=5, gapExtension=1)            
-out <- sarlacc:::.align_and_extract(substr(adaptor, 1, 14), qreads[11], gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
-
 test_that("alignment scores and positions are computed correctly", {
     ref <- REF_ALIGN(qreads, adaptor, gapOpening=5, gapExtension=1)
 
-    # Alignment scores match up (mostly, as 'error' for the reference is non-zero:
-    # this results in some differences in unfortunate cases, try set.seed(1002)).
+    # Alignment scores match up (mostly, as 'error' for the reference is non-zero).
     out <- sarlacc:::.align_and_extract(adaptor, qreads, gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
-    expect_equal(score(ref), out$score, tol=0.001) 
+    expect_equal(score(ref), out$score, tol=0.0001) 
 
     # Alignment positions match up.
     read0 <- pattern(ref)
@@ -58,6 +54,34 @@ test_that("alignment scores and positions are computed correctly", {
     expect_identical(out$score, rep(-nchar(adaptor) - 5, nrow(out)))
     expect_identical(out$start, integer(nrow(out)))
     expect_identical(out$end, integer(nrow(out)))
+})
+
+test_that("affine gap penalties are handled correctly", {
+    # Affine gap penalties complicate the DP matrix, which needs to consider
+    # whether a gap opening in the previous position (which would result in a
+    # suboptimal score there) might lead to an optimal score in the current position.
+
+    # Here, we set up a scenario where one mismatch penalty is less damaging than
+    # a single gap but multiple mismatches are more damaging than a gap of the same length.
+    # We first do so with gaps in the read versus the reference.
+    a1 <- "AAACCCAAATTTAAA"
+    qread <- QualityScaledDNAStringSet("AAAAAAAAA", PhredQuality(strrep("+", 9))) 
+    ref <- REF_ALIGN(qread, a1, 5, 1)
+
+    out <- sarlacc:::.align_and_extract(a1, qread, gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
+    expect_equal(score(ref), out$score, tol=0.0001)
+    expect_identical(start(pattern(ref)), out$start)
+    expect_identical(end(pattern(ref)), out$end)
+
+    # We repeat this process with gaps in the reference versus the read.
+    a1 <- "AAAAAA"
+    qread <- QualityScaledDNAStringSet("AAACCCAAA", PhredQuality(strrep("+", 9))) 
+    ref <- REF_ALIGN(qread, a1, 5, 1)
+
+    out <- sarlacc:::.align_and_extract(a1, qread, gap.opening=5, gap.extension=1, subseq.starts=integer(0), subseq.ends=integer(0))
+    expect_equal(score(ref), out$score, tol=0.0001)
+    expect_identical(start(pattern(ref)), out$start)
+    expect_identical(end(pattern(ref)), out$end)
 })
 
 test_that("alignment extraction works correctly", {
