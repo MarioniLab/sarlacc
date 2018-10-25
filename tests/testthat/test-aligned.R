@@ -24,11 +24,11 @@ set.seed(1000)
 quals <- do.call(c, lapply(read.seq, FUN=function(x) { PhredQuality(rbeta(nchar(x), 1, 10)) }))
 qreads <- QualityScaledDNAStringSet(reads, quals)
    
-REF_ALIGN <- function(R, A, gapOpening, gapExtension) {
+REF_ALIGN <- function(R, A, gapOpening, gapExtension, type="local-global") {
     pairwiseAlignment(pattern=R, 
         subject=QualityScaledDNAStringSet(DNAString(A), PhredQuality(rep(0, nchar(A)))),
         fuzzyMatrix=nucleotideSubstitutionMatrix(), 
-        type="local-global",
+        type=type,
         gapExtension=gapExtension, gapOpening=gapOpening)            
 }
 
@@ -155,4 +155,19 @@ test_that("overall adaptorAlign function works correctly", {
     writeXStringSet(QSDS[0], qualities=quality(QSDS)[0], format="fastq", filepath=tmp)
     empty <- adaptorAlign("AAAAAAA", "CCCCCCC", tmp)
     expect_identical(nrow(empty), 0L)
+})
+
+test_that("global alignment scores are computed correctly", {
+    ref <- REF_ALIGN(qreads, adaptor, gapOpening=5, gapExtension=1, type="global")
+
+    # Alignment scores match up (mostly, as 'error' for the reference is non-zero).
+    out <- sarlacc:::.align_BA_internal(qreads, adaptor, gap.opening=5, gap.extension=1)
+    expect_equal(score(ref), out, tol=0.0001) 
+
+    # Function behaves with empty adaptor.
+    out <- sarlacc:::.align_BA_internal(qreads, "", gap.opening=5, gap.extension=1)
+    expect_identical(out, - width(qreads)  - 5)
+
+    out <- sarlacc:::.align_BA_internal(subseq(qreads, start=1, width=0), adaptor, gap.opening=5, gap.extension=1)
+    expect_identical(out, rep(-nchar(adaptor) - 5, length(out)))
 })
