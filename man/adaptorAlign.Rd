@@ -14,11 +14,11 @@ adaptorAlign(adaptor1, adaptor2, filepath, tolerance=100, gapOpening=1,
 \item{adaptor1, adaptor2}{A string or DNAString object containing the 5'-to-3' sequences of the adaptors on each end of the read.}
 \item{filepath}{A string containing the path to the FASTQ file, or a connection object to a FASTQ file.}
 \item{tolerance}{An integer scalar specifying the length of the ends of the reads to search for adaptors.}
-\item{gapOpening, gapExtension}{Arguments to pass to \code{\link{pairwiseAlignment}}.}
+\item{gapOpening}{A numeric scalar specifying the gap opening penalty.}
+\item{gapExtension}{A numeric scalar specifying the gap extension penalty.}
 \item{qual.type}{String specifying the type of quality scores in \code{filepath}.}
 \item{number}{Integer scalar specifying the number of records to read at once from the FASTQ file, see \code{?\link{FastqStreamer}}.}
-\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.
-Currently only effective up to a maximum of 4 workers.}
+\item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether alignment should be parallelized.}
 } 
 
 \value{
@@ -37,9 +37,9 @@ Alignment parameters and reference adaptor sequences are stored in the metadata 
 }
 
 \details{
-This function performs a local-global alignment of each adaptor to the ends of the read sequences.
+This function performs a local-global alignment of each adaptor to the ends of the read sequences (local for the read, global for the adaptor).
 This aims to identify the adaptors within the read sequence for trimming and/or UMI identification.
-Alignment is performed using a quality-aware alignment akin to that of the \code{\link{pairwiseAlignment}} function from the \pkg{Biostrings} package.
+Alignment is performed using a quality-aware algorithm akin to that in the \code{\link{pairwiseAlignment}} function from the \pkg{Biostrings} package.
 The default alignment parameters are chosen to account for the Nanopore's relatively high indel rate.
 
 The adaptor sequences should be provided 5'-to-3', corresponding to the sequence on the ssDNA molecule.
