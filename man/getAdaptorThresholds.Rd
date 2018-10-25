@@ -35,7 +35,7 @@ We aim to define a score threshold above which the adaptor is considered to be p
 This is done by estimating the false discovery rate as the ratio of the number of scrambled scores above the threshold to the number of real alignment scores above the threshold.
 We choose a threshold such that the false discovery rate is kept below the specified \code{error}.
 
-For speed, users may wish to subset \code{aligned} to a random sample of reads before running this function.
+For the sake of speed, the function will only use a randomly sampled subset of reads (specified by \code{number}).
 It is unnecessary to scramble every read in order to compute a satisfactorily precise threshold.
 }
 
