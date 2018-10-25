@@ -9,7 +9,7 @@
 class reference_align {
 public:
     reference_align(size_t, const char*, Rcpp::NumericVector, double, double);
-    double align(size_t, const char*, const char*);
+    double align(size_t, const char*, const char*, bool=true);
     void backtrack(bool=false);
     std::pair<size_t, size_t> map(size_t, size_t) const; 
 private:

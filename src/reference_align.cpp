@@ -48,7 +48,7 @@ void reference_align::create_qualities (Rcpp::NumericVector qualities) {
     return;
 }
 
-double reference_align::align(size_t len, const char* seq, const char* qual) {
+double reference_align::align(size_t len, const char* seq, const char* qual, bool local) {
     nrows=len+1;
     size_t newsize=nrows*(rlen+1);
     if (newsize > dpmatrix.size()) { 
@@ -56,9 +56,21 @@ double reference_align::align(size_t len, const char* seq, const char* qual) {
         affine_left.resize(nrows);
     }
 
-    // Filling the first column of the DP matrix with zeroes (no penalty for vertical gap openings at start).
+    // Filling the first column of the DP matrix.
     auto location=dpmatrix.begin();
-    std::fill(location, location+nrows, std::make_pair(up, 0));
+    if (local) {
+        // If local, filling with zeroes (no penalty for vertical gaps at start).
+        std::fill(location, location+nrows, std::make_pair(up, 0));
+    } else {
+        // If global, filling more conventionally with vertical gap penalties.
+        location->first=up;
+        location->second=0;
+        auto loccopy=location+1;
+        for (size_t i=1; i<nrows; ++i, ++loccopy) {
+            loccopy->first=up;
+            loccopy->second=- gap_open - gap_ext * (i-1);
+        }
+    }
     
     // Filling the initial horizontal affine penalties.
     std::fill(affine_left.begin(), affine_left.begin() + nrows, R_NegInf);
@@ -68,10 +80,22 @@ double reference_align::align(size_t len, const char* seq, const char* qual) {
         align_column(location, affine_left.begin(), rseq[col-1], len, seq, qual, false);
     }
         
-    location+=nrows;
     if (rlen) {
-        align_column(location, affine_left.begin(), rseq[rlen-1], len, seq, qual, true);
+        location+=nrows;
+        // If 'local', then last=true to avoid vertical gap penalties.
+        align_column(location, affine_left.begin(), rseq[rlen-1], len, seq, qual, local);
     }
+
+#ifdef DEBUG
+    for (size_t i=0;i<nrows; ++i) {
+        auto loc=dpmatrix.begin() + i;
+        for(size_t j=0;j<=rlen; ++j) {
+            Rprintf("%.3f\t", loc->second);
+            loc+=nrows;
+        }
+        Rprintf("\n");
+    }
+#endif
 
     aligned=true;
     backtracked=false;
@@ -230,6 +254,11 @@ void reference_align::backtrack(bool include_gaps) {
         backtrack_start[0]=backtrack_end[0]-1;
     }
 
+#ifdef DEBUG
+    for (size_t i=0; i<= rlen; ++i) {
+        Rprintf("%i %i %i\n", i, backtrack_start[i], backtrack_end[i]);
+    }
+#endif    
     return;
 }
 
