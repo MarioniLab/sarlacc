@@ -26,8 +26,8 @@ A \linkS4class{DataFrame} where each row corresponds to a read in \code{filepath
 It contains the following fields:
 \describe{
 \item{read.width}{Integer vector containing the length of each read.}
-\item{\code{adaptor1}:}{A DataFrame of alignment information for adaptor 1, including the pairwise alignment strings for the adaptor and read sequence; 
-the start and end positions of the alignment on the read; the alignment score; and the qualities of the read subsequence, if they were originally supplied.}
+\item{\code{adaptor1}:}{A DataFrame of alignment information for adaptor 1, including the start and end positions of the alignment on the read; the alignment score; 
+and the read subsequences aligned to any ambiguous bases in the adaptor.}
 \item{\code{adaptor2}:}{A similar DataFrame of alignment information for adaptor 2.}
 \item{\code{reversed}:}{A logical vector indicating whether each read has been reverse-complemented, see below.}
 }
@@ -38,14 +38,19 @@ Alignment parameters and reference adaptor sequences are stored in the metadata 
 
 \details{
 This function performs a local-global alignment of each adaptor to the ends of the read sequences.
-This aims to identify the adaptors within the read sequence for trimming and/or UMI identification with \code{\link{chopReads}} and \code{\link{umiExtract}}.
-Alignment is performed using the \code{\link{pairwiseAlignment}} function from the \pkg{Biostrings} package.
+This aims to identify the adaptors within the read sequence for trimming and/or UMI identification.
+Alignment is performed using a quality-aware alignment akin to that of the \code{\link{pairwiseAlignment}} function from the \pkg{Biostrings} package.
 The default alignment parameters are chosen to account for the Nanopore's relatively high indel rate.
 
 The adaptor sequences should be provided 5'-to-3', corresponding to the sequence on the ssDNA molecule.
 Reverse-complementing is performed automatically within the function to search both strands of the read sequence.
 There should usually be some experimental distinction between adaptor 1 and 2.
 For example, in RNA sequencing, adaptor 1 may be used for reverse transcription while adaptor 2 may be used for second-strand synthesis.
+
+Any stretch of ambiguous IUPAC bases in the adaptor sequence is identified as a subsequence of interest.
+This can represent unique molecular identifiers or barcode sequences that may be read-specific.
+For each read, \code{adaptorAlign} will report the corresponding read subsequence that aligns to this stretch.
+These are reported in the same orientation as the adaptor sequence and can be directly compared across reads.
 }
 
 \section{Flipping reads by strand}{
