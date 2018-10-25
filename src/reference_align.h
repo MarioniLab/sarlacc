@@ -32,8 +32,9 @@ private:
     size_t nrows=1000;
     bool aligned=false;
     std::deque<dpentry> dpmatrix;
+    std::deque<double> affine_left;
 
-    void align_column(std::deque<dpentry>::iterator, char, size_t, const char*, const char*, bool);
+    void align_column(std::deque<dpentry>::iterator, std::deque<double>::iterator, char, size_t, const char*, const char*, bool);
     double compute_cost (char, char, char) const;
     double precomputed_cost (int, bool, char) const;
 

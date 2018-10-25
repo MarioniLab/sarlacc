@@ -2,7 +2,7 @@
 
 reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::NumericVector qualities, double go, double ge) : 
         rlen(reflen), rseq(refseq), gap_open(go+ge), gap_ext(ge), 
-        dpmatrix(nrows*(rlen+1)), 
+        dpmatrix(nrows*(rlen+1)), affine_left(nrows), 
         backtrack_start(rlen+1), backtrack_end(rlen+1) 
 {
     create_qualities(qualities);
@@ -53,20 +53,24 @@ double reference_align::align(size_t len, const char* seq, const char* qual) {
     size_t newsize=nrows*(rlen+1);
     if (newsize > dpmatrix.size()) { 
         dpmatrix.resize(newsize);
+        affine_left.resize(nrows);
     }
 
     // Filling the first column of the DP matrix with zeroes (no penalty for vertical gap openings at start).
     auto location=dpmatrix.begin();
     std::fill(location, location+nrows, std::make_pair(up, 0));
+    
+    // Filling the initial horizontal affine penalties.
+    std::fill(affine_left.begin(), affine_left.begin() + nrows, R_NegInf);
 
     for (size_t col=1; col<rlen; ++col) {
         location+=nrows;
-        align_column(location, rseq[col-1], len, seq, qual, false);
+        align_column(location, affine_left.begin(), rseq[col-1], len, seq, qual, false);
     }
         
     location+=nrows;
     if (rlen) {
-        align_column(location, rseq[rlen-1], len, seq, qual, true);
+        align_column(location, affine_left.begin(), rseq[rlen-1], len, seq, qual, true);
     }
 
     aligned=true;
@@ -74,7 +78,9 @@ double reference_align::align(size_t len, const char* seq, const char* qual) {
     return (location+len)->second;
 }
 
-void reference_align::align_column(std::deque<dpentry>::iterator storage, char reference, size_t len, const char* seq, const char* qual, bool last) {
+void reference_align::align_column(std::deque<dpentry>::iterator storage, std::deque<double>::iterator last_horizontal, char reference, 
+        size_t len, const char* seq, const char* qual, bool last) 
+{
     auto lastcol=storage - len - 1; // Assume that we're past the first column of the DP matrix.
     auto lagging=storage;
     auto lagging_past=lastcol;
@@ -84,29 +90,53 @@ void reference_align::align_column(std::deque<dpentry>::iterator storage, char r
     storage->second = lastcol->second - (lastcol->first == left ? gap_ext : gap_open);
     ++storage;
     ++lastcol;
+    ++last_horizontal;
 
     double vert_gap_open=(last ? 0 : gap_open);
     double vert_gap_ext=(last ? 0 : gap_ext);
+    double last_vertical=R_NegInf;
 
-    for (size_t i=0; i<len; ++i, ++storage, ++lastcol, ++lagging, ++lagging_past) {
-        // Horizontal gap opening cost.
-        double horiz_gap = lastcol->second - (lastcol->first == left ? gap_ext : gap_open);
+    for (size_t i=0; i<len; ++i, ++storage, ++lastcol, ++lagging, ++lagging_past, ++last_horizontal) {
+        // Horizontal gap opening cost. We need to compute the cost
+        // of extending an already opened gap that was suboptimal  
+        // in the last column.
+        double horiz_gap = lastcol->second - (lastcol->first==left ? gap_ext : gap_open); 
+        double previous_horiz_gap = *last_horizontal - gap_ext;
+        bool reopen_horiz = previous_horiz_gap > horiz_gap;
+        if (reopen_horiz) {
+            horiz_gap = previous_horiz_gap;
+        }
+        *last_horizontal = horiz_gap;
 
-        // Vertical gap opening cost.
-        double vert_gap = lagging->second - (lagging->first == up ? vert_gap_ext : vert_gap_open);
+        // Vertical gap opening cost. Again, we need to compute the
+        // cost of extending an already opened gap that was suboptimal
+        // in the last row.
+        double vert_gap = lagging->second - (lagging->first==up ? vert_gap_ext : vert_gap_open);
+        double previous_vert_gap = last_vertical - vert_gap_ext;
+        bool reopen_vert = previous_vert_gap > vert_gap;
+        if (reopen_vert) {
+            vert_gap = previous_vert_gap;
+        }
+        last_vertical = vert_gap;
 
         // (Mis)match cost.
         double match = lagging_past->second + compute_cost(reference, seq[i], qual[i]);
-
+        
         if (match > horiz_gap && match > vert_gap) {
             storage->first=diag;
             storage->second=match;
         } else if (horiz_gap > vert_gap) {
             storage->first=left;
             storage->second=horiz_gap;
+            if (reopen_horiz) { // Alter history so that horizontal gap is already opened.
+                lastcol->first=left;
+            }
         } else {
             storage->first=up;
             storage->second=vert_gap;
+            if (reopen_vert) { // Again, alter history so that vertical gap is already opened.
+                lagging->first=up;
+            }
         }
     }
 
@@ -199,6 +229,7 @@ void reference_align::backtrack(bool include_gaps) {
     } else {
         backtrack_start[0]=backtrack_end[0]-1;
     }
+
     return;
 }
 
