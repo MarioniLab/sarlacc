@@ -13,8 +13,8 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
 # written by Aaron Lun
 # created 26 February 2018
 {
-    adaptor1 <- .assign_qualities(adaptor1, TRUE)
-    adaptor2 <- .assign_qualities(adaptor2, TRUE) 
+    adaptor1 <- toupper(as.character(adaptor1))
+    adaptor2 <- toupper(as.character(adaptor2))
     qual.type <- match.arg(qual.type)
     qual.class <- .qual2class(qual.type)
 
@@ -53,14 +53,10 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
 
     for (go in seq(gapOp.range[1], gapOp.range[2], by=1)) { 
         for (ge in seq(gapExt.range[1], gapExt.range[2], by=1)) { 
-
-            all.args <- .setup_alignment_args(TRUE, go, ge)
-            all.args$adaptor1 <- adaptor1
-            all.args$adaptor2 <- adaptor2
-
             out <- bpmapply(FUN=.align_TA_internal, reads.start=reads.start, reads.end=reads.end,
                 scrambled.start=scrambled.start, scrambled.end=scrambled.end,
-                MoreArgs=all.args, SIMPLIFY=FALSE, BPPARAM=BPPARAM, USE.NAMES=FALSE)
+                MoreArgs=list(adaptor1=adaptor1, adaptor2=adaptor2, gap.opening=go, gap.extension=ge), 
+                SIMPLIFY=FALSE, BPPARAM=BPPARAM, USE.NAMES=FALSE)
             read.scores <- unlist(lapply(out, "[[", i="reads"))
             scrambled.scores <- unlist(lapply(out, "[[", i="scrambled"))
 
@@ -99,14 +95,19 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
     )
 }
 
-#' @importFrom Biostrings pairwiseAlignment
-.get_alignment_scores <- function(reads.start, reads.end, adaptor1, adaptor2, ...) 
+#' @importFrom Biostrings quality 
+.get_alignment_scores <- function(reads.start, reads.end, adaptor1, adaptor2, gap.opening, gap.extension) 
 # Retrieve all alignment scores for adaptor/read end combinations.
 {
+    FUN <- function(R, A) {
+        Q <- quality(R)
+        .Call(cxx_adaptor_align, R, Q, .create_encoding_vector(Q), 
+            gap.opening, gap.extension, A, integer(0), integer(0))[[1]]
+    }
     list(
-        START=pairwiseAlignment(subject=adaptor1, pattern=reads.start, ..., scoreOnly=TRUE),
-        END=pairwiseAlignment(subject=adaptor2, pattern=reads.end, ..., scoreOnly=TRUE),
-        RSTART=pairwiseAlignment(subject=adaptor1, pattern=reads.end, ..., scoreOnly=TRUE),
-        REND=pairwiseAlignment(subject=adaptor2, pattern=reads.start, ..., scoreOnly=TRUE)
+        START=FUN(R=reads.start, A=adaptor1),
+        END=FUN(R=reads.end, A=adaptor2),
+        RSTART=FUN(R=reads.end, A=adaptor1),
+        REND=FUN(R=reads.start, A=adaptor2)
     )
 }
