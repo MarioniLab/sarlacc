@@ -1,7 +1,7 @@
 #' @export
 #' @importFrom S4Vectors metadata
 #' @importClassesFrom Biostrings QualityScaledDNAStringSet
-#' @importFrom BiocParallel SerialParam
+#' @importFrom BiocParallel SerialParam bpisup bpstart bpstop
 #' @importFrom ShortRead FastqStreamer yield
 getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=SerialParam())
 # Scrambles the input sequence and performs the same thing as adaptorAlign but with a scrambled input. 
@@ -12,15 +12,10 @@ getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=Serial
 {
     go <- metadata(aligned$adaptor1)$gapOpening 
     ge <- metadata(aligned$adaptor1)$gapExtension
-    all.args <- .setup_alignment_args(TRUE, go, ge)
-    
+
     adaptor1 <- metadata(aligned$adaptor1)$sequence
     adaptor2 <- metadata(aligned$adaptor2)$sequence
-    all.args$adaptor1 <- adaptor1
-    all.args$adaptor2 <- adaptor2
-
     tolerance <- metadata(aligned)$tolerance
-    all.args$tolerance <- tolerance
 
     filepath <- metadata(aligned)$filepath
     qual.type <- metadata(aligned)$qual.type
@@ -32,13 +27,20 @@ getAdaptorThresholds <- function(aligned, error=0.01, number=1e5, BPPARAM=Serial
     scram.score1 <- scram.score2 <- used.names <- list()
     counter <- 1L
 
+    if (!bpisup(BPPARAM)) {
+        bpstart(BPPARAM)
+        on.exit(bpstop(BPPARAM), add=TRUE)
+    }
+
     while (length(fq <- yield(fhandle))) {
         reads <- .FASTQ2QSDS(fq, qual.class)
         reads <- reads[names(reads) %in% rownames(aligned)]
         used.names[[counter]] <- names(reads)
 
         by.cores <- .parallelize(reads, BPPARAM)
-        out <- bpmapply(by.cores, FUN=.align_AT_internal, MoreArgs=all.args, BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
+        out <- bpmapply(by.cores, FUN=.align_AT_internal, 
+            MoreArgs=list(adaptor1=adaptor1, adaptor2=adaptor2, tolerance=tolerance, gap.opening=go, gap.extension=ge), 
+            BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
         scram.score1[[counter]] <- unlist(lapply(out, "[[", i="adaptor1"))
         scram.score2[[counter]] <- unlist(lapply(out, "[[", i="adaptor2"))
