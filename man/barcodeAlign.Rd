@@ -47,7 +47,7 @@ Aaron Lun
 example(adaptorAlign)
 
 # Assigning reads to individual barcodes.
-debarcoded <- barcodeAlign(out$adaptor1$subseqs$Sub1, 
+debarcoded <- barcodeAlign(out$adaptor1$subseq$Sub1, 
     barcodes=c("AAAAAAAA", "TTTTTTTT", "CCCCCCCCC", "GGGGGGGG"),
     gapOpening=metadata(out$adaptor1)$gapOpening,
     gapExtension=metadata(out$adaptor1)$gapExtension)
