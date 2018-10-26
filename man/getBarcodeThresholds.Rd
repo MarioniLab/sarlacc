@@ -5,13 +5,12 @@
 \description{Compute score thresholds to be used to determine if the read sequence matches a known reference barcode.}
 
 \usage{
-getBarcodeThresholds(baligned, error=0.01, BPPARAM=SerialParam())
+getBarcodeThresholds(baligned, nmads=3)
 }
 
 \arguments{
-\item{baligned}{A \linkS4class{DataFrame} of barcode alignment information for each read, identical to the output of \code{\link{debarcodeReads}}.}
-\item{error}{A numeric scalar specifying the acceptable false discovery rate.}
-\item{BPPARAM}{A BiocParallelParam object specifying whether alignment should be parallelized.}
+\item{baligned}{A \linkS4class{DataFrame} of barcode alignment information for each read, identical to the output of \code{\link{barcodeAlign}}.}
+\item{nmads}{A numeric scalar specifying the number of median absolute deviations to define outliers.}
 } 
 
 \value{
@@ -21,13 +20,9 @@ and \code{gap}, the threshold on the difference between the best and next-best s
 }
 
 \details{
-Read sequences at the barcode location are scrambled, and barcode alignment is performed against the scrambled sequences.
-We define a threshold on the scores above which the barcode is considered to be present, based on controlling the false discovery rate below \code{error} 
-(see \code{\link{getAdaptorThreshold}} for details).
-
-We also define a threshold on the \emph{difference} between the best and next-best score for each read.
-It may be preferable to filter reads on the difference threshold if some barcodes are similar to each other.
-Otherwise, the origin of a read is not clear if it can be feasibly assigned to multiple barcodes.
+The threshold for each metric is defined at \code{nmads} MADs below the median across all reads.
+The assumption here is that most reads are aligned to correct barcodes.
+Any small outliers are considered to represent misalignments and are removed.
 }
 
 \author{
@@ -35,11 +30,10 @@ Aaron Lun
 }
 
 \seealso{
-\code{\link{adaptorAlign}},
-\code{\link{chopReads}}
+\code{\link{barcodeAlign}} to generate \code{baligned}.
 }
 
 \examples{
-example(debarcodeReads)
+example(barcodeAlign)
 getBarcodeThresholds(debarcoded)
 }
