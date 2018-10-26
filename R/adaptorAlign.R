@@ -180,7 +180,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
         segments <- new("DataFrame", nrows=length(reads))
     }
 
-    output$subseqs <- segments
+    output$subseq <- segments
     output
 }
 

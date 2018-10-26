@@ -7,7 +7,7 @@ reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::Nume
 {
     create_qualities(qualities);
     return;
-};
+}
 
 /* Given the error probability 'epsilon' for the observed base, we have the score as:
  *
