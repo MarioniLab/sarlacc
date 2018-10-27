@@ -2,7 +2,7 @@
 #' @importFrom Biostrings reverseComplement QualityScaledDNAStringSet DNAStringSet PhredQuality
 #' @importFrom S4Vectors DataFrame metadata<-
 #' @importFrom BiocParallel bpmapply SerialParam bpstart bpstop bpisup
-#' @importFrom BiocGenerics width rownames<-
+#' @importFrom BiocGenerics rownames<-
 #' @importFrom ShortRead FastqStreamer yield 
 adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening=5, gapExtension=1, 
     qual.type=c("phred", "solexa", "illumina"), number=1e5, BPPARAM=SerialParam())
@@ -38,36 +38,27 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
         by.cores <- .parallelize(reads, BPPARAM)
         out <- bpmapply(by.cores, FUN=.align_AA_internal, MoreArgs=all.args, BPPARAM=BPPARAM, SIMPLIFY=FALSE, USE.NAMES=FALSE)
 
-        cur.starts <- do.call(rbind, lapply(out, "[[", i="START"))
-        cur.ends <- do.call(rbind, lapply(out, "[[", i="END"))
-        cur.rc.starts <- do.call(rbind, lapply(out, "[[", i="RSTART"))
-        cur.rc.ends <- do.call(rbind, lapply(out, "[[", i="REND"))
-
-        # Standardizing the strand.
-        strand.out <- .resolve_strand(cur.starts$score, cur.ends$score, cur.rc.starts$score, cur.rc.ends$score)
-        is_reverse <- strand.out$reversed
-       
-        cur.starts[is_reverse,] <- cur.rc.starts[is_reverse,]
-        cur.ends[is_reverse,] <- cur.rc.ends[is_reverse,]
-
-        all.names[[counter]] <- names(reads)
-        all.widths[[counter]] <- width(reads)
-        all.starts[[counter]] <- cur.starts
-        all.ends[[counter]] <- cur.ends
-        all.rev[[counter]] <- is_reverse
+        all.names[[counter]] <- lapply(out, "[[", i="names")
+        all.widths[[counter]] <- lapply(out, "[[", i="width")
+        all.starts[[counter]] <- lapply(out, "[[", i="start")
+        all.ends[[counter]] <- lapply(out, "[[", i="end")
+        all.rev[[counter]] <- lapply(out, "[[", i="reversed")
 
         counter <- counter + 1L
     }
 
-    if (!length(all.starts)) {
+    if (counter==1L) {
         # Guarantee some value is returned.
-        all.starts[[1]] <- all.ends[[1]] <- do.call(.align_AA_internal,
-            c(list(reads=QualityScaledDNAStringSet(DNAStringSet(), PhredQuality(0))), all.args))$START
+        out <- do.call(.align_AA_internal, c(list(reads=QualityScaledDNAStringSet(DNAStringSet(), PhredQuality(0))), all.args))
+        all.names[[counter]] <- out$names
+        all.widths[[counter]] <- out$width
+        all.starts[[counter]] <- out$start
+        all.ends[[counter]] <- out$end
+        all.rev[[counter]] <- out$reversed
     }
 
-    align_start <- do.call(rbind, all.starts)
-    align_end <- do.call(rbind, all.ends)
-
+    align_start <- do.call(rbind, unlist(all.starts, recursive=FALSE))
+    align_end <- do.call(rbind, unlist(all.ends, recursive=FALSE))
     details <- list(gapOpening=gapOpening, gapExtension=gapExtension)
     metadata(align_start) <- c(list(sequence=adaptor1), details)
     metadata(align_end) <- c(list(sequence=adaptor2), details)
@@ -75,7 +66,6 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     # Adjusting the reverse coordinates for the read length.
     old.start <- align_end$start
     old.end <- align_end$end
-
     all.widths <- unlist(all.widths)
     align_end$start <- all.widths - old.start + 1L
     align_end$end <- all.widths - old.end + 1L
@@ -184,6 +174,7 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     output
 }
 
+#' @importFrom BiocGenerics width
 .align_AA_internal <- function(reads, adaptor1, adaptor2, tolerance, subseq1, subseq2, ...) 
 # Wrapper function to pass to bplapply, along with the sarlacc namespace.
 {
@@ -192,10 +183,17 @@ adaptorAlign <- function(adaptor1, adaptor2, filepath, tolerance=250, gapOpening
     reads.end <- reads.out$back
 
     # Performing the alignment of each adaptor to the start/end of the read.
-    list(
-        START=.align_and_extract(adaptor=adaptor1, reads=reads.start, subseq.starts=subseq1$starts, subseq.ends=subseq1$ends, ...),
-        END=.align_and_extract(adaptor=adaptor2, reads=reads.end, subseq.starts=subseq2$starts, subseq.ends=subseq2$ends, ...),
-        RSTART=.align_and_extract(adaptor=adaptor1, reads=reads.end, subseq.starts=subseq1$starts, subseq.ends=subseq1$ends, ...),
-        REND=.align_and_extract(adaptor=adaptor2, reads=reads.start, subseq.starts=subseq2$starts, subseq.ends=subseq2$ends, ...)
-    )
+    cur.starts <- .align_and_extract(adaptor=adaptor1, reads=reads.start, subseq.starts=subseq1$starts, subseq.ends=subseq1$ends, ...)
+    cur.ends <- .align_and_extract(adaptor=adaptor2, reads=reads.end, subseq.starts=subseq2$starts, subseq.ends=subseq2$ends, ...)
+    cur.rc.starts <- .align_and_extract(adaptor=adaptor1, reads=reads.end, subseq.starts=subseq1$starts, subseq.ends=subseq1$ends, ...)
+    cur.rc.ends <- .align_and_extract(adaptor=adaptor2, reads=reads.start, subseq.starts=subseq2$starts, subseq.ends=subseq2$ends, ...)
+
+    # Standardizing the strand.
+    strand.out <- .resolve_strand(cur.starts$score, cur.ends$score, cur.rc.starts$score, cur.rc.ends$score)
+    is_reverse <- strand.out$reversed
+
+    cur.starts[is_reverse,] <- cur.rc.starts[is_reverse,]
+    cur.ends[is_reverse,] <- cur.rc.ends[is_reverse,]
+
+    list(names=names(reads), width=width(reads), start=cur.starts, end=cur.ends, reversed=is_reverse)
 }
