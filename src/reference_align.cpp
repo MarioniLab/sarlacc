@@ -2,7 +2,7 @@
 
 reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::NumericVector qualities, double go, double ge) : 
         rlen(reflen), rseq(refseq), gap_open(go+ge), gap_ext(ge), 
-        current_column(nrows), last_column(nrows), affine_left(nrows), directions(nrows*(rlen+1)), 
+        scores(nrows), affine_left(nrows), directions(nrows*(rlen+1)), 
         backtrack_start(rlen+1), backtrack_end(rlen+1) 
 {
     create_qualities(qualities);
@@ -50,9 +50,8 @@ void reference_align::create_qualities (Rcpp::NumericVector qualities) {
 
 double reference_align::align(size_t len, const char* seq, const char* qual, bool local) {
     nrows=len+1;
-    if (nrows > current_column.size()) {
-        current_column.resize(nrows);
-        last_column.resize(nrows);
+    if (nrows > scores.size()) {
+        scores.resize(nrows);
         affine_left.resize(nrows);
         directions.resize(nrows * (rlen + 1));
     }
@@ -61,12 +60,12 @@ double reference_align::align(size_t len, const char* seq, const char* qual, boo
     std::fill(directions.begin(), directions.begin()+nrows, up);
     if (local) {
         // If local, filling with zeroes (no penalty for vertical gaps at start).
-        std::fill(last_column.begin(), last_column.begin()+nrows, 0);
+        std::fill(scores.begin(), scores.begin()+nrows, 0);
     } else {
         // If global, filling more conventionally with vertical gap penalties.
-        last_column[0]=0;
+        scores[0]=0;
         for (size_t i=1; i<nrows; ++i) {
-            last_column[i]=- gap_open - gap_ext * (i-1);
+            scores[i]=- gap_open - gap_ext * (i-1);
         }
     }
     
@@ -76,17 +75,13 @@ double reference_align::align(size_t len, const char* seq, const char* qual, boo
     // Processing all columns corresponding to reference positions.
     auto last_dir=directions.begin(); 
     for (size_t col=1; col<rlen; ++col) {
-        align_column(last_dir+nrows, last_dir, rseq[col-1], len, seq, qual, false);
+        align_column(last_dir, rseq[col-1], len, seq, qual, false);
         last_dir+=nrows;
-        std::swap(last_column, current_column);
     }
         
     if (rlen) {
         // If 'local', then last=true to avoid vertical gap penalties.
-        align_column(last_dir+nrows, last_dir, rseq[rlen-1], len, seq, qual, local);
-    } else {
-        // Unswap so that the final scores are in 'current_column'.
-        std::swap(last_column, current_column);
+        align_column(last_dir, rseq[rlen-1], len, seq, qual, local);
     }
 
 #ifdef DEBUG
@@ -102,28 +97,30 @@ double reference_align::align(size_t len, const char* seq, const char* qual, boo
 
     aligned=true;
     backtracked=false;
-    return current_column[len];
+    return scores[len];
 }
 
-void reference_align::align_column(
-        std::deque<DIRECTION>::iterator current_direction,
-        std::deque<DIRECTION>::iterator last_direction,
-        char reference, 
-        size_t len, const char* seq, const char* qual, bool last) 
+void reference_align::align_column(std::deque<DIRECTION>::iterator last_direction,
+        char reference, size_t len, const char* seq, const char* qual, bool last) 
 {
+    auto current_direction=last_direction+nrows;
+
     // Compute stats for the first row of the DP matrix separately.
-    current_column[0] = last_column[0] - (*last_direction == left ? gap_ext : gap_open);
+    // Note that 'scores', upon input, holds the scores of the *last* column;
+    // but upon output, it holds the scores of the *current* column.
+    double lagging_last = scores[0];
+    scores[0] -= (*last_direction == left ? gap_ext : gap_open);
     *current_direction=left;
 
     double vert_gap_open=(last ? 0 : gap_open);
     double vert_gap_ext=(last ? 0 : gap_ext);
-    double last_vertical=R_NegInf;
+    double affine_up=R_NegInf;
 
     for (size_t i=1; i<=len; ++i) {
         // Horizontal gap opening cost. We need to compute the cost
         // of extending an already opened gap that was suboptimal  
         // in the last column.
-        double horiz_gap = last_column[i] - (*(last_direction+i)==left ? gap_ext : gap_open); 
+        double horiz_gap = scores[i] - (*(last_direction+i)==left ? gap_ext : gap_open); 
         double previous_horiz_gap = affine_left[i] - gap_ext;
         bool reopen_horiz = previous_horiz_gap > horiz_gap;
         if (reopen_horiz) {
@@ -135,19 +132,21 @@ void reference_align::align_column(
         // cost of extending an already opened gap that was suboptimal
         // in the last row.
         auto prev=i-1;
-        double vert_gap = current_column[prev] - (*(current_direction+prev)==up ? vert_gap_ext : vert_gap_open);
-        double previous_vert_gap = last_vertical - vert_gap_ext;
+        double vert_gap = scores[prev] - (*(current_direction+prev)==up ? vert_gap_ext : vert_gap_open);
+        double previous_vert_gap = affine_up - vert_gap_ext;
         bool reopen_vert = previous_vert_gap > vert_gap;
         if (reopen_vert) {
             vert_gap = previous_vert_gap;
         }
-        last_vertical = vert_gap;
+        affine_up = vert_gap;
 
         // (Mis)match cost. Note 'i' is +1 from the base position of the new sequence, hence the use of 'prev'.
-        double match = last_column[prev] + compute_cost(reference, seq[prev], qual[prev]);
+        // We also update the lagging score from the last column.
+        double match = lagging_last + compute_cost(reference, seq[prev], qual[prev]);
+        lagging_last = scores[i];
 
         auto& curdir=*(current_direction+i);
-        auto& curscore=current_column[i];
+        auto& curscore=scores[i];
         if (match > horiz_gap && match > vert_gap) {
             curdir=diag;
             curscore=match;
