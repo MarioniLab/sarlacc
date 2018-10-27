@@ -19,9 +19,6 @@ extern "C" {
 SEXP adaptor_align(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP barcode_align(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
         
-SEXP count_gaps_by_base(SEXP, SEXP, SEXP);
-SEXP count_gaps_by_align(SEXP, SEXP, SEXP);
-
 SEXP mask_bad_bases(SEXP, SEXP, SEXP, SEXP);
 SEXP unmask_alignment(SEXP, SEXP);
 
@@ -38,8 +35,6 @@ SEXP compute_lev_masked(SEXP);
 SEXP find_homopolymers(SEXP);
 SEXP match_homopolymers(SEXP, SEXP);
 SEXP find_errors(SEXP, SEXP);
-
-SEXP get_aligned_sequence(SEXP, SEXP, SEXP, SEXP, SEXP);
 
 }
 

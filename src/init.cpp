@@ -10,9 +10,6 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(adaptor_align, 8),
     REGISTER(barcode_align, 6),
 
-    REGISTER(count_gaps_by_base, 3),
-    REGISTER(count_gaps_by_align, 3),
-
     REGISTER(mask_bad_bases, 4),
     REGISTER(unmask_alignment, 2),
 
@@ -30,7 +27,6 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(match_homopolymers, 2),
     REGISTER(find_errors, 2),
 
-    REGISTER(get_aligned_sequence, 5),
     {NULL, NULL, 0}
 };
 
