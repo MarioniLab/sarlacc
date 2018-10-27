@@ -2,7 +2,7 @@
 
 reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::NumericVector qualities, double go, double ge) : 
         rlen(reflen), rseq(refseq), gap_open(go+ge), gap_ext(ge), 
-        dpmatrix(nrows*(rlen+1)), affine_left(nrows), 
+        current_column(nrows), last_column(nrows), affine_left(nrows), directions(nrows*(rlen+1)), 
         backtrack_start(rlen+1), backtrack_end(rlen+1) 
 {
     create_qualities(qualities);
@@ -50,40 +50,43 @@ void reference_align::create_qualities (Rcpp::NumericVector qualities) {
 
 double reference_align::align(size_t len, const char* seq, const char* qual, bool local) {
     nrows=len+1;
-    size_t newsize=nrows*(rlen+1);
-    if (newsize > dpmatrix.size()) { 
-        dpmatrix.resize(newsize);
+    if (nrows > current_column.size()) {
+        current_column.resize(nrows);
+        last_column.resize(nrows);
         affine_left.resize(nrows);
+        directions.resize(nrows * (rlen + 1));
     }
 
     // Filling the first column of the DP matrix.
-    auto location=dpmatrix.begin();
+    std::fill(directions.begin(), directions.begin()+nrows, up);
     if (local) {
         // If local, filling with zeroes (no penalty for vertical gaps at start).
-        std::fill(location, location+nrows, std::make_pair(up, 0));
+        std::fill(last_column.begin(), last_column.begin()+nrows, 0);
     } else {
         // If global, filling more conventionally with vertical gap penalties.
-        location->first=up;
-        location->second=0;
-        auto loccopy=location+1;
-        for (size_t i=1; i<nrows; ++i, ++loccopy) {
-            loccopy->first=up;
-            loccopy->second=- gap_open - gap_ext * (i-1);
+        last_column[0]=0;
+        for (size_t i=1; i<nrows; ++i) {
+            last_column[i]=- gap_open - gap_ext * (i-1);
         }
     }
     
     // Filling the initial horizontal affine penalties.
     std::fill(affine_left.begin(), affine_left.begin() + nrows, R_NegInf);
 
+    // Processing all columns corresponding to reference positions.
+    auto last_dir=directions.begin(); 
     for (size_t col=1; col<rlen; ++col) {
-        location+=nrows;
-        align_column(location, affine_left.begin(), rseq[col-1], len, seq, qual, false);
+        align_column(last_dir+nrows, last_dir, rseq[col-1], len, seq, qual, false);
+        last_dir+=nrows;
+        std::swap(last_column, current_column);
     }
         
     if (rlen) {
-        location+=nrows;
         // If 'local', then last=true to avoid vertical gap penalties.
-        align_column(location, affine_left.begin(), rseq[rlen-1], len, seq, qual, local);
+        align_column(last_dir+nrows, last_dir, rseq[rlen-1], len, seq, qual, local);
+    } else {
+        // Unswap so that the final scores are in 'current_column'.
+        std::swap(last_column, current_column);
     }
 
 #ifdef DEBUG
@@ -99,43 +102,40 @@ double reference_align::align(size_t len, const char* seq, const char* qual, boo
 
     aligned=true;
     backtracked=false;
-    return (location+len)->second;
+    return current_column[len];
 }
 
-void reference_align::align_column(std::deque<dpentry>::iterator storage, std::deque<double>::iterator last_horizontal, char reference, 
+void reference_align::align_column(
+        std::deque<DIRECTION>::iterator current_direction,
+        std::deque<DIRECTION>::iterator last_direction,
+        char reference, 
         size_t len, const char* seq, const char* qual, bool last) 
 {
-    auto lastcol=storage - len - 1; // Assume that we're past the first column of the DP matrix.
-    auto lagging=storage;
-    auto lagging_past=lastcol;
-
     // Compute stats for the first row of the DP matrix separately.
-    storage->first=left;
-    storage->second = lastcol->second - (lastcol->first == left ? gap_ext : gap_open);
-    ++storage;
-    ++lastcol;
-    ++last_horizontal;
+    current_column[0] = last_column[0] - (*last_direction == left ? gap_ext : gap_open);
+    *current_direction=left;
 
     double vert_gap_open=(last ? 0 : gap_open);
     double vert_gap_ext=(last ? 0 : gap_ext);
     double last_vertical=R_NegInf;
 
-    for (size_t i=0; i<len; ++i, ++storage, ++lastcol, ++lagging, ++lagging_past, ++last_horizontal) {
+    for (size_t i=1; i<=len; ++i) {
         // Horizontal gap opening cost. We need to compute the cost
         // of extending an already opened gap that was suboptimal  
         // in the last column.
-        double horiz_gap = lastcol->second - (lastcol->first==left ? gap_ext : gap_open); 
-        double previous_horiz_gap = *last_horizontal - gap_ext;
+        double horiz_gap = last_column[i] - (*(last_direction+i)==left ? gap_ext : gap_open); 
+        double previous_horiz_gap = affine_left[i] - gap_ext;
         bool reopen_horiz = previous_horiz_gap > horiz_gap;
         if (reopen_horiz) {
             horiz_gap = previous_horiz_gap;
         }
-        *last_horizontal = horiz_gap;
+        affine_left[i] = horiz_gap;
 
         // Vertical gap opening cost. Again, we need to compute the
         // cost of extending an already opened gap that was suboptimal
         // in the last row.
-        double vert_gap = lagging->second - (lagging->first==up ? vert_gap_ext : vert_gap_open);
+        auto prev=i-1;
+        double vert_gap = current_column[prev] - (*(current_direction+prev)==up ? vert_gap_ext : vert_gap_open);
         double previous_vert_gap = last_vertical - vert_gap_ext;
         bool reopen_vert = previous_vert_gap > vert_gap;
         if (reopen_vert) {
@@ -143,23 +143,25 @@ void reference_align::align_column(std::deque<dpentry>::iterator storage, std::d
         }
         last_vertical = vert_gap;
 
-        // (Mis)match cost.
-        double match = lagging_past->second + compute_cost(reference, seq[i], qual[i]);
-        
+        // (Mis)match cost. Note 'i' is +1 from the base position of the new sequence, hence the use of 'prev'.
+        double match = last_column[prev] + compute_cost(reference, seq[prev], qual[prev]);
+
+        auto& curdir=*(current_direction+i);
+        auto& curscore=current_column[i];
         if (match > horiz_gap && match > vert_gap) {
-            storage->first=diag;
-            storage->second=match;
+            curdir=diag;
+            curscore=match;
         } else if (horiz_gap > vert_gap) {
-            storage->first=left;
-            storage->second=horiz_gap;
+            curdir=left;
+            curscore=horiz_gap;
             if (reopen_horiz) { // Alter history so that horizontal gap is already opened.
-                lastcol->first=left;
+                *(last_direction+i)=left;
             }
         } else {
-            storage->first=up;
-            storage->second=vert_gap;
+            curdir=up;
+            curscore=vert_gap;
             if (reopen_vert) { // Again, alter history so that vertical gap is already opened.
-                lagging->first=up;
+                *(current_direction+prev)=up;
             }
         }
     }
@@ -217,43 +219,30 @@ void reference_align::backtrack(bool include_gaps) {
     }
     backtracked=true;
 
-    auto location=dpmatrix.begin() + nrows * rlen; // start at the start of the last column.
-    if (include_gaps) {
-        backtrack_end[rlen]=nrows;
-    } else {
-        // Deciding whether or not to include end gaps.
-        size_t currow=nrows - 1;
-        auto loccopy=location + currow;
-        while (currow > 0 && loccopy->first==up) {
-            --loccopy;
-            --currow;
-        }
-        backtrack_end[rlen]=currow+1;
-    }
+    auto location=directions.begin() + nrows * rlen; // start at the start of the last column.
+    size_t currow=nrows-1;
 
-    for (size_t i=rlen; i>0; --i) { // starting from the last column and working forwards. 
-        size_t currow=backtrack_end[i]-1;
-        auto loccopy=location + currow;
-        while (currow > 0 && loccopy->first==up) {
-            --loccopy;
+    // Starting from the last column and working forwards.
+    // Note that we don't fill i=0, but this doesn't correspond to a real base anyway.
+    for (size_t i=rlen; i>0; --i) { 
+        while (currow > 0 && *(location+currow)==up) {
             --currow;
         }
 
-        location-=nrows;
-        backtrack_start[i]=currow;
-        if (loccopy->first==left) {
-            backtrack_end[i-1]=currow+1;
+        // Only include a query position if it's an actual match;
+        // a horizontal gap is not 'aligned' to the current reference base.
+        if (*(location+currow)==left) { 
+            backtrack_start[i]=currow+1;
+            backtrack_end[i]=currow+1;
         } else {
-            backtrack_end[i-1]=currow;
+            backtrack_start[i]=currow;
+            backtrack_end[i]=currow+1;
+            --currow;
         }
+        
+        location-=nrows;
     }
    
-    if (include_gaps) {
-        backtrack_start[0]=0;
-    } else {
-        backtrack_start[0]=backtrack_end[0]-1;
-    }
-
 #ifdef DEBUG
     for (size_t i=0; i<= rlen; ++i) {
         Rprintf("%i %i %i\n", i, backtrack_start[i], backtrack_end[i]);
@@ -272,9 +261,10 @@ std::pair<size_t, size_t> reference_align::map (size_t ref_start, size_t ref_end
         return std::make_pair(0, 0);
     }
 
-    // +1 to convert to DP matrix column index; -1 to get back to sequence index from DP row index.
     return std::make_pair(
-        std::max(size_t(1), backtrack_start[ref_start+1]) - 1,
-        std::max(size_t(1), backtrack_end[ref_end]) - 1 // no +1, as we want the column corresponding to the before-the-end base.
+        // +1 to convert to DP matrix column index; -1 to get back to sequence index from DP row index.
+        backtrack_start[ref_start+1] - 1,
+        // no +1, as we want the column corresponding to the before-the-end base.
+        backtrack_end[ref_end] - 1 
     );
 }

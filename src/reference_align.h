@@ -27,14 +27,13 @@ private:
     void create_qualities(Rcpp::NumericVector);
 
     // DP matrix-related.
-    enum DIRECTION { up, left, diag };
-    typedef std::pair<DIRECTION, double> dpentry;
-    size_t nrows=1000;
     bool aligned=false;
-    std::deque<dpentry> dpmatrix;
-    std::deque<double> affine_left;
+    size_t nrows=1000;
+    std::deque<double> current_column, last_column, affine_left;
+    enum DIRECTION { up, left, diag };
+    std::deque<DIRECTION> directions;
 
-    void align_column(std::deque<dpentry>::iterator, std::deque<double>::iterator, char, size_t, const char*, const char*, bool);
+    void align_column(std::deque<DIRECTION>::iterator, std::deque<DIRECTION>::iterator, char, size_t, const char*, const char*, bool);
     double compute_cost (char, char, char) const;
     double precomputed_cost (int, bool, char) const;
 
