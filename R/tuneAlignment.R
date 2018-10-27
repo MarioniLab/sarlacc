@@ -101,8 +101,7 @@ tuneAlignment <- function(adaptor1, adaptor2, filepath, tolerance=200, number=10
 {
     FUN <- function(R, A) {
         Q <- quality(R)
-        .Call(cxx_adaptor_align, R, Q, .create_encoding_vector(Q), 
-            gap.opening, gap.extension, A, integer(0), integer(0))[[1]]
+        .Call(cxx_adaptor_align_score_only, R, Q, .create_encoding_vector(Q), gap.opening, gap.extension, A)
     }
     list(
         START=FUN(R=reads.start, A=adaptor1),
