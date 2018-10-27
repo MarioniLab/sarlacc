@@ -98,14 +98,14 @@ test_that("alignment extraction works correctly", {
     out <- sarlacc:::.align_and_extract(adaptor, qreads, gap.opening=5, gap.extension=1, subseq.starts=possibilities[1,], subseq.ends=possibilities[2,])
 
     # Comparing to a reference implementation.
-    for (i in ncol(possibilities)) {
-        observed <- as.character(out$subseqs[,i])
+    for (i in seq_len(ncol(possibilities))) {
+        observed <- as.character(out$subseq[,i])
         curstart <- possibilities[1,i]
         curend <- possibilities[2,i]
 
         collected <- character(length(observed))
         for (j in seq_along(gapsA)) {
-            collected[j] <- substr(refR[j], min(which(gapsA[[j]]==curstart)), max(which(gapsA[[j]]==curend)))
+            collected[j] <- substr(refR[j], min(which(gapsA[[j]]==curstart)), min(which(gapsA[[j]]==curend)))
         }
         collected <- gsub("-", "", collected)
         expect_identical(observed, collected)
