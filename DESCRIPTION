@@ -6,7 +6,7 @@ Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
         "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "aut"))
 Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
 Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors, BiocParallel
-Imports: methods, utils, IRanges, XVector, muscle, BiocGenerics, 
+Imports: methods, utils, IRanges, XVector, BiocGenerics, 
         GenomicAlignments, igraph, data.table, Rcpp, ShortRead
 Suggests: Rsamtools, knitr, testthat
 Description: Implements methods for pre-processing of Oxford Nanopore 
@@ -15,7 +15,7 @@ Description: Implements methods for pre-processing of Oxford Nanopore
 License: GPL-3
 NeedsCompilation: yes
 VignetteBuilder: knitr
-LinkingTo: Rcpp, Biostrings, IRanges, XVector, S4Vectors
-SystemRequirements: C++11
+LinkingTo: Rcpp, Biostrings, IRanges, XVector, S4Vectors, RSeqAn
+SystemRequirements: C++14
 Author: Florian Bieberich [aut, cre], Aaron Lun [aut]
-RoxygenNote: 6.1.0
+RoxygenNote: 6.1.1

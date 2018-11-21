@@ -28,6 +28,8 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(match_homopolymers, 2),
     REGISTER(find_errors, 2),
 
+    REGISTER(quick_msa, 7),
+
     {NULL, NULL, 0}
 };
 

@@ -37,6 +37,8 @@ SEXP find_homopolymers(SEXP);
 SEXP match_homopolymers(SEXP, SEXP);
 SEXP find_errors(SEXP, SEXP);
 
+SEXP quick_msa(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+
 }
 
 #endif
