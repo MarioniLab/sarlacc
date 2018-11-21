@@ -45,7 +45,7 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
         return(out)
     }
 
-    # Setting "100" to ignore everything afterwards.
+    # Actually extracting out the data.
     nfields <- max(count.fields(sam, skip=N, sep="\t", comment.char="", quote=""), na.rm=TRUE)
     what <- list("character","integer","character", "character", "integer", "character")
     what <- c(what, vector("list", nfields - length(what)))
@@ -74,7 +74,6 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=strandedness,
         seqinfo=Seqinfo(names(ref.len), seqlengths=ref.len))
 
-    granges$cigar <- mapping$CIGAR
     granges$left.clip <- .get_clip_length(mapping$CIGAR)
     granges$right.clip <- .get_clip_length(mapping$CIGAR, start=FALSE)
 
