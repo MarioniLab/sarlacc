@@ -1,28 +1,33 @@
 \name{groupAligned}
-\alias{groupAligned}
+\alias{groupAlignedGenome}
+\alias{groupAlignedTrans}
 
 \title{Group aligned reads by location}
 \description{Group alignments based on their location in the reference, with an additional threshold on the minimum overlap.}
 
 \usage{
-groupAligned(locations, threshold=0.8, cluster.fun=cluster_fast_greedy)
+groupAlignedGenome(locations)
+
+groupAlignedTrans(locations)
+    
 }
 
 \arguments{
 \item{locations}{A \linkS4class{GenomicRanges} object containing an alignment location for each read.
 Alternatively, a \linkS4class{GenomicRangesList} object containing a multi-entry alignment for each read.}
-\item{threshold}{A numeric scalar specifying the minimum percent overlap between alignment locations.}
-\item{cluster.fun}{A clustering function that takes a \linkS4class{graph} object and returns a \linkS4class{communities} object.}
 }
 
 \details{
-Consider a graph where each node is a read.
-Pairs of nodes are connected if their alignment widths overlap by at least \code{threshold}.
-Communities of highly connected reads are then obtained using \code{\link{cluster.fun}}, where each community represents a group of similar reads.
+For \code{groupAlignedGenome}, aligned reads are grouped together based on overlaps to intervals on the reference genome.
+We define each interval of interest as a contiguous region of unbroken coverage along a given strand of a reference sequence.
+Each aligned read is then assigned to the first interval that it overlaps, and the set of reads assigned to each interval forms a group.
 
-The overlap proportion for each pair is based on the width of the overlapping region divided by the larger of the two alignment widths.
-This means that the overlap region must be large relative to both reads, consistent with their origin from the same underlying molecule.
-A multi-entry alignment for each read is supported assuming the various entries for a given read are non-overlapping.
+For \code{groupAlignedTrans}, aligned reads are grouped together according to the name and strand of the reference sequence to which it aligns.
+This is faster and more relevant for alignments to transcriptomes containing relatively short reference sequences.
+All reads assigned to a particular name/strand combination form a group.
+
+For multi-entry alignments, each element of \code{locations} will be sorted prior to identifying groups.
+This reduces the chance that reads with similar alignment locations are assigned to different groups solely due to the ordering of alignment entries.
 }
 
 \value{

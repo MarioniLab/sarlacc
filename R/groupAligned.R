@@ -1,9 +1,9 @@
 #' @export
-#' @importFrom IRanges findOverlaps coverage
+#' @importFrom IRanges findOverlaps coverage slice
 #' @importFrom S4Vectors queryHits subjectHits
-#' @importFrom BiocGenerics width strand<-
+#' @importFrom BiocGenerics width strand<- sort
 #' @importFrom methods is as
-#' @importClassesFrom GenomicRanges GenomicRanges
+#' @importClassesFrom GenomicRanges GenomicRangesList
 #' @importFrom GenomeInfoDb seqnames
 groupAlignedGenome <- function(locations) 
 # Groups alignments based on their genomic coordinates.
@@ -11,6 +11,7 @@ groupAlignedGenome <- function(locations)
 # written by Aaron Lun
 # created 22 November 2018
 {
+    locations <- .enforce_order(locations)
     mapped <- seqnames(locations)!="*"
     pcov <- coverage(locations[mapped & strand(locations)=="+"])
     ncov <- coverage(locations[mapped & strand(locations)=="-"])
@@ -24,27 +25,41 @@ groupAlignedGenome <- function(locations)
 
     # All mapped elements should overlap with at least one standard,
     # and exactly one if the elements do not have multiple entries.
+    if (is(locations, "GenomicRangesList")) {
+        locations <- sort(locations)
+    }
     olap <- findOverlaps(locations, standards, ignore.strand=FALSE, select="first")
     .clear_unmapped(olap, locations, mapped)
 }
 
 #' @export
 #' @importFrom S4Vectors head
-#' @importFrom BiocGenerics strand
+#' @importFrom BiocGenerics strand sort
 #' @importFrom GenomeInfoDb seqnames
+#' @importFrom methods is
+#' @importClassesFrom GenomicRanges GenomicRangesList
 groupAlignedTrans <- function(locations) 
 # Groups alignments based on the reference sequence name.
 #
 # written by Aaron Lun
 # created 22 November 2018
 {
-    mapped <- seqnames(locations)!="*"
-    first <- c(1L, 1L+cumsum(head(lengths(locations), -1)))
-    by.rname <- unlist(seqnames(locations), use.names=FALSE)[first]
-    by.strand <- unlist(strand(locations), use.names=FALSE)[first]
-    .clear_unmapped(
-        as.integer(factor(paste0(by.rname, ":", by.strand))), 
-        locations, mapped)
+    if (is(locations, "GenomicRangesList")) {
+        locations <- locations[seqnames(locations)!="*"]
+        locations <- sort(locations)
+
+        # Take the first entry within each GRL element 
+        # (protect against out-of-range errors with lengths of zero).
+        first <- cumsum(lengths(locations)) - lengths(locations) + (lengths(locations)>0L)
+        by.rname <- unlist(seqnames(locations), use.names=FALSE)[first]
+        by.strand <- unlist(strand(locations), use.names=FALSE)[first]
+    } else {
+        by.rname <- seqnames(locations)
+        by.strand <- strand(locations)
+    }
+    
+    combo <- paste0(as.integer(by.rname), ":", as.integer(by.strand))
+    .clear_unmapped(as.integer(factor(combo)), locations, seqnames(locations)!="*")
 }
 
 #' @importFrom methods is
@@ -58,4 +73,3 @@ groupAlignedTrans <- function(locations)
     names(grouping) <- names(locations)
     grouping
 }
-
