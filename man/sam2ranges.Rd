@@ -10,26 +10,26 @@ sam2ranges(sam, minq = 10, restricted = NULL)
 
 \arguments{
 \item{sam}{String containing the path to a SAM file.}
-\item{minq}{A numeric scalar specifying the minimum mapping quality score for an alignment to be retained.}
+\item{minq}{A numeric scalar specifying the minimum mapping quality score for an alignment.}
 \item{restricted}{A character vector containing reference sequences to restrict to.}
 }
 
 \details{
-We use SAM files as ONT CIGAR strings are too long to be handled with the BAM format, and \pkg{Rsamtools} is yet to support CRAM files.
+We use SAM files as Nanopore CIGAR strings are too long to be handled with the BAM format, and \pkg{Rsamtools} is yet to support CRAM files.
 
-If \code{restricted} is not \code{NULL}, only alignments to reference sequences in \code{restricted} will be considered.
-This is useful for discarding alignments to scaffolds or other uninteresting parts of the genome.
+If \code{minq} is set, all reads with a lower mapping quality score are considered to be unmapped.
+These are preserved in the output (for consistency with the original FASTQ file) but are assigned reference locations of \code{"*"}.
 
-If \code{minq=NULL}, no filtering is performed.
+If \code{restricted} is not \code{NULL}, only alignments to reference sequences in \code{restricted} will be considered as valid.
+All other alignments will have their reference locations set to \code{"*"} to indicate that they are to be ignored.
 }
 
 \value{
-A GRangesList is returned where each entry corresponds to a read.
+A \linkS4class{GRangesList} is returned where each entry corresponds to a read.
 An entry may be of length greater than 1 if a read aligns to multiple locations (due to multi-mapping or chimerism).
 }
 
 \seealso{
-\code{\link{GRangesList-class}},
 \code{\link{cigarWidthAlongReferenceSpace}}
 }
 

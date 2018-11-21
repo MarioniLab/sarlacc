@@ -4,7 +4,7 @@
 #' @importFrom S4Vectors split
 #' @importFrom IRanges IRanges
 #' @importFrom GenomicRanges GRanges
-#' @importFrom data.table fread
+#' @importFrom GenomeInfoDb Seqinfo
 sam2ranges <- function(sam, minq = 10, restricted = NULL)
 # Returns an GRanges object containing read name, position, length, strand and chr location.
 # This is a bit more complicated due to the need to parse a SAM file, not a BAM file 
@@ -34,10 +34,9 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     }
     close(curfile)
 
-    collected <- paste(collected, collapse = "\n")
-    collected <- fread(collected,header = FALSE)
-    ref.len <- as.integer(sub("^LN:","", collected$V3))
-    names(ref.len) <- sub("^SN:","", collected$V2)
+    ref.len <- as.integer(sub(".*\tLN:([^\t]+)(\t.*)?","\\1", collected))
+    names(ref.len) <- sub(".*\tSN:([^\t]+)(\t.*)?", "\\1", collected)
+    ref.len <- c(ref.len, `*`=0L) # for unmapped reads.
 
     # Avoid silly behaviour if the file is actually empty.
     if (is.empty) { 
@@ -53,32 +52,33 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     suppressWarnings(mapping <- read.delim(sam, header=FALSE, skip=N, colClasses=what, fill=TRUE, quote="", comment.char="", stringsAsFactors=FALSE))
     colnames(mapping) <- c("QNAME", "FLAG", "RNAME", "POS", "MAPQ", "CIGAR")
    
-    # Keeping only mapped reads and non-secondary reads. 
-    keep <- !bitwAnd(mapping$FLAG, 0x4) & !bitwAnd(mapping$FLAG, 0x100)
+    # Only processing mapped reads above a certain quality and on the desired chromosomes.
+    keep <- !bitwAnd(mapping$FLAG, 0x4) 
     if (!is.null(minq)) {
         keep <- keep & mapping$MAPQ >= minq
     }
-    mapping <- mapping[keep,]
+    if (!is.null(restricted)){ 
+        keep <- keep & mapping$RNAME %in% restricted
+    }
+
+    mapping$RNAME[!keep] <- "*"
+    mapping$POS[!keep] <- "1" # avoid trim() warnings.
+    mapping$CIGAR[!keep] <- ""
+
+    strandedness <- ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+")
+    strandedness[!keep] <- "*"
 
     # Creating a GRanges object.
     align.len <- cigarWidthAlongReferenceSpace(mapping$CIGAR)
-    pos <- as.integer(as.character(mapping$POS))
-    granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+"),
-                       seqinfo=Seqinfo(names(ref.len), seqlengths=ref.len))
+    pos <- as.integer(mapping$POS)
+    granges <- GRanges(mapping$RNAME, IRanges(pos, width=align.len), strand=strandedness,
+        seqinfo=Seqinfo(names(ref.len), seqlengths=ref.len))
 
-    # Annotating with left/right soft/hard clips.
+    granges$cigar <- mapping$CIGAR
     granges$left.clip <- .get_clip_length(mapping$CIGAR)
     granges$right.clip <- .get_clip_length(mapping$CIGAR, start=FALSE)
 
-    # Restricting to a subset of the alignments on particular chromosomes.
-    read.names <- mapping$QNAME
-    if (!is.null(restricted)){ 
-        keep <- seqnames(granges) %in% restricted
-        granges <- granges[keep]
-        read.names <- read.names[as.logical(keep)]
-    }
-        
-    split(granges, read.names, drop=FALSE)
+    split(granges, mapping$QNAME, drop=FALSE)
 }
 
 .get_clip_length <- function(cigars, start=TRUE) {
