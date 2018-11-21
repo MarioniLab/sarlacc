@@ -9,7 +9,8 @@ groupAligned(locations, threshold=0.8, cluster.fun=cluster_fast_greedy)
 }
 
 \arguments{
-\item{locations}{A \linkS4class{GenomicRanges} object containing an alignment location for each read.}
+\item{locations}{A \linkS4class{GenomicRanges} object containing an alignment location for each read.
+Alternatively, a \linkS4class{GenomicRangesList} object containing a multi-entry alignment for each read.}
 \item{threshold}{A numeric scalar specifying the minimum percent overlap between alignment locations.}
 \item{cluster.fun}{A clustering function that takes a \linkS4class{graph} object and returns a \linkS4class{communities} object.}
 }
@@ -26,6 +27,7 @@ A multi-entry alignment for each read is supported assuming the various entries 
 
 \value{
 An integer vector specifying the group identity for each entry of \code{locations}.
+Unmapped reads have identities of \code{NA}.
 }
 
 \seealso{
