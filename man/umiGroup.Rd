@@ -10,7 +10,7 @@ umiGroup(UMI1, max.lev1=3, UMI2=NULL, max.lev2=max.lev1, max.err=NA,
 }
 
 \arguments{
-\item{UMI1}{A DNAStringSet or QualityScaledDNAStringSet object containing the UMI sequence for each read.}
+\item{UMI1}{A \linkS4class{DNAStringSet} or \linkS4class{QualityScaledDNAStringSet} object containing the UMI sequence for each read.}
 \item{max.lev1}{A integer scalar specifying the maximum distance between the UMI sequences of two reads in order for them to be considered equivalent.}
 \item{UMI2}{An optional DNAStringSet or QualityScaledDNAStringSet object containing the second UMI sequence for each read.}
 \item{max.lev2}{A integer scalar specifying the maximum distance between the UMI sequences of two reads in order for them to be considered equivalent.}
@@ -49,7 +49,7 @@ Reads are only connected in the graph if the distance for \code{UMI1} is less th
 }
 
 \value{
-An integer vector containing the groupings for all reads, where reads in the same group are assigned to the same level.
+A list of integer vectors, where each vector represents a group and contains the indices of the reads (i.e., with respect to \code{UMI1}) in that group.
 }
 
 \seealso{

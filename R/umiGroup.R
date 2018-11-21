@@ -1,7 +1,6 @@
 #' @export
 umiGroup <- function(UMI1, threshold1 = 3, UMI2 = NULL, threshold2 = threshold1, max.err=NA, groups=NULL)
 # Groups UMIs based on their Levenshtein distances.
-# Note that the 'importFrom' is due to an implicit order() call in the C++ code.
 # 
 # written by Aaron Lun
 # created 25 February 2018
