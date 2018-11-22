@@ -20,5 +20,7 @@ consensusReadSeq <- function(alignments, pseudo.count=1, min.coverage=0.6, BPPAR
         out <- .Call(cxx_create_consensus_basic_loop, aln, min.coverage, pseudo.count)
     }
 
-    return(QualityScaledDNAStringSet(DNAStringSet(out[[1]]), PhredQuality(out[[2]])))
+    output <- QualityScaledDNAStringSet(DNAStringSet(out[[1]]), PhredQuality(out[[2]]))
+    names(output) <- rownames(alignments)
+    output
 }
