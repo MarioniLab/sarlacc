@@ -42,11 +42,11 @@ All masks are removed in the output strings unless \code{keep.mask=TRUE}, in whi
 }
 
 \value{
-A DataFrame containing \code{alignments}, a list of character vectors.
-Each vector corresponds to an element of \code{groups} and contains the alignment strings for that group.
+A \linkS4class{DataFrame} containing \code{alignments}, a \linkS4class{List} of character vectors.
+Each vector corresponds to a read group in \code{groups} and contains the multiple sequence alignment strings for that group.
 
-If \code{reads} is a QualityScaledDNAStringSet, the output DataFrame will also contain \code{qualities}, a list of lists of numeric vectors of base-calling error probabilities.
-Each internal list corresponds to a MSA in \code{alignments}, and each vector corresponds to a sequence in the MSA.
+If \code{reads} is a QualityScaledDNAStringSet, the output DataFrame will also contain \code{qualities}, a List of quality score objects.
+Each object contains the quality scores for each sequence in the MSA in the corresponding entry of \code{alignments}.
 }
 
 \author{

@@ -10,7 +10,7 @@ consensusReadSeq(alignments, pseudo.count=1, min.coverage=0.6,
 }
 
 \arguments{
-    \item{alignments}{A DataFrame with a list of alignment strings and (optionally) a list of lists of error probabilities, as produced by \code{\link{multiReadAlign}}.}
+    \item{alignments}{A \linkS4class{DataFrame} with a \linkS4class{List} of alignment strings and (optionally) a List of quality scores, as produced by \code{\link{multiReadAlign}}.}
     \item{pseudo.count}{A numeric scalar specifying the pseudo-count that should be added when computing quality scores for each base.}
     \item{min.coverage}{A numeric scalar specifying the minimum proportion of reads with a base at a particular position in order to define a base position in the consensus.}
     \item{BPPARAM}{A BiocParallelParam object controlling how paralellization should be performed.}
@@ -31,7 +31,8 @@ This effectively shrinks the probabilities towards a prior value of 0.25.
 }
 
 \value{
-A QualityScaledDNAStringSet containing the consensus sequence for each UMI group, along with the associated Phred quality scores.
+A \linkS4class{QualityScaledDNAStringSet} containing the consensus sequence for each UMI group, along with the associated Phred quality scores.
+Each entry is named according to \code{rownames(alignments)}.
 }
 
 \author{
