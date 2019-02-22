@@ -233,21 +233,32 @@ However, reads in the same group may not come from the same molecule.
 For the purpose of error correction, more conservative thresholds are generally preferable.
 We do not want to use reads from multiple molecules for correction, especially if molecules differ in their base composition due to, e.g., allelic variation.
 (On the other hand, more relaxed thresholds may be desirable if the aim is to eliminate PCR duplicates.)
-
+  
 ## Based on the read sequence
 
-To satisfy the first requirement, we perform pairwise alignments between all reads using the `groupReads` function.
-This is based on the _minimap2_ software, which must be installed on the system.
-
+We first extract the read sequence using `realizeReads`.
+This standardizes the orientation and trims adaptors in preparation for further processing.
+    
 ```{r}
-my.sample$reads <- realizeReads(my.sample)
-pre.groups <- groupReads(my.sample$reads, truncate=1000)
-summary(lengths(pre.groups))
+my.sample$reads <- realizeReads(my.sample) 
 ```
 
-For the sake of speed, we only use the first 1 kbp of each read.
-This should be sufficient to obtain a rough measure of similarity - grouping on the full read sequence is unnecessary.
-We only group reads together if they share at least 70% sequence identity in their first 500 bp.
+A simple grouping strategy is to align the reads to a reference and define groups of reads based on their overlap with annotated features.
+For example, we could align reads to a reference transcriptome and define each set of reads mapping to the same transcript as a single group.
+This would use the name of the reference sequence as a grouping factor, which can be extracted from BAM files using `r Biocpkg("Rsamtools")`.
+
+A more complex approach would be to perform pairwise alignments between all reads using the `groupReads` function.
+This is based on the _minimap2_ aligner and will define groups of reads that have similar sequences (at least 70% sequence identity, by default).
+However, this is much more computationally intensive.
+
+For demonstration purposes, we will use groupings of reads based on their `MOLECULE_` tags.
+Obviously, this would not be available in real data analyses, but setting up an alignment to a real reference transcriptome is beyond the scope of this vignette.
+The main point here is that a `pre.groups` vector of group IDs should be constructed, with one value per read indicating the group to which the read belongs.
+
+```{r}
+pre.groups <- sub("MOLECULE_([0-9]+).*", "\\1", rownames(my.sample))
+table(pre.groups)
+```
 
 ## Based on the UMI
 

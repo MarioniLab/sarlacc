@@ -24,10 +24,17 @@ library(sarlacc)
 # Introduction
 
 The `r Biocpkg("sarlacc")` package provides a few methods to examine the accuracy of the read sequences produced generated with the Oxford Nanpore Technology (ONT).
-This requires both the read sequences^[With adaptors removed, see `?chopReads` in the error correction vignette.]:
+This requires both the read sequences^[With adaptors removed.]
 
 ```{r}
-source(system.file("scripts", "create_mock_seqs.R", package="sarlacc"))
+# Mocking up some read data, post-adaptor removal.
+set.seed(1000)
+fastq <- tempfile(fileext=".fastq")
+reference <- sarlacc:::mockReads(adaptor1="", adaptor2="",
+    filepath=fastq, umi.position=c(1,0), barcode.position=c(1,0),
+    nreads.range=c(50, 100)) # more reads.
+fastq 
+
 reads <- readQualityScaledDNAStringSet(fastq)
 reads
 ```
@@ -37,7 +44,7 @@ The latter can be obtained by mapping reads to a reference sequence with tools l
 Of course, this is only possible in cases where the reference is not in question, e.g., spike-in sequences.
 
 ```{r}
-reference # produced by the source'd file.
+reference
 ```
 
 We further subset to only retain the read sequences corresponding to a single reference.
@@ -126,7 +133,6 @@ boxplot(by.true.width, at=as.integer(names(by.true.width)),
 abline(a=0, b=1, col="red")
 ```
 
-... which matches up nicely here, but recall that this is simulated data.
 In real data, one will often see a plateau in the observed width as the true homopolymer width increases past 5 nucleotides.
 
 Users may wish to remove homopolymers from the error statistics in `err.out`, as the homopolymer-related errors may inflate the overall deletion rate.
