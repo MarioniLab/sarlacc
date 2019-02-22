@@ -2,6 +2,7 @@
 
 #include "reference_align.h"
 #include "utils.h"
+#include "DNA_input.h"
 
 #include <vector>
 #include <stdexcept>
@@ -16,9 +17,9 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
             check_numeric_scalar(gapext, "gap extension penalty")
     );
 
-    auto sholder=hold_XStringSet(readseq);
+    auto sholder=process_DNA_input(readseq);
     auto qholder=hold_XStringSet(readqual);
-    const size_t nseq=sholder.length;
+    const size_t nseq=sholder->size();
     if (nseq!=qholder.length) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
@@ -42,9 +43,9 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
     std::deque<size_t> backtrack_start, backtrack_end;
 
     for (size_t i=0; i<nseq; ++i) {
-        auto curseq=get_elt_from_XStringSet_holder(&sholder, i);
-        const char* sstr=curseq.ptr;
-        const size_t slen=curseq.length;
+        auto curpair=sholder->get(i);
+        const char* sstr=curpair.first;
+        const size_t slen=curpair.second;
         
         auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
         if (slen!=curqual.length) {

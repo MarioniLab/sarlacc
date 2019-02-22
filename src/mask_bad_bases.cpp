@@ -2,6 +2,7 @@
 
 #include "quality_encoding.h"
 #include "utils.h"
+#include "DNA_input.h"
 
 #include <stdexcept>
 #include <vector>
@@ -10,8 +11,8 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
     BEGIN_RCPP
 
     // Checking inputs.
-    auto sholder=hold_XStringSet(sequences);
-    const size_t nseq=sholder.length;
+    auto sholder=process_DNA_input(sequences);
+    const size_t nseq=sholder->size();
     auto qholder=hold_XStringSet(qualities);
 
     if (nseq!=qholder.length) {
@@ -26,9 +27,9 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
     std::vector<char> buffer(10000, '\0');
 
     for (size_t i=0; i<nseq; ++i) {
-        auto curseq=get_elt_from_XStringSet_holder(&sholder, i);
-        const char* sstr=curseq.ptr;
-        const size_t slen=curseq.length;
+        auto curpair=sholder->get(i);
+        const char* sstr=curpair.first;
+        const size_t slen=curpair.second;
 
         auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
         if (slen!=curqual.length) {
