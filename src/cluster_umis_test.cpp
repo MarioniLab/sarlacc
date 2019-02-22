@@ -9,14 +9,13 @@ SEXP cluster_umis_test (SEXP links) {
     BEGIN_RCPP
     Rcpp::List Links(links);
     const size_t nsets=Links.size();
-    value_store<int> storage;
+    value_store storage;
 
     for (size_t l=0; l<nsets; ++l) {
         Rcpp::IntegerVector current=Links[l];
-        storage.add(current.begin(), current.end());
-        auto startIt=storage.get_start(l);
-        for (size_t i=0; i<current.size(); ++i, ++startIt) {
-            --(*startIt); // get to zero indexing.
+        storage.push_back(std::deque<int>(current.begin(), current.end()));
+        for (auto& x : storage.back()) {
+            --x; // get to zero-indexing.
         }
     }
 

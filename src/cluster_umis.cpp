@@ -1,12 +1,13 @@
 #include "cluster_umis.h"
 
+#include <vector>
 #include <algorithm>
 #include <stdexcept>
 
-Rcpp::List cluster_umis(const value_store<int>& storage) {
+Rcpp::List cluster_umis(const value_store& storage) {
     const size_t n_stored=storage.size();
 
-	std::deque<size_t> ordering(n_stored), remaining(n_stored);
+	std::vector<size_t> ordering(n_stored), remaining(n_stored);
     std::deque<int> per_cluster_values;
     std::deque<Rcpp::IntegerVector> output;
     
@@ -19,11 +20,11 @@ Rcpp::List cluster_umis(const value_store<int>& storage) {
     // Removing solo reads beforehand.
     size_t infront=0, n_out=0;
     for (size_t a=0; a<n_stored; ++a) {
-        const auto& curlen=(remaining[a]=storage.get_len(a));
+        const auto& curlen=(remaining[a]=storage[a].size());
         if (curlen > 1) {
             continue;
         } else if (curlen==1) {
-            if (static_cast<size_t>(*storage.get_start(a))!=a) {
+            if (static_cast<size_t>(storage[a].front())!=a) {
                 throw std::runtime_error("single-read groups should contain only the read itself");
             }
 
@@ -67,8 +68,8 @@ Rcpp::List cluster_umis(const value_store<int>& storage) {
             }
         );
 
-        auto curstart=storage.get_start(*maxIt);
-        auto curend=curstart + storage.get_len(*maxIt);
+        auto curstart=storage[*maxIt].begin();
+        auto curend=storage[*maxIt].end();
         --right;
         std::swap(*maxIt, *right); // swapping it out of [left, right), effectively a pop_back().
 
@@ -90,10 +91,8 @@ Rcpp::List cluster_umis(const value_store<int>& storage) {
             remain=0;
 
             // Also decrementing the counts of all neighbors of neighbors.
-            auto neighstart=storage.get_start(neighbor);
-            auto neighend=neighstart + storage.get_len(neighbor);
-            for (auto nextIt=neighstart; nextIt<neighend; ++nextIt) {
-                auto& nextremain=remaining[*nextIt];
+            for (auto& next : storage[neighbor]) {
+                auto& nextremain=remaining[next];
                 if (nextremain > 0) { 
                     --nextremain;
                 }

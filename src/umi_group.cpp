@@ -4,7 +4,6 @@
 #include "DNA_input.h"
 #include "sorted_trie.h"
 #include "cluster_umis.h"
-#include "value_store.h"
 
 #include <vector>
 #include <stdexcept>
@@ -31,13 +30,6 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
     }
     const int limit2=check_integer_scalar(thresh2, "threshold 2");
 
-    // Defining persistent and reusable arrays for intermediate variable-length constructs.
-    std::vector<const char*> allseqs;
-    std::vector<int> alllens, order;
-    std::vector<int> workspace;
-
-    value_store<int> storage, match_arrays;
-
     // Running through each group to define the current set. 
     Rcpp::List Pregroup(pregroup), output(Pregroup.size());
     for (size_t g=0; g<Pregroup.size(); ++g) {
@@ -49,11 +41,9 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             continue;
         }
 
-        if (curN > allseqs.size()) {
-            allseqs.resize(curN);
-            alllens.resize(curN);
-            order.resize(curN);
-        }
+        std::vector<const char*> allseqs(curN);
+        std::vector<int> alllens(curN), order(curN);
+        value_store storage(curN);
 
         // Processing UMI1.
         seqs1->clear();
@@ -69,18 +59,17 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
         if (!use_two) {
             for (size_t s=0; s<curN; ++s) {
                 auto o=order[s];
-                auto matches=trie1.find(allseqs[o], alllens[o], limit1);
-                storage.add(matches.begin(), matches.end(), o);
+                storage[o]=trie1.find(allseqs[o], alllens[o], limit1);
             }
 
         } else { 
+            value_store match_arrays(curN);
+
             // Saving matches for UMI1.
             for (size_t s=0; s<curN; ++s) {
                 auto o=order[s];
-                const auto& matches=trie1.find(allseqs[o], alllens[o], limit1);
-                match_arrays.add(matches.begin(), matches.end(), o);
-                auto startIt=match_arrays.get_start(o);
-                std::sort(startIt, startIt + match_arrays.get_len(o));
+                match_arrays[o]=trie1.find(allseqs[o], alllens[o], limit1);
+                std::sort(match_arrays[o].begin(), match_arrays[o].end());
             }
 
             // Processing UMI2.
@@ -96,29 +85,21 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             for (size_t s=0; s<curN; ++s) {
                 auto o=order[s];
                 const auto& matches=trie2.find(allseqs[o], alllens[o], limit2);
-                const size_t n_match_one=match_arrays.get_len(o);
-
-                const size_t max_size=std::min(n_match_one, matches.size());
-                if (max_size > workspace.size()) {
-                    workspace.resize(max_size);
-                }
+                std::deque<int> workspace;
 
                 // Identifying the intersection for each read.
-                const auto left=match_arrays.get_start(o);
-                const auto right=left + match_arrays.get_len(o);
-                int counter=0;
+                const auto left=match_arrays[o].begin();
+                const auto right=match_arrays[o].end();
 
                 for (auto m2 : matches) {
                     auto it=std::lower_bound(left, right, m2);
                     if (it!=right && *it==m2) {
-                        workspace[counter]=m2;
-                        ++counter;
+                        workspace.push_back(m2);
                     }
                 }
 
-                storage.add(workspace.begin(), workspace.begin() + counter, o);
+                storage[o]=std::move(workspace);
             }
-            match_arrays.clear();
         }
 
         Rcpp::List curout=cluster_umis(storage);
@@ -128,7 +109,6 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             curout[i]=curvec;
         }
         output[g]=curout;
-        storage.clear();
     }
 
     return output;
