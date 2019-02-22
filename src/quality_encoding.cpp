@@ -1,5 +1,7 @@
 #include "quality_encoding.h"
 
+#include <stdexcept>
+
 quality_encoding::quality_encoding(Rcpp::NumericVector encoding) : offset(0), errors(encoding) {
     Rcpp::StringVector topbases=encoding.names();
     if (topbases.size()==0 || topbases.size()!=encoding.size()) {

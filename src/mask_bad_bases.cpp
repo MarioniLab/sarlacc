@@ -1,14 +1,17 @@
 #include "sarlacc.h"
-#include "DNA_input.h"
+
 #include "quality_encoding.h"
 #include "utils.h"
+
+#include <stdexcept>
+#include <vector>
 
 SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP threshold) {
     BEGIN_RCPP
 
     // Checking inputs.
-    auto all_seq=process_DNA_input(sequences);
-    const size_t nseq=all_seq->size();
+    auto sholder=hold_XStringSet(sequences);
+    const size_t nseq=sholder.length;
     auto qholder=hold_XStringSet(qualities);
 
     if (nseq!=qholder.length) {
@@ -23,9 +26,9 @@ SEXP mask_bad_bases (SEXP sequences, SEXP qualities, SEXP encoding, SEXP thresho
     std::vector<char> buffer(10000, '\0');
 
     for (size_t i=0; i<nseq; ++i) {
-        auto curpair=all_seq->get(i);
-        const char* sstr=curpair.first;
-        const size_t slen=curpair.second;
+        auto curseq=get_elt_from_XStringSet_holder(&sholder, i);
+        const char* sstr=curseq.ptr;
+        const size_t slen=curseq.length;
 
         auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
         if (slen!=curqual.length) {

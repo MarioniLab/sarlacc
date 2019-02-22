@@ -1,5 +1,9 @@
 #include "sarlacc.h"
+
 #include "DNA_input.h"
+
+#include <stdexcept>
+#include <vector>
 
 /* Obtain alignment strings but with the low-quality bases unmasked.
  * Requires the original sequences, and only works on global alignments.

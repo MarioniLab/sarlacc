@@ -1,5 +1,7 @@
 #include "utils.h"
 
+#include <sstream>
+
 template<typename T, class V> 
 T check_scalar(Rcpp::RObject incoming, const char* arg, const char* val) {
     V vec(incoming);

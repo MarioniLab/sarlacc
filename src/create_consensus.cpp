@@ -1,7 +1,14 @@
 #include "sarlacc.h"
+
 #include "DNA_input.h"
 #include "quality_encoding.h"
 #include "utils.h"
+
+#include <cmath>
+#include <vector>
+#include <sstream>
+#include <stdexcept>
+#include <algorithm>
 
 // Constants.
 const double max_error=0.99999999, min_error=0.00000001;

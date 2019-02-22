@@ -1,6 +1,7 @@
 #ifndef VALUE_STORE_H
 #define VALUE_STORE_H
-#include "sarlacc.h"
+
+#include <algorithm>
 
 /* This defines a class that stores multiple variable length arrays in a single container.
  * This avoids the need to reallocate memory for separate deques/vectors for different arrays

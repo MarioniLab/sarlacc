@@ -1,5 +1,9 @@
 #include "reference_align.h"
 
+#include <cmath>
+#include <algorithm>
+#include <stdexcept>
+
 reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::NumericVector qualities, double go, double ge) : 
         rlen(reflen), rseq(refseq), gap_open(go+ge), gap_ext(ge), 
         scores(nrows), affine_left(nrows), directions(nrows*(rlen+1))

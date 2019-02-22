@@ -1,7 +1,9 @@
 #ifndef UTILS_H
 #define UTILS_H
 
-#include "sarlacc.h"
+#include "Rcpp.h"
+
+#include <string>
 
 int check_integer_scalar(Rcpp::RObject, const char*);
 

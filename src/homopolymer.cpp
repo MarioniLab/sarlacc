@@ -1,5 +1,8 @@
 #include "sarlacc.h"
 
+#include <deque>
+#include <stdexcept>
+
 struct rle_walker {
     rle_walker(const char * p, const size_t l) : ptr(p), len(l), 
             last_pos(0), cur_pos(0), nonbases(0), last_base(0), next_base(0),

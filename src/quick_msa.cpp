@@ -1,9 +1,12 @@
 #include "sarlacc.h"
+
 #include "DNA_input.h"
 #include "utils.h"
 
 #include <seqan/align.h>
 #include <seqan/graph_msa.h>
+
+#include <sstream>
 
 typedef seqan::Dna5String TSource;
 typedef seqan::Score<int, seqan::Simple> TScore;

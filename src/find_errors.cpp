@@ -1,5 +1,9 @@
 #include "sarlacc.h"
 
+#include <stdexcept>
+#include <deque>
+#include <sstream>
+
 /* This function identifies errors at each base in a reference alignment string. */
 
 SEXP find_errors (SEXP ref_align, SEXP read_align) {

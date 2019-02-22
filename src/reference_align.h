@@ -2,9 +2,11 @@
 #define REFERENCE_ALIGN_H
 
 #include "Rcpp.h"
+
+#include "quality_encoding.h"
+
 #include <vector>
 #include <deque>
-#include "quality_encoding.h"
 
 class reference_align {
 public:

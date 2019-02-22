@@ -1,5 +1,9 @@
 #include "sarlacc.h"
+
 #include "DNA_input.h"
+
+#include <vector>
+#include <algorithm>
 
 /* This function computes a masked version of the Levenshtein distance,
  * where N's always contribute a mismatch no matter what they are matched to.

@@ -2,6 +2,11 @@
 #include "utils.h"
 #include "DNA_input.h"
 
+#include <vector>
+#include <deque>
+#include <algorithm>
+#include <stdexcept>
+
 const std::vector<char> BASES={'A', 'C', 'G', 'T', 'N'};
 const int NBASES=BASES.size();
 

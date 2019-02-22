@@ -1,7 +1,9 @@
 #ifndef UMI_CLUSTERER_H
 #define UMI_CLUSTERER_H
-#include "sarlacc.h"
+
+#include "Rcpp.h"
 #include "value_store.h"
+#include <deque>
 
 class umi_clusterer{
 public:

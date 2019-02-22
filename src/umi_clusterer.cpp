@@ -1,5 +1,8 @@
 #include "umi_clusterer.h"
 
+#include <algorithm>
+#include <stdexcept>
+
 Rcpp::List umi_clusterer::cluster() {
     const size_t n_stored=storage.size();
     if (n_stored > ordering.size()) { 

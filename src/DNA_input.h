@@ -1,9 +1,17 @@
 #ifndef DNA_INPUT_H
 #define DNA_INPUT_H
 
-#include "sarlacc.h"
+#include "Rcpp.h"
+
+extern "C" {
+
+#include "Biostrings_interface.h"
+
+}
+
 #include <memory>
 #include <string>
+#include <deque>
 
 class DNA_input {
 public:    

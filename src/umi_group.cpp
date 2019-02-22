@@ -1,9 +1,16 @@
 #include "sarlacc.h"
+
 #include "utils.h"
 #include "DNA_input.h"
 #include "sorted_trie.h"
 #include "umi_clusterer.h"
 #include "value_store.h"
+
+#include <vector>
+#include <stdexcept>
+#include <memory>
+#include <deque>
+#include <algorithm>
 
 SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) {
     BEGIN_RCPP

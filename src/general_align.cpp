@@ -1,7 +1,10 @@
 #include "sarlacc.h"
+
 #include "reference_align.h"
 #include "utils.h"
-#include "DNA_input.h"
+
+#include <deque>
+#include <stdexcept>
 
 SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, SEXP gapext, SEXP reference) {
     BEGIN_RCPP
@@ -12,9 +15,9 @@ SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, S
             check_numeric_scalar(gapext, "gap extension penalty")
     );
 
-    auto sholder=process_DNA_input(inputseq);
+    auto sholder=hold_XStringSet(inputseq);
     auto qholder=hold_XStringSet(inputqual);
-    const size_t nseq=sholder->size();
+    const size_t nseq=sholder.length;
     if (nseq!=qholder.length) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
@@ -25,9 +28,9 @@ SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, S
     std::deque<char> tmpref, tmpquery;
 
     for (size_t i=0; i<nseq; ++i) {
-        auto curpair=sholder->get(i);
-        const char* sstr=curpair.first;
-        const size_t slen=curpair.second;
+        auto curseq=get_elt_from_XStringSet_holder(&sholder, i);
+        const char* sstr=curseq.ptr;
+        const size_t slen=curseq.length;
         
         auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
         if (slen!=curqual.length) {

@@ -1,7 +1,11 @@
 #include "sarlacc.h"
+
 #include "reference_align.h"
 #include "utils.h"
-#include "DNA_input.h"
+
+#include <vector>
+#include <stdexcept>
+#include <deque>
 
 SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEXP gapext, SEXP adaptor, SEXP sec_starts, SEXP sec_ends) {
     BEGIN_RCPP
@@ -12,9 +16,9 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
             check_numeric_scalar(gapext, "gap extension penalty")
     );
 
-    auto sholder=process_DNA_input(readseq);
+    auto sholder=hold_XStringSet(readseq);
     auto qholder=hold_XStringSet(readqual);
-    const size_t nseq=sholder->size();
+    const size_t nseq=sholder.length;
     if (nseq!=qholder.length) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
@@ -38,9 +42,9 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
     std::deque<size_t> backtrack_start, backtrack_end;
 
     for (size_t i=0; i<nseq; ++i) {
-        auto curpair=sholder->get(i);
-        const char* sstr=curpair.first;
-        const size_t slen=curpair.second;
+        auto curseq=get_elt_from_XStringSet_holder(&sholder, i);
+        const char* sstr=curseq.ptr;
+        const size_t slen=curseq.length;
         
         auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
         if (slen!=curqual.length) {
@@ -79,9 +83,9 @@ SEXP adaptor_align_score_only(SEXP readseq, SEXP readqual, SEXP encoding, SEXP g
             check_numeric_scalar(gapext, "gap extension penalty")
     );
 
-    auto sholder=process_DNA_input(readseq);
+    auto sholder=hold_XStringSet(readseq);
     auto qholder=hold_XStringSet(readqual);
-    const size_t nseq=sholder->size();
+    const size_t nseq=sholder.length;
     if (nseq!=qholder.length) {
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
@@ -89,9 +93,9 @@ SEXP adaptor_align_score_only(SEXP readseq, SEXP readqual, SEXP encoding, SEXP g
     // Setting up the output.
     Rcpp::NumericVector scores(nseq);
     for (size_t i=0; i<nseq; ++i) {
-        auto curpair=sholder->get(i);
-        const char* sstr=curpair.first;
-        const size_t slen=curpair.second;
+        auto curseq=get_elt_from_XStringSet_holder(&sholder, i);
+        const char* sstr=curseq.ptr;
+        const size_t slen=curseq.length;
 
         auto curqual=get_elt_from_XStringSet_holder(&qholder, i);
         if (slen!=curqual.length) {
