@@ -135,7 +135,7 @@ test_that("overall adaptorAlign function works correctly", {
     QSDS <- QualityScaledDNAStringSet(myread, PhredQuality(myqual))
     QSDS <- c(QSDS, reverseComplement(QSDS))
 
-    tmp <- tempfile(, fileext=".fastq")
+    tmp <- tempfile(fileext=".fastq")
     names(QSDS) <- c("X", "Y")
     writeXStringSet(QSDS, qualities=quality(QSDS), format="fastq", filepath=tmp)
 

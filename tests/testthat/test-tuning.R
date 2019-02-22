@@ -8,42 +8,27 @@ reads <- c(
     "CGTCGACGATGACTGATCGATCGTAGTTCATCGACGATGTAACGCTCGA",
     "CGTACGACGATGACTGATCGATCGTAGTTCATCGACGATGTAACGCCGA",
     "CGTACGACGATGACTGATCGATCGTAGTTCATCGACGATGTAACGCTCGA",
-    "CGCTACGACGATGACTGATCGATCGTAGTTCATCGACGATGTAACGGTCGA"
+    "CGCTACGACGATGACTGATCGATCGTAGTTCATCGACGATGTAACGGTCGA",
+    "GTACGACGATTTACTGATCGATCGTAGTTCATCGACGATGTAACGCTCGA",
+    "CGTCGACGATGACTGGGCGATCGTAGTTCATCGACGATGTAACGCTCGA",
+    "TACGACGATGACTGATCATCGTAAAAATTCATCGATGTAACGCCGA",
+    "CGTACGACGATGACTGATCGATCGTAGTTCACCCCGATGTAACGCTCGA",
+    "CGCTACGACGATGACTGCGATCGTAGTTCATAAAAATGTAACGGTCGA"
 )
 
-test_that("tuneAlignments works correctly without quality scores", {
-    out <- tuneAlignment(a1, a2, reads, gapOp.range=c(4, 5), gapExt.range=c(1,2))
-    expect_true(!is.na(out$parameter$match))
-    expect_true(!is.na(out$parameter$mismatch))
+qreads <- QualityScaledDNAStringSet(DNAStringSet(reads),
+    PhredQuality(strrep("~", nchar(reads))))
 
-    args <- list(substitutionMatrix=nucleotideSubstitutionMatrix(out$parameter$match, out$parameter$mismatch),
-        gapOpening=out$parameter$gapOpening, gapExtension=out$parameter$gapExtension, type="local-global")
-
-    aln1F <- do.call(pairwiseAlignment, c(list(pattern=DNAStringSet(reads), subject=DNAString(a1)), args))
-    aln2F <- do.call(pairwiseAlignment, c(list(pattern=DNAStringSet(reads), subject=reverseComplement(DNAString(a2))), args))
-    aln1R <- do.call(pairwiseAlignment, c(list(pattern=DNAStringSet(reads), subject=reverseComplement(DNAString(a1))), args))
-    aln2R <- do.call(pairwiseAlignment, c(list(pattern=DNAStringSet(reads), subject=DNAString(a2)), args))
-
-    Fscores <- pmax(score(aln1F), 0) + pmax(score(aln2F), 0)
-    Rscores <- pmax(score(aln1R), 0) + pmax(score(aln2R), 0)
-    expect_equal(out$scores$reads, pmax(Fscores, Rscores))
-
-    expect_true(min(out$scores$reads) > max(out$scores$scrambled))
-})
-
+tmp <- tempfile(fileext=".fastq")
+names(qreads) <- sprintf("READ_%i", seq_along(reads))
+writeXStringSet(qreads, qualities=quality(qreads), format="fastq", filepath=tmp)
 
 test_that("tuneAlignments works correctly with quality scores", {
-    qreads <- QualityScaledDNAStringSet(DNAStringSet(reads),
-        PhredQuality(strrep("2", nchar(reads))))
-    qa1 <- QualityScaledDNAStringSet(DNAStringSet(a1), PhredQuality(strrep("~", nchar(a1))))
-    qa2 <- QualityScaledDNAStringSet(DNAStringSet(a2), PhredQuality(strrep("~", nchar(a2))))
-
-    out <- tuneAlignment(qa1, qa2, qreads, gapOp.range=c(4, 5), gapExt.range=c(1,2))
-    expect_true(is.na(out$parameter$match))
-    expect_true(is.na(out$parameter$mismatch))
-                
+    out <- tuneAlignment(a1, a2, tmp, gapOp.range=c(4, 5), gapExt.range=c(1,2))
     args <- list(fuzzyMatrix=nucleotideSubstitutionMatrix(), gapOpening=out$parameter$gapOpening, gapExtension=out$parameter$gapExtension, type="local-global")
 
+    qa1 <- QualityScaledDNAStringSet(DNAStringSet(a1), PhredQuality(strrep("~", nchar(a1))))
+    qa2 <- QualityScaledDNAStringSet(DNAStringSet(a2), PhredQuality(strrep("~", nchar(a2))))
     aln1F <- do.call(pairwiseAlignment, c(list(pattern=qreads, subject=qa1), args))
     aln2F <- do.call(pairwiseAlignment, c(list(pattern=qreads, subject=reverseComplement(qa2)), args))
     aln1R <- do.call(pairwiseAlignment, c(list(pattern=qreads, subject=reverseComplement(qa1)), args))
@@ -57,8 +42,11 @@ test_that("tuneAlignments works correctly with quality scores", {
 })
 
 test_that("tuneAlignments fails gracefully with no reads", {
-    blah <- tuneAlignment(a1, a2, reads[0])
-    expect_identical(rep(NA_integer_, 4), unname(unlist(blah$parameters)))
+    tmp2 <- tempfile(fileext=".fastq")
+    writeXStringSet(qreads[0], qualities=quality(qreads[0]), format="fastq", filepath=tmp2)
+
+    blah <- tuneAlignment(a1, a2, tmp2)
+    expect_identical(rep(NA_integer_, 2), unname(unlist(blah$parameters)))
     expect_identical(integer(2), unname(lengths(blah$scores)))
 })
 

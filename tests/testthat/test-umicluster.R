@@ -36,7 +36,7 @@ MOCKUP <- function(nnodes, density)
     diag(out) <- 1
     has.link <- out!=0
 
-    idx <- which(has.link, arr.ind=TRUE)
+    idx <- Matrix::which(has.link, arr.ind=TRUE)
     split(idx[,1], idx[,2])
 }
 
