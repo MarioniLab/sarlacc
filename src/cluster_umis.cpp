@@ -1,10 +1,15 @@
-#include "umi_clusterer.h"
+#include "cluster_umis.h"
 
 #include <algorithm>
 #include <stdexcept>
 
-Rcpp::List umi_clusterer::cluster() {
+Rcpp::List cluster_umis(const value_store<int>& storage) {
     const size_t n_stored=storage.size();
+
+	std::deque<size_t> ordering(n_stored), remaining(n_stored);
+    std::deque<int> per_cluster_values;
+    std::deque<Rcpp::IntegerVector> output;
+    
     if (n_stored > ordering.size()) { 
         ordering.resize(n_stored);
         remaining.resize(n_stored);
@@ -62,8 +67,8 @@ Rcpp::List umi_clusterer::cluster() {
             }
         );
 
-        const auto curstart=storage.get_start(*maxIt);
-        const auto curend=curstart + storage.get_len(*maxIt);
+        auto curstart=storage.get_start(*maxIt);
+        auto curend=curstart + storage.get_len(*maxIt);
         --right;
         std::swap(*maxIt, *right); // swapping it out of [left, right), effectively a pop_back().
 
@@ -85,8 +90,8 @@ Rcpp::List umi_clusterer::cluster() {
             remain=0;
 
             // Also decrementing the counts of all neighbors of neighbors.
-            const auto neighstart=storage.get_start(neighbor);
-            const auto neighend=neighstart + storage.get_len(neighbor);
+            auto neighstart=storage.get_start(neighbor);
+            auto neighend=neighstart + storage.get_len(neighbor);
             for (auto nextIt=neighstart; nextIt<neighend; ++nextIt) {
                 auto& nextremain=remaining[*nextIt];
                 if (nextremain > 0) { 
@@ -107,31 +112,4 @@ Rcpp::List umi_clusterer::cluster() {
     return Rcpp::List(output.begin(), output.begin() + n_out);
 }
 
-/*****************************
- * R-level testing function. *
- *****************************/
 
-SEXP cluster_umis_test (SEXP links) {
-    BEGIN_RCPP
-    Rcpp::List Links(links);
-    const size_t nsets=Links.size();
-    umi_clusterer clust;
-
-    for (size_t l=0; l<nsets; ++l) {
-        Rcpp::IntegerVector current=Links[l];
-        clust.storage.add(current.begin(), current.end());
-        auto startIt=clust.storage.get_start_unsafe(l);
-        for (size_t i=0; i<current.size(); ++i, ++startIt) {
-            --(*startIt); // get to zero indexing.
-        }
-    }
-
-    Rcpp::List curout=clust.cluster();
-    for (size_t i=0; i<curout.size(); ++i) {
-        Rcpp::IntegerVector curvec=curout[i];
-        for (auto& x : curvec) { ++x; } // get back to 1-indexing.
-        curout[i]=curvec;
-    }
-    return curout;
-    END_RCPP
-}

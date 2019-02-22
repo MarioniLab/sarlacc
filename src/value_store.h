@@ -2,6 +2,8 @@
 #define VALUE_STORE_H
 
 #include <algorithm>
+#include <deque>
+#include <stdexcept>
 
 /* This defines a class that stores multiple variable length arrays in a single container.
  * This avoids the need to reallocate memory for separate deques/vectors for different arrays
@@ -10,7 +12,7 @@
  * Arrays can be of variable length but are assumed to not change in size after creation.
  */ 
 
-template<typename T, class V>
+template<typename T>
 class value_store {
 public:
     value_store(size_t n=100, size_t n2=1000) : storage_values(n2), starts(n), lengths(n), n_stored(0), nvals_stored(0) {}
@@ -40,11 +42,11 @@ public:
         return;
     }
 
-    typename V::const_iterator get_start(size_t i) const {
+    typename std::deque<T>::const_iterator get_start(size_t i) const {
         return storage_values.begin() + starts[i];
     }
 
-    typename V::iterator get_start_unsafe(size_t i) {
+    typename std::deque<T>::iterator get_start(size_t i) {
         return storage_values.begin() + starts[i];
     }
 
@@ -56,12 +58,15 @@ public:
         return n_stored;
     }
 private:
-    V storage_values;
+    std::deque<T> storage_values;
     std::deque<size_t> starts, lengths;
     size_t n_stored, nvals_stored;
 
     template<class IT>
     void add_internal(IT start, IT end, size_t index) {
+        if (index < n_stored) {
+            throw std::runtime_error("'index' must not be smaller than number of stored elements");
+        }
         if (index >= starts.size()) {
             starts.resize(index+1);
             lengths.resize(index+1);
@@ -81,6 +86,5 @@ private:
         return;
     }
 };
-
 
 #endif

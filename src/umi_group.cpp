@@ -3,7 +3,7 @@
 #include "utils.h"
 #include "DNA_input.h"
 #include "sorted_trie.h"
-#include "umi_clusterer.h"
+#include "cluster_umis.h"
 #include "value_store.h"
 
 #include <vector>
@@ -34,10 +34,9 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
     // Defining persistent and reusable arrays for intermediate variable-length constructs.
     std::vector<const char*> allseqs;
     std::vector<int> alllens, order;
-    umi_clusterer clusterer;
-    
-    value_store<int, std::deque<int> > match_arrays;
     std::vector<int> workspace;
+
+    value_store<int> storage, match_arrays;
 
     // Running through each group to define the current set. 
     Rcpp::List Pregroup(pregroup), output(Pregroup.size());
@@ -71,7 +70,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
             for (size_t s=0; s<curN; ++s) {
                 auto o=order[s];
                 auto matches=trie1.find(allseqs[o], alllens[o], limit1);
-                clusterer.storage.add(matches.begin(), matches.end(), o);
+                storage.add(matches.begin(), matches.end(), o);
             }
 
         } else { 
@@ -80,7 +79,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
                 auto o=order[s];
                 const auto& matches=trie1.find(allseqs[o], alllens[o], limit1);
                 match_arrays.add(matches.begin(), matches.end(), o);
-                auto startIt=match_arrays.get_start_unsafe(o);
+                auto startIt=match_arrays.get_start(o);
                 std::sort(startIt, startIt + match_arrays.get_len(o));
             }
 
@@ -117,19 +116,19 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
                     }
                 }
 
-                clusterer.storage.add(workspace.begin(), workspace.begin() + counter, o);
+                storage.add(workspace.begin(), workspace.begin() + counter, o);
             }
             match_arrays.clear();
         }
 
-        Rcpp::List curout=clusterer.cluster();
+        Rcpp::List curout=cluster_umis(storage);
         for (size_t i=0; i<curout.size(); ++i) {
             Rcpp::IntegerVector curvec=curout[i];
             for (auto& x : curvec) { x=curgroup[x]; }
             curout[i]=curvec;
         }
         output[g]=curout;
-        clusterer.storage.clear();
+        storage.clear();
     }
 
     return output;
