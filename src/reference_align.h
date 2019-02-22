@@ -10,8 +10,11 @@ class reference_align {
 public:
     reference_align(size_t, const char*, Rcpp::NumericVector, double, double);
     double align(size_t, const char*, const char*, bool=true);
-    void backtrack(bool=false);
-    std::pair<size_t, size_t> map(size_t, size_t) const; 
+
+    void backtrack(std::deque<size_t>&, std::deque<size_t>&) const;
+    void backtrack(std::deque<char>&, std::deque<char>&, const char*) const;
+
+    static std::pair<size_t, size_t> map(const std::deque<size_t>&, const std::deque<size_t>&, size_t, size_t); 
 private:
     // Reference related.
     size_t rlen;
@@ -36,10 +39,6 @@ private:
     void align_column(std::deque<DIRECTION>::iterator, char, size_t, const char*, const char*, bool);
     double compute_cost (char, char, char) const;
     double precomputed_cost (int, bool, char) const;
-
-    // Backtrack-related.
-    bool backtracked=false;
-    std::deque<size_t> backtrack_start, backtrack_end;
 };
 
 #endif

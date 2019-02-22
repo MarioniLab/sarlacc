@@ -10,6 +10,7 @@ static const R_CallMethodDef all_call_entries[] = {
     REGISTER(adaptor_align, 8),
     REGISTER(adaptor_align_score_only, 6),
     REGISTER(barcode_align, 6),
+    REGISTER(general_align, 6),
 
     REGISTER(mask_bad_bases, 4),
     REGISTER(unmask_alignment, 2),

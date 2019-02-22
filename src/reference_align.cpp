@@ -2,8 +2,7 @@
 
 reference_align::reference_align (size_t reflen, const char * refseq, Rcpp::NumericVector qualities, double go, double ge) : 
         rlen(reflen), rseq(refseq), gap_open(go+ge), gap_ext(ge), 
-        scores(nrows), affine_left(nrows), directions(nrows*(rlen+1)), 
-        backtrack_start(rlen+1), backtrack_end(rlen+1) 
+        scores(nrows), affine_left(nrows), directions(nrows*(rlen+1))
 {
     create_qualities(qualities);
     return;
@@ -96,7 +95,6 @@ double reference_align::align(size_t len, const char* seq, const char* qual, boo
 #endif
 
     aligned=true;
-    backtracked=false;
     return scores[len];
 }
 
@@ -212,11 +210,12 @@ double reference_align::precomputed_cost (int mode, bool matched, char qual) con
     return origin[mode - 1][location];
 }
 
-void reference_align::backtrack(bool include_gaps) {
+void reference_align::backtrack(std::deque<size_t>& backtrack_start, std::deque<size_t>& backtrack_end) const {
     if (!aligned) {
         throw std::runtime_error("cannot backtrack without alignment");
     }
-    backtracked=true;
+    backtrack_start.resize(rlen+1);
+    backtrack_end.resize(rlen+1);
 
     auto location=directions.begin() + nrows * rlen; // start at the start of the last column.
     size_t currow=nrows-1;
@@ -250,13 +249,47 @@ void reference_align::backtrack(bool include_gaps) {
     return;
 }
 
-std::pair<size_t, size_t> reference_align::map (size_t ref_start, size_t ref_end) const {
-    if (!backtracked) {
-        throw std::runtime_error("cannot extract regions without backtracking");
+void reference_align::backtrack(std::deque<char>& ref_str, std::deque<char>& query_str, const char* qseq) const {
+    if (!aligned) {
+        throw std::runtime_error("cannot backtrack without alignment");
     }
+    ref_str.clear();
+    query_str.clear();
 
-    // Protect against empty references.
-    if (!rlen) {
+    auto location=directions.begin() + nrows * rlen; // start at the start of the last column.
+    size_t currow=nrows-1;
+
+    // Starting from the last column and working forwards.
+    // Note that we don't fill i=0, but this doesn't correspond to a real base anyway.
+    for (size_t i=rlen; i>0; --i) { 
+        while (currow > 0 && *(location+currow)==up) {
+            ref_str.push_front('-');
+            query_str.push_front(qseq[currow-1]);
+            --currow;
+        }
+
+        // Only include a query position if it's an actual match;
+        // a horizontal gap is not 'aligned' to the current reference base.
+        if (*(location+currow)==left) {
+            ref_str.push_front(rseq[i-1]);
+            query_str.push_front('-');
+        } else {
+            ref_str.push_front(rseq[i-1]);
+            query_str.push_front(qseq[currow-1]);
+            --currow;
+        }
+        
+        location-=nrows;
+    }
+   
+    return;
+}
+
+std::pair<size_t, size_t> reference_align::map (const std::deque<size_t>& backtrack_start, const std::deque<size_t>& backtrack_end, size_t ref_start, size_t ref_end) {
+    if (backtrack_start.size()!=backtrack_end.size()) {
+        throw std::runtime_error("invalid input");
+    }
+    if (backtrack_start.size()<=1) {
         return std::make_pair(0, 0);
     }
 

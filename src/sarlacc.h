@@ -3,11 +3,6 @@
 
 #include "Rcpp.h"
 
-#include <stdexcept>
-#include <vector>
-#include <string>
-#include <sstream>
-
 extern "C" {
 
 #include "Biostrings_interface.h"
@@ -19,6 +14,7 @@ extern "C" {
 SEXP adaptor_align(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP adaptor_align_score_only(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
 SEXP barcode_align(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
+SEXP general_align(SEXP, SEXP, SEXP, SEXP, SEXP, SEXP);
         
 SEXP mask_bad_bases(SEXP, SEXP, SEXP, SEXP);
 SEXP unmask_alignment(SEXP, SEXP);
