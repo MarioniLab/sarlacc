@@ -11,16 +11,15 @@ groupAlignedGenome <- function(locations)
 # written by Aaron Lun
 # created 22 November 2018
 {
-    locations <- .enforce_order(locations)
-    mapped <- seqnames(locations)!="*"
-    pcov <- coverage(locations[mapped & strand(locations)=="+"])
-    ncov <- coverage(locations[mapped & strand(locations)=="-"])
-
-    # Creating 'standard' intervals to overlap against.
-    pstandards <- as(slice(pcov, lower=1), "GenomicRanges")
-    nstandards <- as(slice(ncov, lower=1), "GenomicRanges")
-    strand(pstandards) <- "*"
-    strand(nstandards) <- "-"
+    if (is(locations, "GenomicRangesList")) {
+        ref <- unlist(locations)
+    } else {
+        ref <- locations
+    }
+    
+    mapped <- seqnames(ref)!="*"
+    pstandards <- reduce(ref[mapped & strand(ref)=="+"])
+    nstandards <- reduce(ref[mapped & strand(ref)=="-"])
     standards <- c(pstandards, nstandards)
 
     # All mapped elements should overlap with at least one standard,

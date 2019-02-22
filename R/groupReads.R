@@ -5,7 +5,7 @@ groupReads <- function(reads, truncate=1000, working.dir=NULL, mm.cmd="minimap2"
 {
     if (is.null(working.dir)) {
         working.dir <- tempfile(".")
-        dir.create(working.dir, showWarning=FALSE)
+        dir.create(working.dir, showWarnings=FALSE)
         on.exit({ unlink(working.dir, recursive=TRUE) })
     }
 
