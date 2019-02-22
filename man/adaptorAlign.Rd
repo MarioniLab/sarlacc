@@ -5,8 +5,8 @@
 \description{Perform pairwise alignments of adaptor sequences to the ends of the read sequences.}
 
 \usage{
-adaptorAlign(adaptor1, adaptor2, filepath, tolerance=100, gapOpening=1, 
-    gapExtension=5, qual.type=c("phred", "solexa", "illumina"), 
+adaptorAlign(adaptor1, adaptor2, filepath, tolerance=250, gapOpening=5, 
+    gapExtension=1, qual.type=c("phred", "solexa", "illumina"), 
     number=1e5, BPPARAM=SerialParam())
 }
 
@@ -81,7 +81,7 @@ This is because the start of adaptor 2 should align to the end of the read, whil
 
 The interpretation of the alignment strings is slightly different, as they are reported relative to the supplied adaptor sequences. 
 The starts of the alignment strings always refer to the 5' end of the reference adaptor sequence, regardless of which adaptor is involved.
-This simplifies downstream processing steps that extract the read sequence corresponding to a stretch of the adaptor sequence, e.g., \code{\link{umiExtract}}.
+This simplifies the interpretation of the read sequence in downstream processing steps.
 }
 
 \author{
@@ -90,8 +90,11 @@ Aaron Lun
 }
 
 \seealso{
-\code{\link{chopReads}},
-\code{\link{umiExtract}}
+\code{\link{tuneAlignment}} to pick the alignment parameters.
+
+\code{\link{filterReads}} to remove reads with low-quality adaptor alignments.
+
+\code{\link{realizeReads}} to extract the actual read sequence.
 }
 
 \examples{

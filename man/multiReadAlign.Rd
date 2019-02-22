@@ -6,8 +6,7 @@
 
 \usage{
 multiReadAlign(reads, groups, max.error=NA, match=0, mismatch=-1, 
-    gapOpening=5, gapExtension=1, bandwidth=100, bandwidth=100,
-    BPPARAM=SerialParam())
+    gapOpening=5, gapExtension=1, bandwidth=100, BPPARAM=SerialParam())
 }
 
 \arguments{

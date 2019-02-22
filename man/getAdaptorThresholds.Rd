@@ -44,8 +44,9 @@ Aaron Lun
 }
 
 \seealso{
-\code{\link{adaptorAlign}},
-\code{\link{chopReads}}
+\code{\link{adaptorAlign}} to obtain the initial adaptor alignments.
+
+\code{\link{filterReads}} to remove low-quality alignments based on this function.
 }
 
 \examples{

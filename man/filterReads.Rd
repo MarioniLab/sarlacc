@@ -19,7 +19,7 @@ Identification of a matching adaptor sequence is based on the alignment scores e
 An appropriate threshold for each adaptor can be chosen with methods like \code{\link{getAdaptorThresholds}}.
 
 If \code{essential1=TRUE}, a read will be discarded if a positive match to adaptor 1 cannot be found.
-This is useful when the adaptor contains critical information such as the unique molecular identifier, which is required for downstream steps such as \code{\link{umiExtract}}.
+This is useful when the adaptor contains critical information such as the unique molecular identifier.
 However, if adaptor 1 is not important (e.g., only necessary for PCR amplification), then it does not matter that it cannot be identified.
 In such cases, setting \code{essential1=FALSE} will ensure that reads without a match to adaptor 1 are not discarded.
 The same logic applies to \code{essential2} for adaptor 2.

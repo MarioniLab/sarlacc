@@ -5,7 +5,7 @@
 \description{Group reads based on sequence similarity, using fast pairwise alignment from minimap2.}
 
 \usage{
-groupReads(reads, truncate=1000, tmp.dir=NULL, mm.cmd="minimap2", 
+groupReads(reads, truncate=1000, working.dir=NULL, mm.cmd="minimap2", 
     mm.args=NULL, min.identity=0.7)
 }
 

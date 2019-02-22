@@ -49,6 +49,9 @@ fl <- system.file("extdata", "ex1.bam", package="Rsamtools", mustWork=TRUE)
 out <- asSam(fl, tempfile(fileext=""))
 gr <- sam2ranges(out)
 
-groups <- groupAligned(gr)
+groups <- groupAlignedGenome(gr)
 table(groups) # number of reads in each group.
+
+groups <- groupAlignedTrans(gr)
+table(groups)
 }
