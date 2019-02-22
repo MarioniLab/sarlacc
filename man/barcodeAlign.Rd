@@ -30,7 +30,7 @@ A \linkS4class{DataFrame} containing:
 \item{\code{score}:}{Numeric, the alignment score to the assigned barcode.}
 \item{\code{gap}:}{Numeric, the difference of \code{score} from the alignment score to the next best-matching barcode.}
 }
-Each row corresponds to a read (i.e., row) in \code{align.stats}.
+Each row corresponds to an entry in \code{sequences}.
 }
 
 \author{
