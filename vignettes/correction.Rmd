@@ -236,20 +236,46 @@ We do not want to use reads from multiple molecules for correction, especially i
   
 ## Based on the read sequence
 
-We first extract the read sequence using `realizeReads`.
-This standardizes the orientation and trims adaptors in preparation for further processing.
+We first extract the read sequence using `realizeReads()`.
+This standardizes the strand orientation and trims adaptors in preparation for further processing.
     
 ```{r}
-my.sample$reads <- realizeReads(my.sample) 
+read.seq <- realizeReads(my.sample)
+read.seq
 ```
 
 A simple grouping strategy is to align the reads to a reference and define groups of reads based on their overlap with annotated features.
-For example, we could align reads to a reference transcriptome and define each set of reads mapping to the same transcript as a single group.
-This would use the name of the reference sequence as a grouping factor, which can be extracted from BAM files using `r Biocpkg("Rsamtools")`.
+For example, we could use [_minimap2_](https://github.com/lh3/minimap2) to align reads to a reference transcriptome:
 
-A more complex approach would be to perform pairwise alignments between all reads using the `groupReads` function.
-This is based on the _minimap2_ aligner and will define groups of reads that have similar sequences (at least 70% sequence identity, by default).
-However, this is much more computationally intensive.
+```
+minimap2 -d index.mmi transcriptome.fa
+
+# Standardized orientation to reverse strand.
+minimap2 -ax splice --rev-only index.mmi reads.fastq
+```
+
+Each set of reads mapping to the same transcript would then be defined as a single group.
+We would use the name of the reference sequence as a grouping factor, which can be extracted from SAM files using the `sam2ranges()` function.
+
+A more complex approach would be to cluster reads together using software like [_vsearch_](https://github.com/torognes/vsearch).
+Each cluster is defined based on a minimum sequence similarity threshold to a centroid sequence.
+This is more computationally intensive but avoids the need for a pre-defined reference.
+We recommend using:
+
+```
+vsearch --cluster_fast reads.fastq -id 0.8 -iddef=0 --uc out.txt
+```
+
+where the output file `out.txt` can be easily read in using `read.table()` to create a grouping factor.
+
+Most of these strategies require software that are not available as _R_ packages.
+Thus, we need to save the read sequences to a FASTQ file for external processing, which can be done using `writeXStringSet()`.
+
+```{r}
+tmp.file <- tempfile(fileext=".fastq")
+writeXStringSet(read.seq, qualities=quality(read.seq), 
+    format="fastq", file=tmp.file)
+```
 
 For demonstration purposes, we will use groupings of reads based on their `MOLECULE_` tags.
 Obviously, this would not be available in real data analyses, but setting up an alignment to a real reference transcriptome is beyond the scope of this vignette.
@@ -307,7 +333,7 @@ We perform multiple sequence alignments (MSAs) for each read group using the `r 
 For large data sets, this is often the most time-consuming step and can be parallelized with `BPPARAM`.
 
 ```{r}
-msa.out <- multiReadAlign(my.sample$reads, groups)
+msa.out <- multiReadAlign(read.seq, groups)
 
 # Peeking at the largest MSA.
 by.size <- order(lengths(msa.out$alignments), decreasing=TRUE)
