@@ -61,12 +61,8 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
         keep <- keep & mapping$RNAME %in% restricted
     }
 
-    mapping$RNAME[!keep] <- "*"
-    mapping$POS[!keep] <- "1" # avoid trim() warnings.
-    mapping$CIGAR[!keep] <- ""
-
+    mapping <- mapping[keep,]
     strandedness <- ifelse(bitwAnd(mapping$FLAG, 0x10), "-", "+")
-    strandedness[!keep] <- "*"
 
     # Creating a GRanges object.
     align.len <- cigarWidthAlongReferenceSpace(mapping$CIGAR)
@@ -77,7 +73,8 @@ sam2ranges <- function(sam, minq = 10, restricted = NULL)
     granges$left.clip <- .get_clip_length(mapping$CIGAR)
     granges$right.clip <- .get_clip_length(mapping$CIGAR, start=FALSE)
 
-    split(granges, mapping$QNAME, drop=FALSE)
+    names(granges) <- mapping$QNAME
+    granges
 }
 
 .get_clip_length <- function(cigars, start=TRUE) {

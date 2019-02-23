@@ -25,12 +25,12 @@ All other alignments will have their reference locations set to \code{"*"} to in
 }
 
 \value{
-A \linkS4class{GRangesList} is returned where each entry corresponds to a read.
-An entry may be of length greater than 1 if a read aligns to multiple locations (due to multi-mapping or chimerism).
+A \linkS4class{GRanges} is returned containing one entry per alignment record of interest.
+Each entry is named with the read name, and multiple entries may be present for a read if it aligns to multiple locations (due to multi-mapping or chimerism).
 }
 
 \seealso{
-\code{\link{cigarWidthAlongReferenceSpace}}
+\code{\link{cigarWidthAlongReferenceSpace}} for how the width of each alignment is computed.
 }
 
 \author{
