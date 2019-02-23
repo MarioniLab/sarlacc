@@ -24,15 +24,15 @@ library(sarlacc)
 # Introduction
 
 The `r Biocpkg("sarlacc")` package provides a few methods to examine the accuracy of the read sequences produced generated with the Oxford Nanpore Technology (ONT).
-This requires both the read sequences^[With adaptors removed.]
+This requires both the read sequences^[With adaptors removed, see `?realizeReads`.]
 
 ```{r}
-# Mocking up some read data, post-adaptor removal.
+# Mocking up some read data, post-adaptor removal and
+# standardization of strand orientation.
 set.seed(1000)
 fastq <- tempfile(fileext=".fastq")
 reference <- sarlacc:::mockReads(adaptor1="", adaptor2="",
-    filepath=fastq, umi.position=c(1,0), barcode.position=c(1,0),
-    nreads.range=c(50, 100)) # more reads.
+    filepath=fastq, flip.strands=FALSE, nreads.range=c(50, 100)) 
 fastq 
 
 reads <- readQualityScaledDNAStringSet(fastq)
