@@ -3,8 +3,9 @@
 #' @importFrom stats runif rbinom
 #' @importFrom methods as
 mockReads <- function(adaptor1, adaptor2, filepath,
-        all.barcodes=NULL, barcode.position="auto", umi.position="auto", 
-        nmolecules=10, nreads.range=c(10, 50), seqlen.range=c(500, 5000)) 
+    all.barcodes=NULL, barcode.position="auto", umi.position="auto", 
+    nmolecules=10, nreads.range=c(10, 50), seqlen.range=c(500, 5000),
+    sub.rate=0.05, indel.rate=0.01, max.insert=5, flip.strands=TRUE)
 # Simulates reads for examples and vignettes.
 # Assumes that the first adaptor has the barcode (first Ns) and UMI (second Ns).
 #
@@ -17,23 +18,32 @@ mockReads <- function(adaptor1, adaptor2, filepath,
     # Checking barcode and UMI position, if not supplied.
     allNs <- gregexpr("N+", adaptor1)[[1]]
     starts <- as.integer(allNs)
-    ends <- starts + attr(allNs, "match.length") - 1L
 
-    if (identical(barcode.position, "auto")) {
-        barcode.position <- c(starts[1], ends[1])
+    if (length(starts)==1L && starts==-1L) {
+        barcode.position <- umi.position <- c(1L, 0L)
+    } else {
+        ends <- starts + attr(allNs, "match.length") - 1L
+
+        if (identical(barcode.position, "auto")) {
+            barcode.position <- c(starts[1], ends[1])
+        }
+
+        if (length(starts)==1L) {
+            umi.position <- c(1L, 0L)
+        } else {
+            if (identical(umi.position, "auto")) {
+                umi.position <- c(starts[2], ends[2])
+            }
+        }
     }
+
     barcode.len <- barcode.position[2] - barcode.position[1] + 1L
-
-    if (identical(umi.position, "auto")) {
-        umi.position <- c(starts[2], ends[2])
-    }
     umi.len <- umi.position[2] - umi.position[1] + 1L
 
     # Checking barcode content, or synthesizing them.
     if (is.null(all.barcodes)) { 
         all.barcodes <- strrep(nucleotides, barcode.len)
-    } 
-    if (!all(nchar(all.barcodes)==barcode.len)) {
+    } else if (!all(nchar(all.barcodes)==barcode.len)) {
         stop("'barcodes' width must correspond to barcode position")
     }
 
@@ -54,22 +64,22 @@ mockReads <- function(adaptor1, adaptor2, filepath,
         ref <- c(strsplit(tmp.adaptor1, "")[[1]], refseq, strsplit(as.character(rc.adaptor2), "")[[1]])
         reference[[i]] <- paste(ref, collapse="")
         
-        # Introducing mutations or deletions.
+        # Introducing mutations or deletions to each read.
         readseq <- quals <- vector("list", nreads)
         for (j in seq_len(nreads)) {
             reref <- ref
     
-            # Adding substitutions at a ~10% rate.
-            chosen <- rbinom(length(ref), 1, 0.1)==1
+            # Substitutions.
+            chosen <- rbinom(length(ref), 1, sub.rate)==1
             reref[chosen] <- sample(nucleotides, sum(chosen), replace=TRUE)
     
-            # Adding indels at a 5% rate.
-            chosen <- rbinom(length(ref), 1, 0.05)==1
-            new.values <- strrep(reref[chosen], sample(0:3, sum(chosen), replace=TRUE))
+            # Indels.
+            chosen <- rbinom(length(ref), 1, indel.rate)==1
+            new.values <- strrep(reref[chosen], sample(c(0L, 2:max.insert), sum(chosen), replace=TRUE))
             reref[chosen] <- new.values
-    
+   
             readseq[[j]] <- paste(reref, collapse="")
-            quals[[j]] <- PhredQuality(runif(nchar(readseq[[j]]), 0, 0.1))
+            quals[[j]] <- PhredQuality(runif(nchar(readseq[[j]]), 0, sub.rate + indel.rate)) # Made up qualities!
         }
     
         reads <- DNAStringSet(unlist(readseq))
@@ -77,8 +87,10 @@ mockReads <- function(adaptor1, adaptor2, filepath,
         names(qreads) <- paste0("MOLECULE_", i, ":READ_", seq_len(nreads))
     
         # Reversing 50% of them.
-        flip <- rbinom(nreads, 1, 0.5)==1
-        qreads[flip] <- reverseComplement(qreads[flip])
+        if (flip.strands) {
+            flip <- rbinom(nreads, 1, 0.5)==1
+            qreads[flip] <- reverseComplement(qreads[flip])
+        }
         writeXStringSet(qreads, filepath=filepath, append=(i!=1), format="fastq", qualities=as(quality(qreads), "BStringSet"))
     }
    
