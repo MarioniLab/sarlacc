@@ -1,5 +1,5 @@
 # This tests the C++ functions for pairwise sequence alignment.
-# library(sarlacc); library(testthat); source("test-aligned.R")
+# library(sarlacc); library(testthat); source("test-adaptor-align.R")
 
 library(Biostrings)
 adaptor <- "AAAAGGGGCCCCTTTT"
@@ -20,7 +20,7 @@ read.seq <- c("AAAAGGGGCCCCTTTT", # identical
 
 reads <- DNAStringSet(read.seq)
 
-set.seed(1000)
+set.seed(141000)
 quals <- do.call(c, lapply(read.seq, FUN=function(x) { PhredQuality(rbeta(nchar(x), 1, 10)) }))
 qreads <- QualityScaledDNAStringSet(reads, quals)
    
@@ -129,7 +129,53 @@ test_that("sequence front/back getter works correctly", {
     expect_identical(as.character(reverseComplement(extremes$back)), toupper(read.seq))
 })
 
-test_that("overall adaptorAlign function works correctly", {
+set.seed(141002)
+test_that("overall adaptorAlign function works correctly on general inputs", {
+    a1 <- "ACGATCAGCTAGNNNNNCGACTAGCTAGCTAG"
+    a2 <- "CACACTGAGCAGCGACTAGA"
+
+    # Simulating multiple reads.
+    collected <- vector("list", 50)
+    for (i in seq_along(collected)) {
+        nucleotides <- c("A", "C", "G", "T")
+        obs <- paste(sample(nucleotides, sample(20:80, 1), replace=TRUE), collapse="")
+        quals <- PhredQuality(10^-runif(nchar(obs), 1, 5))
+        q <- QualityScaledDNAStringSet(obs, quals)
+        collected[[i]] <- q
+    }
+
+    reads <- do.call(c, collected)
+    names(reads) <- sprintf("READ_%i", seq_along(reads))
+    tmp <- tempfile(fileext=".fastq")
+    writeXStringSet(reads, qualities=quality(reads), format="fastq", filepath=tmp)
+
+    # Running it through adaptorAlign and verifying correctness by comparison to pairwiseAlignment.
+    out <- adaptorAlign(a1, a2, tmp)
+    for (i in seq_along(collected)) {
+        query <- collected[[i]]
+        if (out$reversed[i]) { query <- reverseComplement(query) }
+
+        current1 <- out$adaptor1[i,]
+        ref1 <- REF_ALIGN(query, a1, 5, 1)
+        expect_equal(score(ref1), current1$score, tol=1e-5)
+        expect_identical(start(pattern(ref1)), current1$start)
+        expect_identical(end(pattern(ref1)), current1$end)
+
+        # For various algorithmic reasons, we arbitrarily include bases corresponding to gaps
+        # at the front but we exclude bases corresponding to gaps at the end. No real reason.
+        npos <- gregexpr("-*N+", alignedSubject(ref1))[[1]]
+        extract <- subseq(alignedPattern(ref1), start=npos, width=attr(npos, "match.length"))
+        expect_identical(gsub("-", "", extract), unname(as.character(current1$subseq[,1])))
+
+        current2 <- out$adaptor2[i,]
+        ref2 <- REF_ALIGN(reverseComplement(query), a2, 5, 1)
+        expect_equal(score(ref2), current2$score, tol=1e-5)
+        expect_identical(width(query) - start(pattern(ref2)) + 1L, current2$start)
+        expect_identical(width(query) - end(pattern(ref2)) + 1L, current2$end)
+    }
+})
+
+test_that("adaptorAlign flips the strands correctly", {
     myread <- "AACGTAACGTACGTACGTGGGGGGG"
     myqual <- "1234567890ABCDEFGHIJKLMNO"
     QSDS <- QualityScaledDNAStringSet(myread, PhredQuality(myqual))
@@ -156,3 +202,7 @@ test_that("overall adaptorAlign function works correctly", {
     empty <- adaptorAlign("AAAAAAA", "CCCCCCC", tmp)
     expect_identical(nrow(empty), 0L)
 })
+
+
+
+
