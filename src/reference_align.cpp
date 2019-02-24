@@ -257,14 +257,17 @@ void reference_align::backtrack(U& store) const {
         if (curdir==0) {
             store.move_diag(i, currow);
             --currow;
+            location-=nrows;
         } else {
-            while (curdir > 0) {
+            store.move_left(i, currow);
+            location-=nrows;
+
+            while ((--curdir) > 0) {
+                --i;
                 store.move_left(i, currow);
-                --curdir;
+                location-=nrows;
             }
         }
-
-        location-=nrows;
     }
 
     while (currow > 0) {
@@ -327,9 +330,9 @@ std::pair<size_t, size_t> reference_align::querymap::operator()(size_t ref_start
 void reference_align::fill_strings(std::vector<char>& rwork, std::vector<char>& qwork, const char* qseq) const {
     struct stringer {
         stringer(std::vector<char>& r, std::vector<char>& q, const char* rs, const char* qs) : rwork(r), qwork(q), rseq(rs), qseq(qs) {
-            // Vector resize() will not reduce capacity, avoid reallocs.
-            rwork.resize(1, '\0');
-            qwork.resize(1, '\0');
+            // Vector clear() will not reduce capacity, avoid reallocs.
+            rwork.clear();
+            qwork.clear();
             return;
         }
         void move_up(size_t i, size_t currow) {
@@ -356,7 +359,9 @@ void reference_align::fill_strings(std::vector<char>& rwork, std::vector<char>& 
     backtrack(store);
 
     std::reverse(rwork.begin(), rwork.end());
+    rwork.push_back('\0');
     std::reverse(qwork.begin(), qwork.end());
+    qwork.push_back('\0');
     return;
 }
 
