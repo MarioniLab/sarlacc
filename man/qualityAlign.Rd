@@ -6,7 +6,7 @@
 
 \usage{
 qualityAlign(sequences, reference, gapOpening=5, gapExtension=1, 
-    BPPARAM=SerialParam())
+    edit.only=FALSE, BPPARAM=SerialParam())
 }
 
 \arguments{
@@ -14,6 +14,7 @@ qualityAlign(sequences, reference, gapOpening=5, gapExtension=1,
 \item{reference}{A character vector or \linkS4class{DNAStringSet} containing the reference sequence.}
 \item{gapOpening}{A numeric scalar specifying the gap opening penalty.}
 \item{gapExtension}{A numeric scalar specifying the gap extension penalty.}
+\item{edit.only}{Logical scalar specifying whether the edit distances should be reported without alignment strings.}
 \item{BPPARAM}{A \linkS4class{BiocParallelParam} object specifying whether alignment should be parallelized.}
 }
 
@@ -25,8 +26,11 @@ This provides an alternative to quality-aware alignment with \code{\link{pairwis
 A \linkS4class{DataFrame} containing:
 \describe{
 \item{\code{score}:}{Numeric, the alignment score to the assigned barcode.}
-\item{\code{reference}:}{Character, the alignment string for the reference sequence.}
-\item{\code{sequence}:}{Character, the alignment string for each query sequence.}
+\item{\code{edit}:}{Integer, the edit distance of the alignment.}
+\item{\code{reference}:}{Character, the alignment string for the reference sequence.
+Only reported when \code{edit.only=FALSE}.}
+\item{\code{sequence}:}{Character, the alignment string for each query sequence.
+Only reported when \code{edit.only=FALSE}.}
 }
 Each row corresponds to an entry in \code{sequences}.
 }
