@@ -7,7 +7,7 @@
 #include <deque>
 #include <stdexcept>
 
-SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, SEXP gapext, SEXP reference) {
+SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, SEXP gapext, SEXP reference, SEXP edit_only) {
     BEGIN_RCPP
 
     auto ref_seq=check_string(reference, "reference sequence");
@@ -23,10 +23,13 @@ SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, S
         throw std::runtime_error("sequence and quality vectors should have the same length");
     }
 
+    bool only_edit=check_logical_scalar(edit_only, "edit-only specification");
+
     // Setting up the output.
     Rcpp::NumericVector scores(nseq);
-    Rcpp::StringVector refalign(nseq), qalign(nseq);
-    std::deque<char> tmpref, tmpquery;
+    Rcpp::IntegerVector edit_dist(nseq);
+    Rcpp::StringVector refalign(only_edit ? 0 : nseq), qalign(only_edit ? 0 : nseq);
+    std::vector<char> tmpref, tmpquery;
 
     for (size_t i=0; i<nseq; ++i) {
         auto curpair=sholder->get(i);
@@ -39,11 +42,21 @@ SEXP general_align(SEXP inputseq, SEXP inputqual, SEXP encoding, SEXP gapopen, S
         }
 
         scores[i]=RA.align(slen, sstr, curqual.ptr, false);
-        RA.backtrack(tmpref, tmpquery, sstr);
-        refalign[i]=std::string(tmpref.begin(), tmpref.end());
-        qalign[i]=std::string(tmpquery.begin(), tmpquery.end());
+        RA.fill_strings(tmpref, tmpquery, sstr);
+
+        int& edist=edit_dist[i];
+        for (size_t j=0; j<tmpref.size(); ++j) {
+            if (tmpref[j]!=tmpquery[j]) {
+                ++edist;
+            }
+        }
+
+        if (!only_edit) {
+            refalign[i]=tmpref.data();
+            qalign[i]=tmpquery.data();
+        }
     }
 
-    return Rcpp::List::create(scores, refalign, qalign);
+    return Rcpp::List::create(scores, edit_dist, refalign, qalign);
     END_RCPP
 }

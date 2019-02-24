@@ -40,7 +40,7 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
         collected_widths[i]=Rcpp::IntegerVector(nseq); 
     }
 
-    std::deque<size_t> backtrack_start, backtrack_end;
+    reference_align::querymap qmap;
 
     for (size_t i=0; i<nseq; ++i) {
         auto curpair=sholder->get(i);
@@ -53,16 +53,16 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
         }
 
         scores[i]=RA.align(slen, sstr, curqual.ptr);
-        RA.backtrack(backtrack_start, backtrack_end);
+        RA.fill_map(qmap);
 
-        auto aln_pos=reference_align::map(backtrack_start, backtrack_end, 0, adaptor_seq.size());
+        auto aln_pos=qmap(0, adaptor_seq.size());
         if (aln_pos.first < aln_pos.second) { // protect against empty sequences for which start/end are zero-indexed equal.
             aln_starts[i]=aln_pos.first+1; // 1-based indexing.
             aln_ends[i]=aln_pos.second;
         }
 
         for (size_t sec=0; sec<nsections; ++sec) {
-            auto current=RA.map(backtrack_start, backtrack_end, Sec_starts[sec], Sec_ends[sec]);
+            auto current=qmap(Sec_starts[sec], Sec_ends[sec]);
             collected_starts[sec][i]=current.first + 1; // 1-based indexing.
             collected_widths[sec][i]=current.second - current.first;
         }

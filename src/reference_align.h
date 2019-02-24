@@ -13,10 +13,14 @@ public:
     reference_align(size_t, const char*, Rcpp::NumericVector, double, double);
     double align(size_t, const char*, const char*, bool=true);
 
-    void backtrack(std::deque<size_t>&, std::deque<size_t>&) const;
-    void backtrack(std::deque<char>&, std::deque<char>&, const char*) const;
+    // Class to map each reference position to a range on the query.
+    struct querymap {
+        std::deque<size_t> starts, ends;
+        std::pair<size_t, size_t> operator()(size_t, size_t); 
+    };
+    void fill_map(querymap&) const;
 
-    static std::pair<size_t, size_t> map(const std::deque<size_t>&, const std::deque<size_t>&, size_t, size_t); 
+    void fill_strings(std::vector<char>&, std::vector<char>&, const char*) const;
 private:
     // Reference related.
     size_t rlen;
@@ -34,13 +38,17 @@ private:
     // DP matrix-related.
     bool aligned=false;
     size_t nrows=1000;
-    std::deque<double> scores, affine_left;
-    enum DIRECTION { up, left, diag };
-    std::deque<DIRECTION> directions;
+    std::deque<double> scores, left_jump_scores;
+    std::deque<size_t> left_jump_points;
+    std::deque<int> directions;
 
-    void align_column(std::deque<DIRECTION>::iterator, char, size_t, const char*, const char*, bool);
+    void align_column(std::deque<int>::iterator, size_t, size_t, const char*, const char*, bool);
     double compute_cost (char, char, char) const;
     double precomputed_cost (int, bool, char) const;
+
+    // Backtrack related.
+    template <class U>
+    void backtrack(U&) const;
 };
 
 #endif
