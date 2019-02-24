@@ -163,7 +163,7 @@ test_that("overall adaptorAlign function works correctly on general inputs", {
 
         # For various algorithmic reasons, we arbitrarily include bases corresponding to gaps
         # at the front but we exclude bases corresponding to gaps at the end. No real reason.
-        npos <- gregexpr("-*N+", alignedSubject(ref1))[[1]]
+        npos <- gregexpr("-*N[-N]+N", alignedSubject(ref1))[[1]]
         extract <- subseq(alignedPattern(ref1), start=npos, width=attr(npos, "match.length"))
         expect_identical(gsub("-", "", extract), unname(as.character(current1$subseq[,1])))
 

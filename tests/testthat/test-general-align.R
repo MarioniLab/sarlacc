@@ -14,7 +14,7 @@ GENERATOR <- function() {
     list(ref=r, query=q)
 }
 
-STRIPPER <- function(qalign1, ralign1, qalign2, ralign2) 
+STRIPPER <- function(qalign1, ralign1, qalign2, ralign2, quals) 
 # We need a special comparison function; alignment strings
 # are not unique as there are multiple best backtrack paths.
 {
@@ -36,33 +36,44 @@ STRIPPER <- function(qalign1, ralign1, qalign2, ralign2)
     qvec2 <- strsplit(qalign2, "")[[1]]
     expect_identical(sum(rvec1!=qvec1), sum(rvec2!=qvec2))
 
-    # Check that it's the same query bases that are mismatched.
+    # Check that it's the same query bases that are mismatched;
+    # or if they differ, then it's those bases have the same quality
+    # (which would also result in equally best backtrack paths).
     mm1 <- qvec1!=rvec1 & rvec1!='-' & qvec1!='-'
     mm2 <- qvec2!=rvec2 & rvec2!='-' & qvec2!='-'
-    expect_identical(cumsum(qvec1!='-')[mm1], cumsum(qvec2!='-')[mm2])
+    mismatched1 <- cumsum(qvec1!='-')[mm1]
+    mismatched2 <- cumsum(qvec2!='-')[mm2]
+    expect_identical(length(mismatched1), length(mismatched2))
+
+    notsame <- mismatched1!=mismatched2
+    quals <- strsplit(quals, "")[[1]]
+    expect_identical(quals[mismatched1[notsame]], quals[mismatched2[notsame]])
+
+    NULL
 }
 
 set.seed(32000)
 test_that("generalAlign works correctly for global alignments", {
-    for (i in seq_len(20)) {
+    for (i in seq_len(50)) {
         sim <- GENERATOR()
         r <- sim$ref
         q <- sim$query
+        quals <- as.character(quality(q))
 
         aln <- pairwiseAlignment(q, r, gapOpening=5, gapExtension=1)
         out <- qualityAlign(q, r, gapOpening=5)
         expect_equal(score(aln), out$score, tol=1e-5)
-        STRIPPER(out$query, out$reference, as.character(alignedPattern(aln)), as.character(alignedSubject(aln)))
+        STRIPPER(out$query, out$reference, as.character(alignedPattern(aln)), as.character(alignedSubject(aln)), quals)
 
         aln <- pairwiseAlignment(q, r, gapOpening=20, gapExtension=1)
         out <- qualityAlign(q, r, gapOpening=20)
         expect_equal(score(aln), out$score, tol=1e-5)
-        STRIPPER(out$query, out$reference, as.character(alignedPattern(aln)), as.character(alignedSubject(aln)))
+        STRIPPER(out$query, out$reference, as.character(alignedPattern(aln)), as.character(alignedSubject(aln)), quals)
 
         aln <- pairwiseAlignment(q, r, gapOpening=1, gapExtension=1)
         out <- qualityAlign(q, r, gapOpening=1)
         expect_equal(score(aln), out$score, tol=1e-5)
-        STRIPPER(out$query, out$reference, as.character(alignedPattern(aln)), as.character(alignedSubject(aln)))
+        STRIPPER(out$query, out$reference, as.character(alignedPattern(aln)), as.character(alignedSubject(aln)), quals)
     }
 })
 
