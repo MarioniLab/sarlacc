@@ -2,9 +2,10 @@ Package: sarlacc
 Version: 1.0.0
 Date: 2019-02-22
 Title: Pipeline for Oxford Nanopore RNA-Seq Data Analysis
-Authors@R: c(person("Florian", "Bieberich", role = c("aut", "cre"), email =
-        "Florian.Bieberich@cruk.cam.ac.uk"), person("Aaron", "Lun", role = "aut"))
-Maintainer: Florian Bieberich <Florian.Bieberich@cruk.cam.ac.uk>
+Authors@R: c(
+    person("Florian", "Bieberich", role = "aut"),
+    person("Aaron", "Lun", role = "cre", email = "infinite.monkeys.with.keyboards@gmail.com"),
+    person("Cheuk-Ting", "Law", role = "ctb"))
 Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors, BiocParallel
 Imports: methods, utils, IRanges, XVector, BiocGenerics, GenomeInfoDb,
         GenomicAlignments, igraph, data.table, Rcpp, ShortRead
@@ -17,5 +18,4 @@ NeedsCompilation: yes
 VignetteBuilder: knitr
 LinkingTo: Rcpp, Biostrings, IRanges, XVector, S4Vectors, RSeqAn
 SystemRequirements: C++14
-Author: Florian Bieberich [aut, cre], Aaron Lun [aut]
 RoxygenNote: 6.1.1
