@@ -90,9 +90,11 @@ test_that("alignment extraction works correctly", {
     refA <- as.character(alignedSubject(ref))
     gapsA <- lapply(strsplit(refA, ""), FUN=function(x) cumsum(x!="-"))
 
-    # Extracts the correct components.
-    possibilities <- combn(nchar(adaptor)+1L, 2)
-    possibilities[2,] <- possibilities[2,] - 1L 
+    # Extracts the correct components. We only use internal components
+    # as gap-inclusive extraction is hard to test at the ends (as 
+    # alignedPattern doesn't give us the entire string!)
+    possibilities <- combn(nchar(adaptor)-1L, 2)
+    possibilities[1,] <- possibilities[1,] + 1L 
     possibilities <- possibilities[,sample(ncol(possibilities))]
 
     out <- sarlacc:::.align_and_extract(adaptor, qreads, gap.opening=5, gap.extension=1, subseq.starts=possibilities[1,], subseq.ends=possibilities[2,])
@@ -105,11 +107,18 @@ test_that("alignment extraction works correctly", {
 
         collected <- character(length(observed))
         for (j in seq_along(gapsA)) {
-            collected[j] <- substr(refR[j], min(which(gapsA[[j]]==curstart)), min(which(gapsA[[j]]==curend)))
+            curgaps <- gapsA[[j]]
+            collected[j] <- substr(refR[j], 
+                min(which(curgaps==curstart-1)[-1], which(curgaps==curstart)), # Include gaps before start position.
+                max(which(curgaps==curend))) # Include gaps after end position.
         }
         collected <- gsub("-", "", collected)
         expect_identical(observed, collected)
     }
+
+    # Testing endpoint extraction.
+    out <- sarlacc:::.align_and_extract(adaptor, qreads, gap.opening=5, gap.extension=1, subseq.starts=1, subseq.ends=nchar(adaptor))
+    expect_identical(as.character(out$subseq[,1]), as.character(qreads))
 })
 
 test_that("subsequence finder behaves correctly around ambiguous bases", {
@@ -161,9 +170,8 @@ test_that("overall adaptorAlign function works correctly on general inputs", {
         expect_identical(start(pattern(ref1)), current1$start)
         expect_identical(end(pattern(ref1)), current1$end)
 
-        # For various algorithmic reasons, we arbitrarily include bases corresponding to gaps
-        # at the front but we exclude bases corresponding to gaps at the end. No real reason.
-        npos <- gregexpr("-*N[-N]+N", alignedSubject(ref1))[[1]]
+        # Including the gaps before and after the UMI.
+        npos <- gregexpr("-*N[-N]*", alignedSubject(ref1))[[1]]
         extract <- subseq(alignedPattern(ref1), start=npos, width=attr(npos, "match.length"))
         expect_identical(gsub("-", "", extract), unname(as.character(current1$subseq[,1])))
 
