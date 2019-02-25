@@ -6,9 +6,10 @@ Authors@R: c(
     person("Florian", "Bieberich", role = "aut"),
     person("Aaron", "Lun", role = "cre", email = "infinite.monkeys.with.keyboards@gmail.com"),
     person("Cheuk-Ting", "Law", role = "ctb"))
-Depends: R (>= 3.4), Biostrings, GenomicRanges, S4Vectors, BiocParallel
-Imports: methods, utils, IRanges, XVector, BiocGenerics, GenomeInfoDb,
-        GenomicAlignments, igraph, data.table, Rcpp, ShortRead
+Depends: Biostrings, GenomicRanges
+Imports: methods, utils, S4Vectors, IRanges, XVector, BiocGenerics, 
+    GenomeInfoDb, GenomicAlignments, igraph, data.table, Rcpp, ShortRead,
+    BiocParallel
 Suggests: Rsamtools, knitr, testthat, Matrix
 Description: Implements methods for pre-processing of Oxford Nanopore 
     transcriptomics data, generated using a UMI-based protocol for 
