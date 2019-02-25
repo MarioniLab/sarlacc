@@ -15,8 +15,9 @@ public:
 
     // Class to map each reference position to a range on the query.
     struct querymap {
-        std::deque<size_t> starts, ends;
-        std::pair<size_t, size_t> operator()(size_t, size_t); 
+        std::deque<std::pair<bool, size_t> > mapping;
+        size_t nrows;
+        std::pair<size_t, size_t> operator()(size_t, size_t, bool=false) const; 
     };
     void fill_map(querymap&) const;
 

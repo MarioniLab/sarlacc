@@ -279,52 +279,75 @@ void reference_align::backtrack(U& store) const {
 
 void reference_align::fill_map(querymap& path_store) const {
     struct mapper {
-        mapper(size_t rlen, std::deque<size_t>& s, std::deque<size_t>& e) : backtrack_start(s), backtrack_end(e) {
-            backtrack_start.resize(rlen+1);
-            backtrack_end.resize(rlen+1);
-        }
+        mapper(std::deque<std::pair<bool, size_t> >& m): mapping(m) {}
+        
+        // Bool asks whether this is a (mis)matching base (true) or a horizontal gap (false).
+        // The size_t specifies the position of the (mis)matching base on the query (true)
+        // or the query position preceding the horizontal gap (false).
         void move_up(size_t i, size_t currow) {}
         void move_diag(size_t i, size_t currow) {
-            // Only include a query position if it's an actual match.
-            backtrack_start[i]=currow;
-            backtrack_end[i]=currow+1;
+            mapping[i]=std::make_pair(true, currow);
             return;
         }
         void move_left(size_t i, size_t currow) {
-            // A horizontal gap is not 'aligned' to the current reference base.
-            backtrack_start[i]=currow+1;
-            backtrack_end[i]=currow+1;
+            mapping[i]=std::make_pair(false, currow+1);
             return;            
         }
-        std::deque<size_t>& backtrack_start;
-        std::deque<size_t>& backtrack_end;
+
+        std::deque<std::pair<bool, size_t> >& mapping;
     };
 
-    mapper store(rlen, path_store.starts, path_store.ends);
+    path_store.mapping.resize(rlen+1);
+    path_store.nrows=nrows;
+    mapper store(path_store.mapping);
     backtrack(store);
-   
-#ifdef DEBUG
-    for (size_t i=0; i<= rlen; ++i) {
-        Rprintf("%i %i %i\n", i, backtrack_start[i], backtrack_end[i]);
-    }
-#endif    
     return;
 }
 
-std::pair<size_t, size_t> reference_align::querymap::operator()(size_t ref_start, size_t ref_end) {
-    if (starts.size()!=ends.size()) {
-        throw std::runtime_error("invalid input");
-    }
-    if (starts.size()<=1) {
+std::pair<size_t, size_t> reference_align::querymap::operator()(size_t ref_start, size_t ref_end, bool include_gaps) const {
+    if (mapping.size()<=1) {
         return std::make_pair(0, 0);
     }
 
-    return std::make_pair(
-        // +1 to convert to DP matrix column index; -1 to get back to sequence index from DP row index.
-        starts[ref_start+1] - 1,
+    if (!include_gaps) {
+        // +1 to convert to DP matrix column index.
+        auto curstart=mapping[ref_start+1].second;
+
         // no +1, as we want the column corresponding to the before-the-end base.
-        ends[ref_end] - 1 
-    );
+        auto end_stats=mapping[ref_end];
+        auto curend=end_stats.second;
+        if (end_stats.first) {
+            ++curend; // getting the position immediately after the before-the-end base.
+        }
+
+        // -1 to go from DP indices to sequence positions.
+        return std::make_pair(curstart-1, curend-1);
+
+    } else {
+        size_t curstart, curend;
+
+        if (ref_start==0) {
+            curstart=1;
+        } else {
+            // no +1, we want the column corresponding to the base before the start.
+            auto start_stats=mapping[ref_start];
+            curstart=start_stats.second;
+            if (start_stats.first) {
+                ++curstart; // getting the position immediately after the before-the-start base.
+            }
+        }
+
+        // +1 to convert to DP matrix column index. 
+        ++ref_end;
+        if (ref_end==mapping.size()) {
+            curend=nrows;
+        } else {
+            curend=mapping[ref_end].second;
+        }
+
+        // -1 to go from DP indices to sequence positions.
+        return std::make_pair(curstart-1, curend-1);
+    }
 }
 
 void reference_align::fill_strings(std::vector<char>& rwork, std::vector<char>& qwork, const char* qseq) const {

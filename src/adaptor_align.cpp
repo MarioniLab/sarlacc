@@ -62,7 +62,7 @@ SEXP adaptor_align(SEXP readseq, SEXP readqual, SEXP encoding, SEXP gapopen, SEX
         }
 
         for (size_t sec=0; sec<nsections; ++sec) {
-            auto current=qmap(Sec_starts[sec], Sec_ends[sec]);
+            auto current=qmap(Sec_starts[sec], Sec_ends[sec], true);
             collected_starts[sec][i]=current.first + 1; // 1-based indexing.
             collected_widths[sec][i]=current.second - current.first;
         }
