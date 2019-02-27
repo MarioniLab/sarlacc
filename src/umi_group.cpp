@@ -37,7 +37,7 @@ SEXP umi_group(SEXP umi1, SEXP thresh1, SEXP umi2, SEXP thresh2, SEXP pregroup) 
         const size_t curN=curgroup.size();
 
         if (curN==1) {
-            output[g]=curgroup;
+            output[g]=Rcpp::List::create(curgroup);
             continue;
         }
 

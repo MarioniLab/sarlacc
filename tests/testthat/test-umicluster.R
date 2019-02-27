@@ -156,6 +156,14 @@ test_that("UMI grouping works with one UMI", {
     expect_equal(obs, unlist(ref, recursive=FALSE, use.names=FALSE))
 })
 
+test_that("UMI grouping skips solo UMIs", {
+    seqs <- SEQSIM(10, 10)
+    out <- umiGroup(seqs, threshold1=1, groups=1:10)
+    expect_identical(length(out), length(seqs))
+    expect_identical(lengths(out), rep(1L, length(out)))
+    expect_identical(unlist(out), 1:10)
+})
+
 test_that("UMI grouping works with two UMIs", {
     seqs1 <- seqs2 <- list()
     for (x in 1:10) {
